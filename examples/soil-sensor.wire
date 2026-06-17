@@ -1,0 +1,20 @@
+schematic
+  title "Soil sensor input"
+  description "A local soil-sensor module wired to a header and a pull-down resistor."
+
+  define component SoilSensor
+    terminal VCC
+    terminal GND
+    terminal AOUT
+    symbol module
+  end
+
+  component S1 SoilSensor
+  component R1 Resistor value=10k
+  component J1 Header pins=[VCC,GND,A0]
+
+  net VCC: J1.VCC, S1.VCC, R1.1
+  net GND: J1.GND, S1.GND
+  net SENSOR: S1.AOUT, R1.2, J1.A0
+
+  render direction=left-to-right

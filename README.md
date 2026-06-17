@@ -23,9 +23,27 @@ schematic
 
 ## Status
 
-Wire Lang is currently in the design and pre-MVP phase. The repository contains the product vocabulary, MVP specification, architecture decisions, contribution policy, and license. Implementation work has not started yet.
+The MVP is implemented. The repository is a pnpm monorepo with a working
+`parse → compile → layout → renderSvg` pipeline and a developer CLI (`wire
+check`/`render`/`watch`). It still contains the product vocabulary, MVP
+specification, architecture decisions, contribution policy, and license.
 
 The current scope is intentionally narrow: parse `.wire` source, provide strong diagnostics and AST feedback, compile to a renderer-independent schematic model, compute stable layout, render standalone SVG, and expose a minimal CLI feedback loop for developers and AI coding agents.
+
+### Packages
+
+- [`wire-lang`](./packages/wire-lang) — user-facing aggregate package and the `wire` binary
+- [`@wire-lang/core`](./packages/core) — parser, compiler, schematic model, layout engine, SVG renderer
+- [`@wire-lang/cli`](./packages/cli) — `wire check`, `wire render`, `wire watch`
+
+### Develop
+
+```bash
+pnpm install
+pnpm build       # tsup builds + tsc project-reference typecheck
+pnpm test        # vitest
+node packages/wire-lang/dist/bin.js render examples/led.wire --out led.svg
+```
 
 ## Why Wire Lang
 

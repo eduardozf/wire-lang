@@ -1,0 +1,27 @@
+{
+  "name": "@wire-lang/cli",
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Wire Lang developer CLI: check, render, and watch .wire files.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "dependencies": {
+    "@wire-lang/core": "workspace:*"
+  },
+  "scripts": {
+    "build:js": "tsup"
+  }
+}

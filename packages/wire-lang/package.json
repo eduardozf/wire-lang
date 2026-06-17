@@ -1,0 +1,31 @@
+{
+  "name": "wire-lang",
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Text-first electronic schematics rendered to SVG. Aggregate package and `wire` CLI.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "wire": "./dist/bin.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "dependencies": {
+    "@wire-lang/cli": "workspace:*",
+    "@wire-lang/core": "workspace:*"
+  },
+  "scripts": {
+    "build:js": "tsup"
+  }
+}

@@ -1,0 +1,28 @@
+schematic
+  title "Switched RLC bench demo"
+  description "A switched 9V rail feeds an RLC network, a PNP low-side driver and an amber LED, with a filtered output header. Exercises every standard symbol."
+
+  component BT1 Battery voltage=9V
+  component SW1 SPSTSwitch state=closed
+  component BTN1 PushButton normally=open
+  component L1 Inductor inductance=10mH
+  component D1 Diode
+  component R1 Resistor value=1k
+  component R2 Resistor value=4k7
+  component C1 Capacitor capacitance=100nF
+  component C2 PolarizedCapacitor capacitance=10uF
+  component Q1 PNPTransistor
+  component D2 LED color=amber
+  component J1 Header pins=[VBUS,SIG,GND]
+  component G1 GroundReference
+
+  net VIN: BT1.+, SW1.1, BTN1.1
+  net RAIL: SW1.2, BTN1.2, L1.1, R1.1, C2.+, J1.VBUS
+  net MID: L1.2, D1.A, R2.1, Q1.E
+  connect D1.C, C1.1, Q1.B
+  net SIG: R2.2, C1.2, Q1.C, D2.A, J1.SIG
+  net GND: BT1.-, R1.2, C2.-, D2.C, J1.GND, G1.GND
+
+  annotation "PNP low-side driver" near Q1
+  annotation "Output filter" near net SIG
+  render direction=left-to-right

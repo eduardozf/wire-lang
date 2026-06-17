@@ -1,0 +1,33 @@
+{
+  "name": "wire-lang-monorepo",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Text-first electronic schematics rendered to SVG. Monorepo root.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "pnpm@10.33.2",
+  "scripts": {
+    "build:js": "pnpm -r run build:js",
+    "build": "tsc -b && pnpm -r run build:js",
+    "typecheck": "tsc -b",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "clean": "tsc -b --clean && rimraf packages/*/dist packages/*/*.tsbuildinfo"
+  },
+  "devDependencies": {
+    "@resvg/resvg-js": "^2.6.2",
+    "@types/node": "^22.10.2",
+    "rimraf": "^6.0.1",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  }
+}

@@ -1,0 +1,14 @@
+schematic
+  title "RC low-pass filter"
+  description "A first-order RC low-pass filter between a header input and output."
+
+  component J1 Header pins=[IN,OUT,GND]
+  component R1 Resistor value=1k
+  component C1 Capacitor capacitance=100nF
+
+  net IN: J1.IN, R1.1
+  net OUT: R1.2, C1.1, J1.OUT
+  net GND: C1.2, J1.GND
+
+  annotation "Cutoff ~1.6 kHz" near net OUT
+  render direction=left-to-right

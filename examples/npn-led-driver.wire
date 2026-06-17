@@ -1,0 +1,21 @@
+schematic
+  title "NPN LED driver"
+  description "An NPN transistor switches a green LED from a 9V supply, driven through a base resistor."
+
+  component BT1 Battery voltage=9V
+  component R1 Resistor value=1k
+  component R2 Resistor value=330ohm
+  component Q1 NPNTransistor
+  component D1 LED color=green
+  component J1 Header pins=[IN,GND]
+  component G1 GroundReference
+
+  net VCC: BT1.+, R2.1
+  net LEDK: R2.2, D1.A
+  connect D1.C, Q1.C
+  net BASE: J1.IN, R1.1
+  connect R1.2, Q1.B
+  net GND: Q1.E, BT1.-, J1.GND, G1.GND
+
+  annotation "Base current limit" near R1
+  render direction=left-to-right
