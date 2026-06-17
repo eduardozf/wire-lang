@@ -1,9 +1,20 @@
 {
   "name": "wire-lang",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
   "description": "Text-first electronic schematics rendered to SVG. Aggregate package and `wire` CLI.",
+  "keywords": ["wire-lang", "schematic", "electronics", "circuit", "svg", "diagram", "eda", "cli"],
   "license": "MIT",
+  "author": "Ferraz <eduardozf1@gmail.com>",
+  "homepage": "https://github.com/eduardozf/wire-lang#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/eduardozf/wire-lang.git",
+    "directory": "packages/wire-lang"
+  },
+  "bugs": {
+    "url": "https://github.com/eduardozf/wire-lang/issues"
+  },
   "engines": {
     "node": ">=20"
   },
@@ -19,8 +30,12 @@
     "wire": "./dist/bin.js"
   },
   "files": [
-    "dist"
+    "dist",
+    "README.md"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
     "@wire-lang/cli": "workspace:*",
     "@wire-lang/core": "workspace:*"

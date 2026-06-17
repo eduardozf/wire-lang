@@ -1,9 +1,20 @@
 {
   "name": "@wire-lang/core",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
   "description": "Wire Lang core: parser, compiler, schematic model, layout engine, and SVG renderer.",
+  "keywords": ["wire-lang", "schematic", "electronics", "circuit", "svg", "diagram", "eda"],
   "license": "MIT",
+  "author": "Ferraz <eduardozf1@gmail.com>",
+  "homepage": "https://github.com/eduardozf/wire-lang#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/eduardozf/wire-lang.git",
+    "directory": "packages/core"
+  },
+  "bugs": {
+    "url": "https://github.com/eduardozf/wire-lang/issues"
+  },
   "engines": {
     "node": ">=20"
   },
@@ -16,8 +27,12 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "files": [
-    "dist"
+    "dist",
+    "README.md"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build:js": "tsup"
   }
