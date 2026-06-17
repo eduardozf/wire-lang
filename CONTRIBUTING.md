@@ -5,7 +5,7 @@ checks we run, and the project conventions.
 
 ## Prerequisites
 
-- Node.js 20+
+- Node.js 20.19+
 - [pnpm](https://pnpm.io) (the repo pins a version via `packageManager`; run
   `corepack enable` to use it automatically)
 
