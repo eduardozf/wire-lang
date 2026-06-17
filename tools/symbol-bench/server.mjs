@@ -3,18 +3,21 @@
 //   pnpm bench            # build core in watch mode + serve the bench
 //   pnpm bench --no-watch # just serve (build core yourself)
 //
-// Serves the repo root so the page can `import "/packages/core/dist/index.js"`,
-// rebuilds @wire-lang/core when its sources change, and exposes `/version`
-// (the dist mtime) so the page can live-reload after each rebuild.
+// Serves only the files the bench UI needs, rebuilds @wire-lang/core when its
+// sources change, and exposes `/version` (the dist mtime) so the page can
+// live-reload after each rebuild.
 
 import { spawn } from "node:child_process";
 import { createServer } from "node:http";
 import { readFile, stat } from "node:fs/promises";
-import { extname, join, normalize, resolve } from "node:path";
+import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+const benchRoot = resolve(fileURLToPath(new URL("./", import.meta.url)));
 const repoRoot = resolve(fileURLToPath(new URL("../../", import.meta.url)));
 const distFile = join(repoRoot, "packages/core/dist/index.js");
+const distMapFile = `${distFile}.map`;
+const host = process.env.HOST ?? "127.0.0.1";
 const port = Number(process.env.PORT ?? 4321);
 const watch = !process.argv.includes("--no-watch");
 
@@ -27,6 +30,13 @@ const MIME = {
   ".svg": "image/svg+xml",
   ".css": "text/css; charset=utf-8",
 };
+
+const ROUTES = new Map([
+  ["/", { filePath: join(benchRoot, "index.html"), type: MIME[".html"] }],
+  ["/bench.js", { filePath: join(benchRoot, "bench.js"), type: MIME[".js"] }],
+  ["/packages/core/dist/index.js", { filePath: distFile, type: MIME[".js"] }],
+  ["/packages/core/dist/index.js.map", { filePath: distMapFile, type: MIME[".map"] }],
+]);
 
 async function distVersion() {
   try {
@@ -45,28 +55,26 @@ const server = createServer(async (req, res) => {
     return;
   }
 
-  // Map "/" to the bench page; everything else is served from the repo root.
-  const rel = url.pathname === "/" ? "tools/symbol-bench/index.html" : url.pathname.slice(1);
-  const filePath = normalize(join(repoRoot, rel));
-  if (!filePath.startsWith(repoRoot)) {
-    res.writeHead(403).end("forbidden");
+  const route = ROUTES.get(url.pathname);
+  if (!route) {
+    res.writeHead(404, { "content-type": "text/plain; charset=utf-8" }).end("not found");
     return;
   }
 
   try {
-    const body = await readFile(filePath);
+    const body = await readFile(route.filePath);
     res.writeHead(200, {
-      "content-type": MIME[extname(filePath)] ?? "application/octet-stream",
+      "content-type": route.type,
       "cache-control": "no-store",
     });
     res.end(body);
   } catch {
-    res.writeHead(404, { "content-type": "text/plain" }).end(`not found: ${rel}`);
+    res.writeHead(404, { "content-type": "text/plain; charset=utf-8" }).end("not found");
   }
 });
 
-server.listen(port, () => {
-  console.log(`\n  Symbol bench → http://localhost:${port}\n`);
+server.listen(port, host, () => {
+  console.log(`\n  Symbol bench → http://${host}:${port}\n`);
   if (watch) {
     console.log("  Watching @wire-lang/core (edit packages/core/src/render/symbols.ts)\n");
     const child = spawn(
