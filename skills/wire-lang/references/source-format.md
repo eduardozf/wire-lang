@@ -87,3 +87,9 @@ render net VCC style=label
 ```
 
 Render hints guide layout but do not change the circuit.
+
+`direction` and net `style` are honored today. `orientation`, `side`, and
+`anchor` (and `group` layout) are accepted and validated but not yet positioned
+by the bundled renderer — using them emits a `render.not-yet-honored` (or
+`group.not-yet-honored`) warning. They are safe to write for forward
+compatibility; they just have no visual effect yet.
