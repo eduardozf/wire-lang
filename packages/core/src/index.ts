@@ -46,6 +46,7 @@ export { getStandardComponent, standardComponentNames } from "./library/standard
 
 export { renderSvg } from "./render/render-svg.js";
 export { serializeSvg } from "./render/render-svg.js";
+export { renderComponent } from "./render/symbols.js";
 
 export { layout } from "./layout/engine.js";
 export type {

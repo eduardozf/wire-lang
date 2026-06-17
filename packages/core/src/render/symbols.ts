@@ -1,6 +1,33 @@
 import type { LayoutComponent, Point } from "../layout/types.js";
 import { circle, escapeText, fmt, line, polygon, polylinePath, rect, text } from "./svg-serializer.js";
 
+/**
+ * How symbol geometry works
+ * -------------------------
+ * Every glyph is drawn in a *frame* attached to its component, so the same recipe
+ * works wherever the layout places, rotates, or stretches the part. Positions are
+ * written as labeled points `{ along, across }`:
+ *
+ *   - `along`  : distance from the first terminal (0) toward the second (`length`).
+ *   - `across` : sideways offset from the axis. Negative is up, positive is down.
+ *   - `center` : `length / 2`, the midpoint of the body along the axis.
+ *   - `length` : the terminal-to-terminal distance.
+ *   - `LEAD`   : length of the straight wire stub before the body starts.
+ *
+ * So `{ along: center + 7, across: -8 }` reads as "7 past the centre toward the
+ * second terminal, then 8 up".
+ *
+ * A symbol is built by listing its parts with `pen(frame)`, whose verbs
+ * (`lead`, `wire`, `bar`, `triangle`, `arrow`, `dot`, `circle`, `plus`) each take
+ * one options object. `group(...)` joins the parts into the final SVG.
+ */
+
+/** A labeled point in a component's frame. */
+interface Pt {
+  readonly along: number;
+  readonly across: number;
+}
+
 const LED_COLORS: Record<string, string> = {
   red: "#ef4444",
   green: "#22c55e",
@@ -10,27 +37,85 @@ const LED_COLORS: Record<string, string> = {
   amber: "#f59e0b",
 };
 
-/** A local coordinate frame: `along` runs p0->p1, `perp` is the left normal. */
-type Frame = (along: number, perp: number) => Point;
+/** Maps a labeled point in the local frame to an absolute SVG point. */
+type Frame = (point: Pt) => Point;
 
-function makeFrame(p0: Point, p1: Point): { M: Frame; len: number } {
-  const dx = p1.x - p0.x;
-  const dy = p1.y - p0.y;
-  const len = Math.hypot(dx, dy) || 1;
-  const ux = dx / len;
-  const uy = dy / len;
-  const px = -uy;
-  const py = ux;
-  const M: Frame = (along, perp) => ({ x: p0.x + ux * along + px * perp, y: p0.y + uy * along + py * perp });
-  return { M, len };
+function makeFrame(first: Point, second: Point): { frame: Frame; length: number } {
+  const dx = second.x - first.x;
+  const dy = second.y - first.y;
+  const length = Math.hypot(dx, dy) || 1;
+  const axisX = dx / length;
+  const axisY = dy / length;
+  const sideX = -axisY; // unit vector across the axis (the "across" direction)
+  const sideY = axisX;
+  const frame: Frame = ({ along, across }) => ({
+    x: first.x + axisX * along + sideX * across,
+    y: first.y + axisY * along + sideY * across,
+  });
+  return { frame, length };
 }
 
-function localPath(M: Frame, pts: readonly [number, number][], cls = "wire-symbol", extra = ""): string {
-  return polylinePath(
-    pts.map(([a, b]) => M(a, b)),
-    cls,
-    extra,
-  );
+/** Drawing verbs that take labeled points and named dimensions. */
+interface Pen {
+  /** A straight wire stub between two points (a component lead). */
+  lead(options: { from: Pt; to: Pt }): string;
+  /** An open polyline: resistor zig-zags, inductor coils, switch levers. */
+  wire(options: { points: readonly Pt[] }): string;
+  /** A straight stroke across the axis, centred on it: plates, cells, bars. */
+  bar(options: { at: number; height: number }): string;
+  /** An arbitrary straight stroke between two points. */
+  segment(options: { from: Pt; to: Pt }): string;
+  /** A filled triangle, e.g. the diode body. `fill` overrides the default. */
+  triangle(options: { points: readonly Pt[]; fill?: string }): string;
+  /** A shaft with an arrowhead that always points along the shaft. */
+  arrow(options: { from: Pt; to: Pt }): string;
+  /** A small filled contact dot. */
+  dot(options: { at: Pt; radius?: number }): string;
+  /** A stroked circle (e.g. a transistor envelope). */
+  circle(options: { at: Pt; radius: number }): string;
+  /** A "+" polarity marker. */
+  plus(options: { at: Pt }): string;
+}
+
+function makePen(frame: Frame): Pen {
+  return {
+    lead: ({ from, to }) => polylinePath([frame(from), frame(to)], "wire-symbol"),
+    wire: ({ points }) => polylinePath(points.map(frame), "wire-symbol"),
+    bar: ({ at, height }) =>
+      line(frame({ along: at, across: -height / 2 }), frame({ along: at, across: height / 2 }), "wire-symbol"),
+    segment: ({ from, to }) => line(frame(from), frame(to), "wire-symbol"),
+    triangle: ({ points, fill }) =>
+      polygon(points.map(frame), "wire-symbol-fill", fill ? ` fill="${fill}"` : ""),
+    dot: ({ at, radius = 1.6 }) => circle(frame(at), radius, "wire-symbol-fill"),
+    circle: ({ at, radius }) => circle(frame(at), radius, "wire-symbol-bg"),
+    plus: ({ at }) => text("+", frame(at), "middle", "wire-pin-label"),
+    arrow: ({ from, to }) => {
+      const distance = Math.hypot(to.along - from.along, to.across - from.across) || 1;
+      const axisX = (to.along - from.along) / distance;
+      const axisY = (to.across - from.across) / distance;
+      const headLength = 3.5;
+      const headHalfWidth = 2.2;
+      const base: Pt = { along: to.along - axisX * headLength, across: to.across - axisY * headLength };
+      const sideX = -axisY;
+      const sideY = axisX;
+      return (
+        polylinePath([frame(from), frame(base)], "wire-symbol") +
+        polygon(
+          [
+            frame(to),
+            frame({ along: base.along + sideX * headHalfWidth, across: base.across + sideY * headHalfWidth }),
+            frame({ along: base.along - sideX * headHalfWidth, across: base.across - sideY * headHalfWidth }),
+          ],
+          "wire-symbol-fill",
+        )
+      );
+    },
+  };
+}
+
+/** Join symbol parts into a single SVG fragment. */
+function group(...parts: string[]): string {
+  return parts.join("");
 }
 
 function ledColor(component: LayoutComponent): string | null {
@@ -40,175 +125,169 @@ function ledColor(component: LayoutComponent): string | null {
 
 const LEAD = 14;
 
-function drawResistor(M: Frame, len: number): string {
-  const start = LEAD;
-  const end = len - LEAD;
-  const span = end - start;
-  const teeth = 6;
-  const points: [number, number][] = [
-    [0, 0],
-    [start, 0],
+function drawResistor(pen: Pen, length: number): string {
+  const bodyStart = LEAD;
+  const bodyEnd = length - LEAD;
+  const bodySpan = bodyEnd - bodyStart;
+  const toothCount = 6;
+  const toothAmplitude = 7; // how far each tooth swings off the axis
+  const points: Pt[] = [
+    { along: 0, across: 0 },
+    { along: bodyStart, across: 0 },
   ];
-  for (let i = 0; i < teeth; i += 1) {
-    const a = start + (span * (i + 0.5)) / teeth;
-    points.push([a, i % 2 === 0 ? -7 : 7]);
+  for (let i = 0; i < toothCount; i += 1) {
+    const along = bodyStart + (bodySpan * (i + 0.5)) / toothCount;
+    points.push({ along, across: i % 2 === 0 ? -toothAmplitude : toothAmplitude });
   }
-  points.push([end, 0], [len, 0]);
-  return localPath(M, points);
+  points.push({ along: bodyEnd, across: 0 }, { along: length, across: 0 });
+  return pen.wire({ points });
 }
 
-function drawCapacitor(M: Frame, len: number, polarized: boolean): string {
-  const c = len / 2;
+function drawCapacitor(pen: Pen, length: number, polarized: boolean): string {
+  const center = length / 2;
+  const plateGap = 3; // distance from the centre to each plate
+  const plateHeight = 20; // plate height
   const parts = [
-    localPath(M, [
-      [0, 0],
-      [c - 3, 0],
-    ]),
-    localPath(M, [
-      [c + 3, 0],
-      [len, 0],
-    ]),
-    line(M(c - 3, -10), M(c - 3, 10), "wire-symbol"),
+    pen.lead({ from: { along: 0, across: 0 }, to: { along: center - plateGap, across: 0 } }),
+    pen.lead({ from: { along: center + plateGap, across: 0 }, to: { along: length, across: 0 } }),
+    pen.bar({ at: center - plateGap, height: plateHeight }), // left plate
   ];
   if (polarized) {
     parts.push(
-      polylinePath([M(c + 3, -8), M(c + 6, -5), M(c + 6, 5), M(c + 3, 8)], "wire-symbol"),
-      text("+", M(c - 8, -11), "middle", "wire-pin-label"),
+      // Curved "+" plate.
+      pen.wire({
+        points: [
+          { along: center + plateGap, across: -8 },
+          { along: center + plateGap + 3, across: -5 },
+          { along: center + plateGap + 3, across: 5 },
+          { along: center + plateGap, across: 8 },
+        ],
+      }),
+      pen.plus({ at: { along: center - 8, across: -11 } }),
     );
   } else {
-    parts.push(line(M(c + 3, -10), M(c + 3, 10), "wire-symbol"));
+    parts.push(pen.bar({ at: center + plateGap, height: plateHeight })); // right plate
   }
-  return parts.join("");
+  return group(...parts);
 }
 
-function drawInductor(M: Frame, len: number): string {
-  const start = LEAD;
-  const end = len - LEAD;
-  const bumps = 4;
-  const width = (end - start) / bumps;
-  const radius = width / 2;
-  const points: Point[] = [M(0, 0), M(start, 0)];
-  for (let i = 0; i < bumps; i += 1) {
-    const center = start + (i + 0.5) * width;
+function drawInductor(pen: Pen, length: number): string {
+  const bodyStart = LEAD;
+  const bodyEnd = length - LEAD;
+  const bumpCount = 4;
+  const bumpWidth = (bodyEnd - bodyStart) / bumpCount;
+  const bumpRadius = bumpWidth / 2;
+  const points: Pt[] = [
+    { along: 0, across: 0 },
+    { along: bodyStart, across: 0 },
+  ];
+  for (let i = 0; i < bumpCount; i += 1) {
+    const bumpCenter = bodyStart + (i + 0.5) * bumpWidth;
     for (let step = 0; step <= 8; step += 1) {
-      const theta = Math.PI * (step / 8);
-      points.push(M(center - radius * Math.cos(theta), -radius * Math.sin(theta)));
+      const angle = Math.PI * (step / 8); // sweep each half-circle bump
+      points.push({ along: bumpCenter - bumpRadius * Math.cos(angle), across: -bumpRadius * Math.sin(angle) });
     }
   }
-  points.push(M(end, 0), M(len, 0));
-  return polylinePath(points, "wire-symbol");
+  points.push({ along: bodyEnd, across: 0 }, { along: length, across: 0 });
+  return pen.wire({ points });
 }
 
-function drawDiode(M: Frame, len: number, component: LayoutComponent, led: boolean): string {
-  const c = len / 2;
+function drawDiode(pen: Pen, length: number, component: LayoutComponent, led: boolean): string {
+  const center = length / 2;
+  const tipDistance = 7; // half-length of the body: flat anode at -tip, point at +tip
+  const bodyHeight = 16; // height of the body and the cathode bar
   const fill = led ? (ledColor(component) ?? "#9ca3af") : "#1f2937";
   const parts = [
-    localPath(M, [
-      [0, 0],
-      [c - 7, 0],
-    ]),
-    localPath(M, [
-      [c + 7, 0],
-      [len, 0],
-    ]),
-    polygon([M(c - 7, -8), M(c - 7, 8), M(c + 7, 0)], "wire-symbol-fill", ` fill="${fill}"`),
-    line(M(c + 7, -8), M(c + 7, 8), "wire-symbol"),
+    pen.lead({ from: { along: 0, across: 0 }, to: { along: center - tipDistance, across: 0 } }), // anode lead
+    pen.lead({ from: { along: center + tipDistance, across: 0 }, to: { along: length, across: 0 } }), // cathode lead
+    pen.triangle({
+      fill,
+      points: [
+        { along: center - tipDistance, across: -bodyHeight / 2 },
+        { along: center - tipDistance, across: bodyHeight / 2 },
+        { along: center + tipDistance, across: 0 },
+      ],
+    }),
+    pen.bar({ at: center + tipDistance, height: bodyHeight }), // cathode bar
   ];
   if (led) {
+    // Two parallel "emitted light" arrows pointing away from the diode.
     parts.push(
-      localPath(M, [
-        [c + 2, -10],
-        [c + 8, -16],
-      ]),
-      polygon([M(c + 8, -16), M(c + 5, -14), M(c + 8, -12)], "wire-symbol-fill"),
-      localPath(M, [
-        [c + 7, -8],
-        [c + 13, -14],
-      ]),
-      polygon([M(c + 13, -14), M(c + 10, -12), M(c + 13, -10)], "wire-symbol-fill"),
+      pen.arrow({ from: { along: center, across: -10 }, to: { along: center + 4, across: -16 } }),
+      pen.arrow({ from: { along: center + 4, across: -8 }, to: { along: center + 8, across: -14 } }),
     );
   }
-  return parts.join("");
+  return group(...parts);
 }
 
-function drawBattery(M: Frame, len: number): string {
-  const c = len / 2;
-  return [
-    localPath(M, [
-      [0, 0],
-      [c - 7, 0],
-    ]),
-    localPath(M, [
-      [c + 7, 0],
-      [len, 0],
-    ]),
-    line(M(c - 7, -11), M(c - 7, 11), "wire-symbol"),
-    line(M(c - 3, -6), M(c - 3, 6), "wire-symbol"),
-    line(M(c + 3, -11), M(c + 3, 11), "wire-symbol"),
-    line(M(c + 7, -6), M(c + 7, 6), "wire-symbol"),
-  ].join("");
+function drawBattery(pen: Pen, length: number): string {
+  const center = length / 2;
+  const tallPlate = 22; // long cell plate height (the + terminal)
+  const shortPlate = 12; // short cell plate height (the - terminal)
+  return group(
+    pen.lead({ from: { along: 0, across: 0 }, to: { along: center - 7, across: 0 } }), // lead in
+    pen.lead({ from: { along: center + 7, across: 0 }, to: { along: length, across: 0 } }), // lead out
+    pen.bar({ at: center - 7, height: tallPlate }),
+    pen.bar({ at: center - 3, height: shortPlate }),
+    pen.bar({ at: center + 3, height: tallPlate }),
+    pen.bar({ at: center + 7, height: shortPlate }),
+  );
 }
 
-function drawSwitch(M: Frame, len: number, pushButton: boolean): string {
-  const c = len / 2;
+function drawSwitch(pen: Pen, length: number, pushButton: boolean): string {
+  const center = length / 2;
+  const contactGap = 8; // distance from the centre to each contact
   const parts = [
-    localPath(M, [
-      [0, 0],
-      [c - 8, 0],
-    ]),
-    localPath(M, [
-      [c + 8, 0],
-      [len, 0],
-    ]),
-    circle(M(c - 8, 0), 1.6, "wire-symbol-fill"),
-    circle(M(c + 8, 0), 1.6, "wire-symbol-fill"),
+    pen.lead({ from: { along: 0, across: 0 }, to: { along: center - contactGap, across: 0 } }), // lead in
+    pen.lead({ from: { along: center + contactGap, across: 0 }, to: { along: length, across: 0 } }), // lead out
+    pen.dot({ at: { along: center - contactGap, across: 0 } }), // left contact
+    pen.dot({ at: { along: center + contactGap, across: 0 } }), // right contact
   ];
   if (pushButton) {
     parts.push(
-      line(M(c - 8, -11), M(c + 8, -11), "wire-symbol"),
-      localPath(M, [
-        [c, -11],
-        [c, -17],
-      ]),
+      // Horizontal contact plate above the contacts, plus the plunger.
+      pen.segment({ from: { along: center - contactGap, across: -11 }, to: { along: center + contactGap, across: -11 } }),
+      pen.wire({ points: [{ along: center, across: -11 }, { along: center, across: -17 }] }),
     );
   } else {
-    parts.push(
-      localPath(M, [
-        [c - 8, 0],
-        [c + 7, -10],
-      ]),
-    );
+    parts.push(pen.wire({ points: [{ along: center - contactGap, across: 0 }, { along: center + 7, across: -10 }] })); // lever
   }
-  return parts.join("");
+  return group(...parts);
 }
 
 function drawGround(component: LayoutComponent): string {
   const terminal = component.terminals[0];
   if (!terminal) return "";
-  const t = terminal.point;
-  const c = component.center;
-  const { M, len } = makeFrame(t, c);
-  return [
-    localPath(M, [
-      [0, 0],
-      [len * 0.45, 0],
-    ]),
-    line(M(len * 0.45, -12), M(len * 0.45, 12), "wire-symbol"),
-    line(M(len * 0.68, -8), M(len * 0.68, 8), "wire-symbol"),
-    line(M(len * 0.9, -4), M(len * 0.9, 4), "wire-symbol"),
-  ].join("");
+  // The ground glyph runs from its single terminal toward the body centre.
+  const { frame, length } = makeFrame(terminal.point, component.center);
+  const p = makePen(frame);
+  return group(
+    p.wire({ points: [{ along: 0, across: 0 }, { along: length * 0.45, across: 0 }] }), // stem
+    p.bar({ at: length * 0.45, height: 24 }), // widest rail
+    p.bar({ at: length * 0.68, height: 16 }),
+    p.bar({ at: length * 0.9, height: 8 }),
+  );
 }
 
 function boundaryPoint(from: Point, to: Point, radius: number): Point {
   const dx = to.x - from.x;
   const dy = to.y - from.y;
-  const d = Math.hypot(dx, dy) || 1;
-  return { x: to.x - (dx / d) * radius, y: to.y - (dy / d) * radius };
+  const distance = Math.hypot(dx, dy) || 1;
+  return { x: to.x - (dx / distance) * radius, y: to.y - (dy / distance) * radius };
 }
 
 function drawTransistor(component: LayoutComponent, pnp: boolean): string {
+  // The transistor is drawn in absolute coordinates: its geometry is radial
+  // (an envelope circle with three leads at arbitrary angles), which the 1-D
+  // along/across frame used by the other symbols cannot express naturally.
   const center = component.center;
-  const radius = 17;
+  const radius = 17; // envelope circle
+  const baseBarHalfLength = 9; // half-length of the base bar
+  const baseBarInset = 0.45; // base bar sits this fraction of the radius inside the edge
+  const legSpread = 5; // collector/emitter contact offset from the bar centre
+  const arrowLength = 6;
+  const arrowHalfWidth = 3;
+
   const byRole = (role: string): Point | null => {
     const name = component.roleMappings.find((mapping) => mapping.role === role)?.terminal;
     const terminal = component.terminals.find((entry) => entry.name === name);
@@ -219,69 +298,86 @@ function drawTransistor(component: LayoutComponent, pnp: boolean): string {
   const emitter = byRole("emitter") ?? component.terminals[2]?.point ?? center;
 
   const baseEdge = boundaryPoint(center, base, radius);
-  // Base bar sits just inside the envelope, perpendicular to the base lead.
-  const bdx = baseEdge.x - center.x;
-  const bdy = baseEdge.y - center.y;
-  const bd = Math.hypot(bdx, bdy) || 1;
-  const nx = -bdy / bd;
-  const ny = bdx / bd;
-  const barInner = { x: center.x - (bdx / bd) * (radius * 0.45), y: center.y - (bdy / bd) * (radius * 0.45) };
-  const barA = { x: barInner.x + nx * 9, y: barInner.y + ny * 9 };
-  const barB = { x: barInner.x - nx * 9, y: barInner.y - ny * 9 };
+  // Unit vector from the centre toward the base lead, plus its left normal.
+  const baseDx = baseEdge.x - center.x;
+  const baseDy = baseEdge.y - center.y;
+  const baseDistance = Math.hypot(baseDx, baseDy) || 1;
+  const towardBaseX = baseDx / baseDistance;
+  const towardBaseY = baseDy / baseDistance;
+  const normalX = -towardBaseY;
+  const normalY = towardBaseX;
 
-  const collInner = { x: barInner.x + nx * 5, y: barInner.y + ny * 5 };
-  const emitInner = { x: barInner.x - nx * 5, y: barInner.y - ny * 5 };
-  const collEdge = boundaryPoint(center, collector, radius);
-  const emitEdge = boundaryPoint(center, emitter, radius);
-  const arrowTarget = pnp ? emitInner : emitEdge;
-  const arrowFrom = pnp ? emitEdge : emitInner;
-  const adx = arrowTarget.x - arrowFrom.x;
-  const ady = arrowTarget.y - arrowFrom.y;
-  const ad = Math.hypot(adx, ady) || 1;
-  const ux = adx / ad;
-  const uy = ady / ad;
-  const tip = arrowTarget;
+  // Base bar sits just inside the envelope, perpendicular to the base lead.
+  const barCenter = {
+    x: center.x - towardBaseX * (radius * baseBarInset),
+    y: center.y - towardBaseY * (radius * baseBarInset),
+  };
+  const barA = { x: barCenter.x + normalX * baseBarHalfLength, y: barCenter.y + normalY * baseBarHalfLength };
+  const barB = { x: barCenter.x - normalX * baseBarHalfLength, y: barCenter.y - normalY * baseBarHalfLength };
+  const collectorInner = { x: barCenter.x + normalX * legSpread, y: barCenter.y + normalY * legSpread };
+  const emitterInner = { x: barCenter.x - normalX * legSpread, y: barCenter.y - normalY * legSpread };
+  const collectorEdge = boundaryPoint(center, collector, radius);
+  const emitterEdge = boundaryPoint(center, emitter, radius);
+
+  // The emitter leg carries the arrow: inward for PNP, outward for NPN.
+  const tip = pnp ? emitterInner : emitterEdge;
+  const arrowFrom = pnp ? emitterEdge : emitterInner;
+  const arrowDx = tip.x - arrowFrom.x;
+  const arrowDy = tip.y - arrowFrom.y;
+  const arrowDistance = Math.hypot(arrowDx, arrowDy) || 1;
+  const arrowAxisX = arrowDx / arrowDistance;
+  const arrowAxisY = arrowDy / arrowDistance;
   const arrow = polygon(
     [
       tip,
-      { x: tip.x - ux * 6 - (-uy) * 3, y: tip.y - uy * 6 - ux * 3 },
-      { x: tip.x - ux * 6 + (-uy) * 3, y: tip.y - uy * 6 + ux * 3 },
+      {
+        x: tip.x - arrowAxisX * arrowLength - -arrowAxisY * arrowHalfWidth,
+        y: tip.y - arrowAxisY * arrowLength - arrowAxisX * arrowHalfWidth,
+      },
+      {
+        x: tip.x - arrowAxisX * arrowLength + -arrowAxisY * arrowHalfWidth,
+        y: tip.y - arrowAxisY * arrowLength + arrowAxisX * arrowHalfWidth,
+      },
     ],
     "wire-symbol-fill",
   );
 
-  return [
+  return group(
     circle(center, radius, "wire-symbol-bg"),
     line(base, baseEdge, "wire-symbol"),
     line(barA, barB, "wire-symbol"),
-    line(collEdge, collInner, "wire-symbol"),
-    line(emitEdge, emitInner, "wire-symbol"),
-    line(collector, collEdge, "wire-symbol"),
-    line(emitter, emitEdge, "wire-symbol"),
+    line(collectorEdge, collectorInner, "wire-symbol"),
+    line(emitterEdge, emitterInner, "wire-symbol"),
+    line(collector, collectorEdge, "wire-symbol"),
+    line(emitter, emitterEdge, "wire-symbol"),
     arrow,
-  ].join("");
+  );
 }
 
 function drawModule(component: LayoutComponent): string {
   const { position, size } = component;
+  const stubLength = 8; // length of each terminal stub
+  const sideLabelDrop = 3; // how far a side label sits below the stub
+  const topLabelDrop = 14; // vertical offset for a top-side label
+  const bottomLabelRise = 11; // vertical offset for a bottom-side label
   const parts = [rect(position.x, position.y, size.width, size.height, "wire-symbol-bg")];
   for (const terminal of component.terminals) {
     const t = terminal.point;
     const inward =
       terminal.side === "left"
-        ? { x: t.x + 8, y: t.y }
+        ? { x: t.x + stubLength, y: t.y }
         : terminal.side === "right"
-          ? { x: t.x - 8, y: t.y }
+          ? { x: t.x - stubLength, y: t.y }
           : terminal.side === "top"
-            ? { x: t.x, y: t.y + 8 }
-            : { x: t.x, y: t.y - 8 };
+            ? { x: t.x, y: t.y + stubLength }
+            : { x: t.x, y: t.y - stubLength };
     parts.push(line(t, inward, "wire-symbol"));
     const labelPoint =
       terminal.side === "bottom"
-        ? { x: t.x, y: t.y - 11 }
+        ? { x: t.x, y: t.y - bottomLabelRise }
         : terminal.side === "top"
-          ? { x: t.x, y: t.y + 14 }
-          : { x: inward.x, y: inward.y + 3 };
+          ? { x: t.x, y: t.y + topLabelDrop }
+          : { x: inward.x, y: inward.y + sideLabelDrop };
     parts.push(
       `<text class="wire-pin-label" x="${fmt(labelPoint.x)}" y="${fmt(labelPoint.y)}" text-anchor="middle">${escapeText(terminal.name)}</text>`,
     );
@@ -290,28 +386,29 @@ function drawModule(component: LayoutComponent): string {
 }
 
 function drawTwoTerminal(component: LayoutComponent): string | null {
-  const [t0, t1] = component.terminals;
-  if (!t0 || !t1) return null;
-  const { M, len } = makeFrame(t0.point, t1.point);
+  const [first, second] = component.terminals;
+  if (!first || !second) return null;
+  const { frame, length } = makeFrame(first.point, second.point);
+  const p = makePen(frame);
   switch (component.symbol) {
     case "resistor":
-      return drawResistor(M, len);
+      return drawResistor(p, length);
     case "capacitor":
-      return drawCapacitor(M, len, false);
+      return drawCapacitor(p, length, false);
     case "polarized-capacitor":
-      return drawCapacitor(M, len, true);
+      return drawCapacitor(p, length, true);
     case "inductor":
-      return drawInductor(M, len);
+      return drawInductor(p, length);
     case "diode":
-      return drawDiode(M, len, component, false);
+      return drawDiode(p, length, component, false);
     case "led":
-      return drawDiode(M, len, component, true);
+      return drawDiode(p, length, component, true);
     case "battery":
-      return drawBattery(M, len);
+      return drawBattery(p, length);
     case "spst-switch":
-      return drawSwitch(M, len, false);
+      return drawSwitch(p, length, false);
     case "push-button":
-      return drawSwitch(M, len, true);
+      return drawSwitch(p, length, true);
     default:
       return null;
   }

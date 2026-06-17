@@ -15,6 +15,7 @@
     "typecheck": "tsc -b",
     "test": "vitest run",
     "test:watch": "vitest",
+    "bench": "node tools/symbol-bench/server.mjs",
     "clean": "tsc -b --clean && rimraf packages/*/dist packages/*/*.tsbuildinfo"
   },
   "devDependencies": {
