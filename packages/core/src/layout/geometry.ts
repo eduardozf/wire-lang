@@ -17,7 +17,12 @@ export interface ComponentGeom {
   readonly terminals: readonly TerminalGeom[];
 }
 
-const LEAD = 14;
+/**
+ * Lead length: the straight wire stub between a terminal and the body. Layout
+ * places the terminal this far out, and the renderer draws the lead to match;
+ * they must agree, so both read this one constant.
+ */
+export const LEAD = 14;
 const TWO_TERM_BODY = 36;
 const TWO_TERM_MAIN = LEAD * 2 + TWO_TERM_BODY; // 64
 const TWO_TERM_CROSS = 22;

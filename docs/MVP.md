@@ -167,7 +167,13 @@ render net VCC style=label
 
 ### Groups
 
-Groups guide layout. A component instance can belong to at most one group in the MVP.
+Groups are intended to guide layout. A component instance can belong to at most
+one group in the MVP.
+
+> **Status:** Group statements are parsed, validated, and recorded on the
+> schematic model, but the bundled layout engine does not yet position by group
+> membership or `side`. Using a `group` statement emits a `group.not-yet-honored`
+> warning. Honoring groups in layout is post-MVP (see Roadmap).
 
 ```wire
 group Inputs: S1, R_PULLUP
@@ -194,13 +200,19 @@ render net VCC style=label
 
 Supported values:
 
-- `direction`: `left-to-right`, `right-to-left`, `top-to-bottom`, `bottom-to-top`
-- `orientation`: `horizontal`, `vertical`
-- `side`: `left`, `right`, `top`, `bottom`
-- `anchor`: `center`
-- net `style`: `wire`, `label`
+- `direction`: `left-to-right`, `right-to-left`, `top-to-bottom`, `bottom-to-top` — honored.
+- net `style`: `wire`, `label` — honored.
+- `orientation`: `horizontal`, `vertical` — accepted, not yet honored.
+- `side`: `left`, `right`, `top`, `bottom` — accepted, not yet honored.
+- `anchor`: `center` — accepted, not yet honored.
 
 Default direction is `left-to-right`.
+
+> **Status:** `direction` and net `style` are honored by the bundled layout
+> engine. `orientation`, `side`, and `anchor` are validated and recorded on the
+> model, but the engine does not yet position by them; using one emits a
+> `render.not-yet-honored` warning so authors are not misled. Honoring these is
+> post-MVP (see Roadmap).
 
 Duplicate or unresolvable render hints produce warning diagnostics. Duplicate global hints use the last value.
 
@@ -448,6 +460,10 @@ await run({ force: true }) // may re-render explicitly
 
 High-priority follow-ups:
 
+- honor the placement hints the compiler already records: per-component
+  `orientation`/`anchor`, and `side` for components and groups, plus
+  group-aware layout (today these emit `render.not-yet-honored` /
+  `group.not-yet-honored` warnings)
 - browser auto-render for `pre.wire-lang` and `code.wire-lang`
 - headless language server using the MVP Langium grammar and validators
 - VS Code extension with syntax highlighting, diagnostics, and authoring feedback

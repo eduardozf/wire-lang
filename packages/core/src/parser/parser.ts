@@ -255,7 +255,13 @@ class Parser {
 
   private parseProperty(): PropertyNode | null {
     const name = this.next(); // word
-    if (!this.expect("equals", DiagnosticCodes.parseUnexpectedToken, 'Expected "=" after a property name.')) {
+    if (
+      !this.expect(
+        "equals",
+        DiagnosticCodes.parseUnexpectedToken,
+        'Expected "=" after a property name.',
+      )
+    ) {
       return null;
     }
     const value = this.parsePropertyValue();
@@ -345,7 +351,11 @@ class Parser {
       "Expected a component type name.",
     );
     if (!name)
-      return this.errorLine(start, "Malformed definition.", DiagnosticCodes.parseExpectedIdentifier);
+      return this.errorLine(
+        start,
+        "Malformed definition.",
+        DiagnosticCodes.parseExpectedIdentifier,
+      );
     this.finishLine();
 
     const terminals: TerminalDeclNode[] = [];
@@ -448,7 +458,9 @@ class Parser {
       "Expected a symbol role name.",
     );
     if (!role) return null;
-    if (!this.expect("equals", DiagnosticCodes.parseUnexpectedToken, 'Expected "=" in a role map.')) {
+    if (
+      !this.expect("equals", DiagnosticCodes.parseUnexpectedToken, 'Expected "=" in a role map.')
+    ) {
       return null;
     }
     const terminal = this.parseTerminalName();
@@ -531,7 +543,13 @@ class Parser {
       return null;
     }
     this.next();
-    if (!this.expect("dot", DiagnosticCodes.parseExpectedTerminalRef, 'Expected "." in a terminal reference.')) {
+    if (
+      !this.expect(
+        "dot",
+        DiagnosticCodes.parseExpectedTerminalRef,
+        'Expected "." in a terminal reference.',
+      )
+    ) {
       return null;
     }
     const terminal = this.parseTerminalName();
@@ -578,7 +596,8 @@ class Parser {
       DiagnosticCodes.parseExpectedIdentifier,
       "Expected a group name.",
     );
-    if (!name) return this.errorLine(start, "Malformed group.", DiagnosticCodes.parseExpectedIdentifier);
+    if (!name)
+      return this.errorLine(start, "Malformed group.", DiagnosticCodes.parseExpectedIdentifier);
     this.expect("colon", DiagnosticCodes.parseUnexpectedToken, 'Expected ":" after a group name.');
 
     const members: GroupMemberNode[] = [];
@@ -665,7 +684,12 @@ class Parser {
       return null;
     }
     this.next();
-    return { kind: "AnnotationTarget", targetKind: "component", name: token.value, range: token.range };
+    return {
+      kind: "AnnotationTarget",
+      targetKind: "component",
+      name: token.value,
+      range: token.range,
+    };
   }
 
   private parseRender(): RenderNode | ErrorNode {
@@ -677,13 +701,35 @@ class Parser {
       this.next();
       const netName = this.current();
       if (!isNameToken(netName)) {
-        return this.errorLine(start, "Expected a net name.", DiagnosticCodes.parseExpectedIdentifier);
+        return this.errorLine(
+          start,
+          "Expected a net name.",
+          DiagnosticCodes.parseExpectedIdentifier,
+        );
       }
       this.next();
-      const key = this.expect("word", DiagnosticCodes.parseExpectedIdentifier, "Expected a render hint key.");
-      if (!key) return this.errorLine(start, "Malformed render hint.", DiagnosticCodes.parseExpectedIdentifier);
-      const equals = this.expect("equals", DiagnosticCodes.parseUnexpectedToken, 'Expected "=" in a render hint.');
-      if (!equals) return this.errorLine(start, "Malformed render hint.", DiagnosticCodes.parseUnexpectedToken);
+      const key = this.expect(
+        "word",
+        DiagnosticCodes.parseExpectedIdentifier,
+        "Expected a render hint key.",
+      );
+      if (!key)
+        return this.errorLine(
+          start,
+          "Malformed render hint.",
+          DiagnosticCodes.parseExpectedIdentifier,
+        );
+      const equals = this.expect(
+        "equals",
+        DiagnosticCodes.parseUnexpectedToken,
+        'Expected "=" in a render hint.',
+      );
+      if (!equals)
+        return this.errorLine(
+          start,
+          "Malformed render hint.",
+          DiagnosticCodes.parseUnexpectedToken,
+        );
       const value = this.slurpHintValue(equals.range.end.offset);
       return {
         kind: "Render",
@@ -697,7 +743,11 @@ class Parser {
     }
 
     if (!isNameToken(head)) {
-      return this.errorLine(start, "Malformed render hint.", DiagnosticCodes.parseExpectedIdentifier);
+      return this.errorLine(
+        start,
+        "Malformed render hint.",
+        DiagnosticCodes.parseExpectedIdentifier,
+      );
     }
 
     // render KEY=value  (global hint)
@@ -718,10 +768,24 @@ class Parser {
 
     // render TARGET key=value  (targeted hint)
     this.next(); // target
-    const key = this.expect("word", DiagnosticCodes.parseExpectedIdentifier, "Expected a render hint key.");
-    if (!key) return this.errorLine(start, "Malformed render hint.", DiagnosticCodes.parseExpectedIdentifier);
-    const equals = this.expect("equals", DiagnosticCodes.parseUnexpectedToken, 'Expected "=" in a render hint.');
-    if (!equals) return this.errorLine(start, "Malformed render hint.", DiagnosticCodes.parseUnexpectedToken);
+    const key = this.expect(
+      "word",
+      DiagnosticCodes.parseExpectedIdentifier,
+      "Expected a render hint key.",
+    );
+    if (!key)
+      return this.errorLine(
+        start,
+        "Malformed render hint.",
+        DiagnosticCodes.parseExpectedIdentifier,
+      );
+    const equals = this.expect(
+      "equals",
+      DiagnosticCodes.parseUnexpectedToken,
+      'Expected "=" in a render hint.',
+    );
+    if (!equals)
+      return this.errorLine(start, "Malformed render hint.", DiagnosticCodes.parseUnexpectedToken);
     const value = this.slurpHintValue(equals.range.end.offset);
     return {
       kind: "Render",

@@ -24,9 +24,5 @@ export function requiredSymbolRoles(symbol: string): readonly string[] {
 }
 
 export function isKnownSymbol(symbol: string): boolean {
-  return Object.prototype.hasOwnProperty.call(SYMBOL_REQUIRED_ROLES, symbol);
-}
-
-export function knownSymbols(): readonly string[] {
-  return Object.keys(SYMBOL_REQUIRED_ROLES);
+  return Object.hasOwn(SYMBOL_REQUIRED_ROLES, symbol);
 }

@@ -1,8 +1,5 @@
 // Public API for @wire-lang/core.
 
-export { parseDocument as parse } from "./parser/parser.js";
-export type { ParseResult } from "./parser/parser.js";
-
 export type {
   AnnotationNode,
   AnnotationTargetKind,
@@ -30,38 +27,37 @@ export type {
   TerminalRefNode,
   TitleNode,
 } from "./ast/nodes.js";
-
-export type { Diagnostic, DiagnosticSeverity, SuggestedFix } from "./diagnostics.js";
+export { compile } from "./compiler/compile.js";
+export type {
+  Diagnostic,
+  DiagnosticCode,
+  DiagnosticSeverity,
+  SuggestedFix,
+} from "./diagnostics.js";
 export { DiagnosticCodes, hasErrors } from "./diagnostics.js";
-export type { DiagnosticCode } from "./diagnostics.js";
-
-export type { Position, SourceRange } from "./source.js";
-
 export { WireLangError } from "./errors.js";
-
-export type { Dimension, Quantity } from "./library/quantity.js";
-export { parseQuantity } from "./library/quantity.js";
-export type { ComponentTypeDef, PropertyDef, PropertyKind, SymbolRoleMapping } from "./library/types.js";
-export { getStandardComponent, standardComponentNames } from "./library/standard-library.js";
-
-export { renderSvg } from "./render/render-svg.js";
-export { serializeSvg } from "./render/render-svg.js";
-export { renderComponent } from "./render/symbols.js";
-
 export { layout } from "./layout/engine.js";
 export type {
   LayoutComponent,
   LayoutLabel,
   LayoutModel,
+  LayoutTerminal,
   LayoutWire,
   Point,
   Segment,
   Size,
   TerminalSide,
-  LayoutTerminal,
 } from "./layout/types.js";
 
-export { compile } from "./compiler/compile.js";
+export type { Dimension, Quantity } from "./library/quantity.js";
+export { parseQuantity } from "./library/quantity.js";
+export { getStandardComponent, standardComponentNames } from "./library/standard-library.js";
+export type {
+  ComponentTypeDef,
+  PropertyDef,
+  PropertyKind,
+  SymbolRoleMapping,
+} from "./library/types.js";
 export type {
   Annotation,
   CompileResult,
@@ -77,3 +73,8 @@ export type {
   SchematicModel,
   Side,
 } from "./model/types.js";
+export type { ParseResult } from "./parser/parser.js";
+export { parseDocument as parse } from "./parser/parser.js";
+export { renderSvg, serializeSvg } from "./render/render-svg.js";
+export { renderComponent } from "./render/symbols.js";
+export type { Position, SourceRange } from "./source.js";

@@ -1,6 +1,9 @@
+import type { PropertyValueKind } from "../ast/nodes.js";
 import type { Diagnostic } from "../diagnostics.js";
 import type { Quantity } from "../library/quantity.js";
 import type { ComponentTypeDef, SymbolRoleMapping } from "../library/types.js";
+
+export type { PropertyValueKind };
 
 export type Direction = "left-to-right" | "right-to-left" | "top-to-bottom" | "bottom-to-top";
 export type Orientation = "horizontal" | "vertical";
@@ -16,8 +19,6 @@ export const DIRECTIONS: readonly Direction[] = [
 export const ORIENTATIONS: readonly Orientation[] = ["horizontal", "vertical"];
 export const SIDES: readonly Side[] = ["left", "right", "top", "bottom"];
 export const NET_STYLES: readonly NetStyle[] = ["wire", "label"];
-
-export type PropertyValueKind = "quantity" | "string" | "word" | "list";
 
 export interface NormalizedProperty {
   readonly name: string;

@@ -13,8 +13,6 @@ import { getStandardComponent } from "../library/standard-library.js";
 import { isKnownSymbol, requiredSymbolRoles } from "../library/symbols.js";
 import type { ComponentTypeDef, SymbolRoleMapping } from "../library/types.js";
 import { resolveTerminal } from "../library/types.js";
-import { parseDocument } from "../parser/parser.js";
-import type { SourceRange } from "../source.js";
 import type {
   CompileResult,
   ComponentInstance,
@@ -30,6 +28,9 @@ import type {
   Side,
 } from "../model/types.js";
 import { DIRECTIONS, LANGUAGE_VERSION, NET_STYLES, ORIENTATIONS, SIDES } from "../model/types.js";
+import { parseDocument } from "../parser/parser.js";
+import type { SourceRange } from "../source.js";
+import { countConnectedSubschematics } from "./connectivity.js";
 
 interface NetBuilder {
   name: string;
@@ -63,8 +64,11 @@ class Compiler {
   private direction: Direction = "left-to-right";
   private directionSet = false;
 
-  private readonly annotations: { text: string; targetKind: "component" | "net"; target: string }[] =
-    [];
+  private readonly annotations: {
+    text: string;
+    targetKind: "component" | "net";
+    target: string;
+  }[] = [];
 
   compile(ast: DocumentNode, parseDiagnostics: readonly Diagnostic[]): CompileResult {
     this.diagnostics.push(...parseDiagnostics);
@@ -298,10 +302,21 @@ class Compiler {
     this.instanceById.set(node.id, instance);
   }
 
-  private normalizeProperty(property: PropertyNode, type: ComponentTypeDef | null): NormalizedProperty {
+  private normalizeProperty(
+    property: PropertyNode,
+    type: ComponentTypeDef | null,
+  ): NormalizedProperty {
     const value = property.value;
-    const def = type?.properties.find((entry) => entry.name === property.name);
+    // Every normalized property shares this shape; only validation and the
+    // optional `quantity`/`items` fields differ per kind.
+    const base = {
+      name: property.name,
+      valueKind: value.valueKind,
+      raw: value.raw,
+      display: value.raw,
+    } as const;
 
+    const def = type?.properties.find((entry) => entry.name === property.name);
     if (!def) {
       if (type) {
         this.report(
@@ -311,99 +326,50 @@ class Compiler {
           property.nameRange,
         );
       }
-      return {
-        name: property.name,
-        valueKind: value.valueKind,
-        raw: value.raw,
-        display: value.raw,
-        items: value.items,
-        known: false,
-      };
+      return { ...base, items: value.items, known: false };
     }
 
-    if (def.kind === "quantity") {
-      const quantity = parseQuantity(value.raw, def.dimension);
-      if (!quantity) {
-        this.report(
-          "error",
-          DiagnosticCodes.componentInvalidPropertyValue,
-          `Property "${property.name}" expects a ${def.dimension ?? "quantity"} value, got "${value.raw}".`,
-          property.value.range,
-        );
+    switch (def.kind) {
+      case "quantity": {
+        const quantity = parseQuantity(value.raw, def.dimension);
+        if (!quantity) {
+          this.reportInvalidValue(
+            property,
+            `expects a ${def.dimension ?? "quantity"} value, got "${value.raw}"`,
+          );
+        }
+        return { ...base, ...(quantity ? { quantity } : {}), known: true };
       }
-      return {
-        name: property.name,
-        valueKind: value.valueKind,
-        raw: value.raw,
-        display: value.raw,
-        ...(quantity ? { quantity } : {}),
-        known: true,
-      };
-    }
-
-    if (def.kind === "enum") {
-      if (def.enumValues && !def.enumValues.includes(value.raw)) {
-        this.report(
-          "error",
-          DiagnosticCodes.componentInvalidPropertyValue,
-          `Property "${property.name}" must be one of: ${def.enumValues.join(", ")}.`,
-          property.value.range,
-        );
+      case "enum": {
+        if (def.enumValues && !def.enumValues.includes(value.raw)) {
+          this.reportInvalidValue(property, `must be one of: ${def.enumValues.join(", ")}`);
+        }
+        return { ...base, known: true };
       }
-      return {
-        name: property.name,
-        valueKind: value.valueKind,
-        raw: value.raw,
-        display: value.raw,
-        known: true,
-      };
-    }
-
-    if (def.kind === "boolean") {
-      if (value.raw !== "true" && value.raw !== "false") {
-        this.report(
-          "error",
-          DiagnosticCodes.componentInvalidPropertyValue,
-          `Property "${property.name}" must be true or false.`,
-          property.value.range,
-        );
+      case "boolean": {
+        if (value.raw !== "true" && value.raw !== "false") {
+          this.reportInvalidValue(property, "must be true or false");
+        }
+        return { ...base, known: true };
       }
-      return {
-        name: property.name,
-        valueKind: value.valueKind,
-        raw: value.raw,
-        display: value.raw,
-        known: true,
-      };
-    }
-
-    if (def.kind === "pin-list") {
-      if (value.valueKind !== "list") {
-        this.report(
-          "error",
-          DiagnosticCodes.componentInvalidPropertyValue,
-          `Property "${property.name}" must be a list like [VCC,GND].`,
-          property.value.range,
-        );
+      case "pin-list": {
+        if (value.valueKind !== "list") {
+          this.reportInvalidValue(property, "must be a list like [VCC,GND]");
+        }
+        return { ...base, items: value.items, known: true };
       }
-      return {
-        name: property.name,
-        valueKind: value.valueKind,
-        raw: value.raw,
-        display: value.raw,
-        items: value.items,
-        known: true,
-      };
+      default:
+        return { ...base, known: true };
     }
+  }
 
-    // string
-    return {
-      name: property.name,
-      valueKind: value.valueKind,
-      raw: value.raw,
-      display: value.raw,
-      known: true,
-    };
+  private reportInvalidValue(property: PropertyNode, expectation: string): void {
+    this.report(
+      "error",
+      DiagnosticCodes.componentInvalidPropertyValue,
+      `Property "${property.name}" ${expectation}.`,
+      property.value.range,
+    );
   }
 
   private checkRecommendedProperties(
@@ -531,7 +497,14 @@ class Compiler {
 
   // ---- groups --------------------------------------------------------------
 
-  private collectGroup(name: string, node: { name: string; nameRange: SourceRange; members: readonly { id: string; range: SourceRange }[] }): void {
+  private collectGroup(
+    name: string,
+    node: {
+      name: string;
+      nameRange: SourceRange;
+      members: readonly { id: string; range: SourceRange }[];
+    },
+  ): void {
     if (this.instanceById.has(name)) {
       this.report(
         "error",
@@ -541,9 +514,14 @@ class Compiler {
       );
       return;
     }
-    if (this.groupByName.has(name)) {
-      // Merge into the existing group.
-    }
+    this.report(
+      "warning",
+      DiagnosticCodes.groupNotYetHonored,
+      `Group "${name}" is accepted but the bundled renderer does not lay groups out yet.`,
+      node.nameRange,
+    );
+
+    // A repeated group name merges into the existing group.
     let group = this.groupByName.get(name);
     if (!group) {
       group = { name, members: [], side: null };
@@ -697,6 +675,7 @@ class Compiler {
           return;
         }
         instance.orientation = node.hintValue as Orientation;
+        this.notYetHonored(node);
         return;
       }
       case "side": {
@@ -706,6 +685,7 @@ class Compiler {
         }
         if (instance) instance.side = node.hintValue as Side;
         else if (group) group.side = node.hintValue as Side;
+        this.notYetHonored(node);
         return;
       }
       case "anchor": {
@@ -723,6 +703,7 @@ class Compiler {
           return;
         }
         instance.anchorCenter = true;
+        this.notYetHonored(node);
         return;
       }
       default:
@@ -744,38 +725,33 @@ class Compiler {
     );
   }
 
+  /**
+   * Flag a hint that the compiler accepts and records on the model, but the
+   * bundled renderer does not yet position by. Keeps authors from assuming a
+   * silent no-op worked. See docs/MVP.md "Render Hints".
+   */
+  private notYetHonored(node: RenderNode): void {
+    this.report(
+      "warning",
+      DiagnosticCodes.renderNotYetHonored,
+      `Render hint "${node.hintKey}" is accepted but the bundled renderer does not position by it yet.`,
+      node.range,
+    );
+  }
+
   // ---- disconnected subschematics ------------------------------------------
 
   private warnDisconnected(): void {
     if (this.instances.length < 2) return;
-    const parent = new Map<string, string>();
-    const find = (x: string): string => {
-      let root = x;
-      while (parent.get(root) !== root) root = parent.get(root)!;
-      let cur = x;
-      while (parent.get(cur) !== root) {
-        const next = parent.get(cur)!;
-        parent.set(cur, root);
-        cur = next;
-      }
-      return root;
-    };
-    const union = (a: string, b: string): void => {
-      const ra = find(a);
-      const rb = find(b);
-      if (ra !== rb) parent.set(ra, rb);
-    };
-    for (const instance of this.instances) parent.set(instance.id, instance.id);
-    for (const net of this.nets) {
-      const ids = net.members.map((member) => member.component);
-      for (let i = 1; i < ids.length; i += 1) union(ids[0]!, ids[i]!);
-    }
-    const roots = new Set(this.instances.map((instance) => find(instance.id)));
-    if (roots.size > 1) {
+    const count = countConnectedSubschematics(
+      this.instances.map((instance) => instance.id),
+      this.nets.map((net) => net.members.map((member) => member.component)),
+    );
+    if (count > 1) {
       this.report(
         "warning",
         DiagnosticCodes.schematicDisconnected,
-        `Schematic has ${roots.size} disconnected subschematics.`,
+        `Schematic has ${count} disconnected subschematics.`,
         null,
       );
     }

@@ -1,6 +1,6 @@
 import type { ComponentInstance, Net, SchematicModel } from "../model/types.js";
-import { componentGeometry } from "./geometry.js";
 import type { ComponentGeom } from "./geometry.js";
+import { componentGeometry } from "./geometry.js";
 import type {
   LayoutComponent,
   LayoutLabel,
@@ -120,7 +120,10 @@ export function layout(model: SchematicModel): LayoutModel {
     const segments: { from: MC; to: MC }[] = [];
     const junctions: MC[] = [];
     if (maxMain > minMain) {
-      segments.push({ from: { main: minMain, cross: railCross }, to: { main: maxMain, cross: railCross } });
+      segments.push({
+        from: { main: minMain, cross: railCross },
+        to: { main: maxMain, cross: railCross },
+      });
     }
     for (const point of points) {
       segments.push({ from: point, to: { main: point.main, cross: railCross } });
@@ -161,7 +164,9 @@ export function layout(model: SchematicModel): LayoutModel {
       } else {
         const net = model.nets.find((candidate) => candidate.name === annotation.target);
         const first = net?.members[0];
-        const point = first ? terminalPoints.get(`${first.component}.${first.terminal}`) : undefined;
+        const point = first
+          ? terminalPoints.get(`${first.component}.${first.terminal}`)
+          : undefined;
         if (point) {
           labels.push({
             text: annotation.text,
@@ -178,7 +183,10 @@ export function layout(model: SchematicModel): LayoutModel {
   const allPoints: MC[] = [];
   for (const entry of placed) {
     allPoints.push({ main: entry.mainStart, cross: -entry.geom.crossSpan / 2 });
-    allPoints.push({ main: entry.mainStart + entry.geom.mainSpan, cross: entry.geom.crossSpan / 2 });
+    allPoints.push({
+      main: entry.mainStart + entry.geom.mainSpan,
+      cross: entry.geom.crossSpan / 2,
+    });
   }
   for (const wire of wires) {
     for (const segment of wire.segments) {
@@ -237,7 +245,9 @@ export function layout(model: SchematicModel): LayoutModel {
     net: wire.net,
     anonymous: wire.anonymous,
     style: wire.style,
-    segments: wire.segments.map((segment): Segment => ({ from: tf(segment.from), to: tf(segment.to) })),
+    segments: wire.segments.map(
+      (segment): Segment => ({ from: tf(segment.from), to: tf(segment.to) }),
+    ),
     junctions: wire.junctions.map((junction) => tf(junction)),
   }));
 

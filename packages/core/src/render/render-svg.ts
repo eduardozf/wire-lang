@@ -4,8 +4,8 @@ import { layout } from "../layout/engine.js";
 import type { LayoutModel } from "../layout/types.js";
 import type { SchematicModel } from "../model/types.js";
 import { LANGUAGE_VERSION } from "../model/types.js";
-import { renderComponent } from "./symbols.js";
 import { circle, escapeAttr, escapeText, fmt, sanitizeId, text } from "./svg-serializer.js";
+import { renderComponent } from "./symbols.js";
 
 const STYLES = `
 .wire-lang { background: #ffffff; }
@@ -70,8 +70,7 @@ export function serializeSvg(model: LayoutModel): string {
   const width = Math.max(1, Math.ceil(model.size.width));
   const height = Math.max(1, Math.ceil(model.size.height));
   const titleText = model.title ?? "Wire Lang schematic";
-  const descText =
-    model.description ?? `A schematic with ${model.components.length} components.`;
+  const descText = model.description ?? `A schematic with ${model.components.length} components.`;
 
   return [
     `<svg xmlns="http://www.w3.org/2000/svg" class="wire-lang" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" role="img" data-wire-lang-version="${LANGUAGE_VERSION}">`,

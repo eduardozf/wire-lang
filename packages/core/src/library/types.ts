@@ -41,13 +41,6 @@ export interface ComponentTypeDef {
   readonly designatorPrefixes?: readonly string[];
 }
 
-export function findProperty(
-  def: ComponentTypeDef,
-  name: string,
-): PropertyDef | undefined {
-  return def.properties.find((property) => property.name === name);
-}
-
 /**
  * Resolve a terminal reference name against a component type, accepting the
  * canonical terminal name or a symbol-role alias. Returns the canonical

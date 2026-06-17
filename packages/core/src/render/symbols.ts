@@ -1,5 +1,15 @@
+import { LEAD } from "../layout/geometry.js";
 import type { LayoutComponent, Point } from "../layout/types.js";
-import { circle, escapeText, fmt, line, polygon, polylinePath, rect, text } from "./svg-serializer.js";
+import {
+  circle,
+  escapeText,
+  fmt,
+  line,
+  polygon,
+  polylinePath,
+  rect,
+  text,
+} from "./svg-serializer.js";
 
 /**
  * How symbol geometry works
@@ -82,7 +92,11 @@ function makePen(frame: Frame): Pen {
     lead: ({ from, to }) => polylinePath([frame(from), frame(to)], "wire-symbol"),
     wire: ({ points }) => polylinePath(points.map(frame), "wire-symbol"),
     bar: ({ at, height }) =>
-      line(frame({ along: at, across: -height / 2 }), frame({ along: at, across: height / 2 }), "wire-symbol"),
+      line(
+        frame({ along: at, across: -height / 2 }),
+        frame({ along: at, across: height / 2 }),
+        "wire-symbol",
+      ),
     segment: ({ from, to }) => line(frame(from), frame(to), "wire-symbol"),
     triangle: ({ points, fill }) =>
       polygon(points.map(frame), "wire-symbol-fill", fill ? ` fill="${fill}"` : ""),
@@ -95,7 +109,10 @@ function makePen(frame: Frame): Pen {
       const axisY = (to.across - from.across) / distance;
       const headLength = 3.5;
       const headHalfWidth = 2.2;
-      const base: Pt = { along: to.along - axisX * headLength, across: to.across - axisY * headLength };
+      const base: Pt = {
+        along: to.along - axisX * headLength,
+        across: to.across - axisY * headLength,
+      };
       const sideX = -axisY;
       const sideY = axisX;
       return (
@@ -103,8 +120,14 @@ function makePen(frame: Frame): Pen {
         polygon(
           [
             frame(to),
-            frame({ along: base.along + sideX * headHalfWidth, across: base.across + sideY * headHalfWidth }),
-            frame({ along: base.along - sideX * headHalfWidth, across: base.across - sideY * headHalfWidth }),
+            frame({
+              along: base.along + sideX * headHalfWidth,
+              across: base.across + sideY * headHalfWidth,
+            }),
+            frame({
+              along: base.along - sideX * headHalfWidth,
+              across: base.across - sideY * headHalfWidth,
+            }),
           ],
           "wire-symbol-fill",
         )
@@ -122,8 +145,6 @@ function ledColor(component: LayoutComponent): string | null {
   const color = component.properties.find((property) => property.name === "color")?.raw;
   return color ? (LED_COLORS[color] ?? null) : null;
 }
-
-const LEAD = 14;
 
 function drawResistor(pen: Pen, length: number): string {
   const bodyStart = LEAD;
@@ -185,7 +206,10 @@ function drawInductor(pen: Pen, length: number): string {
     const bumpCenter = bodyStart + (i + 0.5) * bumpWidth;
     for (let step = 0; step <= 8; step += 1) {
       const angle = Math.PI * (step / 8); // sweep each half-circle bump
-      points.push({ along: bumpCenter - bumpRadius * Math.cos(angle), across: -bumpRadius * Math.sin(angle) });
+      points.push({
+        along: bumpCenter - bumpRadius * Math.cos(angle),
+        across: -bumpRadius * Math.sin(angle),
+      });
     }
   }
   points.push({ along: bodyEnd, across: 0 }, { along: length, across: 0 });
@@ -199,7 +223,10 @@ function drawDiode(pen: Pen, length: number, component: LayoutComponent, led: bo
   const fill = led ? (ledColor(component) ?? "#9ca3af") : "#1f2937";
   const parts = [
     pen.lead({ from: { along: 0, across: 0 }, to: { along: center - tipDistance, across: 0 } }), // anode lead
-    pen.lead({ from: { along: center + tipDistance, across: 0 }, to: { along: length, across: 0 } }), // cathode lead
+    pen.lead({
+      from: { along: center + tipDistance, across: 0 },
+      to: { along: length, across: 0 },
+    }), // cathode lead
     pen.triangle({
       fill,
       points: [
@@ -214,7 +241,10 @@ function drawDiode(pen: Pen, length: number, component: LayoutComponent, led: bo
     // Two parallel "emitted light" arrows pointing away from the diode.
     parts.push(
       pen.arrow({ from: { along: center, across: -10 }, to: { along: center + 4, across: -16 } }),
-      pen.arrow({ from: { along: center + 4, across: -8 }, to: { along: center + 8, across: -14 } }),
+      pen.arrow({
+        from: { along: center + 4, across: -8 },
+        to: { along: center + 8, across: -14 },
+      }),
     );
   }
   return group(...parts);
@@ -246,11 +276,26 @@ function drawSwitch(pen: Pen, length: number, pushButton: boolean): string {
   if (pushButton) {
     parts.push(
       // Horizontal contact plate above the contacts, plus the plunger.
-      pen.segment({ from: { along: center - contactGap, across: -11 }, to: { along: center + contactGap, across: -11 } }),
-      pen.wire({ points: [{ along: center, across: -11 }, { along: center, across: -17 }] }),
+      pen.segment({
+        from: { along: center - contactGap, across: -11 },
+        to: { along: center + contactGap, across: -11 },
+      }),
+      pen.wire({
+        points: [
+          { along: center, across: -11 },
+          { along: center, across: -17 },
+        ],
+      }),
     );
   } else {
-    parts.push(pen.wire({ points: [{ along: center - contactGap, across: 0 }, { along: center + 7, across: -10 }] })); // lever
+    parts.push(
+      pen.wire({
+        points: [
+          { along: center - contactGap, across: 0 },
+          { along: center + 7, across: -10 },
+        ],
+      }),
+    ); // lever
   }
   return group(...parts);
 }
@@ -262,7 +307,12 @@ function drawGround(component: LayoutComponent): string {
   const { frame, length } = makeFrame(terminal.point, component.center);
   const p = makePen(frame);
   return group(
-    p.wire({ points: [{ along: 0, across: 0 }, { along: length * 0.45, across: 0 }] }), // stem
+    p.wire({
+      points: [
+        { along: 0, across: 0 },
+        { along: length * 0.45, across: 0 },
+      ],
+    }), // stem
     p.bar({ at: length * 0.45, height: 24 }), // widest rail
     p.bar({ at: length * 0.68, height: 16 }),
     p.bar({ at: length * 0.9, height: 8 }),
@@ -312,10 +362,22 @@ function drawTransistor(component: LayoutComponent, pnp: boolean): string {
     x: center.x - towardBaseX * (radius * baseBarInset),
     y: center.y - towardBaseY * (radius * baseBarInset),
   };
-  const barA = { x: barCenter.x + normalX * baseBarHalfLength, y: barCenter.y + normalY * baseBarHalfLength };
-  const barB = { x: barCenter.x - normalX * baseBarHalfLength, y: barCenter.y - normalY * baseBarHalfLength };
-  const collectorInner = { x: barCenter.x + normalX * legSpread, y: barCenter.y + normalY * legSpread };
-  const emitterInner = { x: barCenter.x - normalX * legSpread, y: barCenter.y - normalY * legSpread };
+  const barA = {
+    x: barCenter.x + normalX * baseBarHalfLength,
+    y: barCenter.y + normalY * baseBarHalfLength,
+  };
+  const barB = {
+    x: barCenter.x - normalX * baseBarHalfLength,
+    y: barCenter.y - normalY * baseBarHalfLength,
+  };
+  const collectorInner = {
+    x: barCenter.x + normalX * legSpread,
+    y: barCenter.y + normalY * legSpread,
+  };
+  const emitterInner = {
+    x: barCenter.x - normalX * legSpread,
+    y: barCenter.y - normalY * legSpread,
+  };
   const collectorEdge = boundaryPoint(center, collector, radius);
   const emitterEdge = boundaryPoint(center, emitter, radius);
 

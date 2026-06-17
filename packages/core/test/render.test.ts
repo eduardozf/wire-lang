@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
 import { renderSvg, WireLangError } from "@wire-lang/core";
+import { describe, expect, it } from "vitest";
 
 const LED = `schematic
   title "LED current limiting circuit"
@@ -58,7 +58,9 @@ describe("renderSvg", () => {
   });
 
   it("escapes XML-significant characters in titles", () => {
-    const svg = renderSvg(`schematic\n  title "A & B <C>"\n  component R1 Resistor value=1k\n  net N: R1.1, R1.2\n`);
+    const svg = renderSvg(
+      `schematic\n  title "A & B <C>"\n  component R1 Resistor value=1k\n  net N: R1.1, R1.2\n`,
+    );
     expect(svg).toContain("<title>A &amp; B &lt;C&gt;</title>");
   });
 });

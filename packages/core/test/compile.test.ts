@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
 import { compile } from "@wire-lang/core";
+import { describe, expect, it } from "vitest";
 
 const LED = `schematic
   title "LED current limiting circuit"
@@ -75,9 +75,38 @@ describe("compile", () => {
   });
 
   it("derives Header terminals from a pin list", () => {
-    const { model } = compile(`schematic\n  component J1 Header pins=[VCC,GND,SDA,SCL]\n  net P: J1.VCC\n`);
+    const { model } = compile(
+      `schematic\n  component J1 Header pins=[VCC,GND,SDA,SCL]\n  net P: J1.VCC\n`,
+    );
     const j1 = model.components.find((c) => c.id === "J1")!;
     expect(j1.terminals).toEqual(["VCC", "GND", "SDA", "SCL"]);
+  });
+
+  it("warns (without erroring) on render hints the renderer does not yet honor", () => {
+    const source = `schematic
+  component R1 Resistor value=1k
+  component R2 Resistor value=1k
+  net N: R1.1, R2.1
+  net M: R1.2, R2.2
+  render R1 orientation=vertical
+  render R1 anchor=center
+`;
+    const { ok, diagnostics } = compile(source);
+    expect(ok).toBe(true); // accepted, just not laid out yet
+    expect(diagnostics.filter((d) => d.code === "render.not-yet-honored")).toHaveLength(2);
+  });
+
+  it("warns that groups are accepted but not yet laid out", () => {
+    const source = `schematic
+  component R1 Resistor value=1k
+  component R2 Resistor value=1k
+  net N: R1.1, R2.1
+  net M: R1.2, R2.2
+  group Inputs: R1, R2
+`;
+    const { ok, diagnostics } = compile(source);
+    expect(ok).toBe(true);
+    expect(diagnostics.some((d) => d.code === "group.not-yet-honored")).toBe(true);
   });
 
   it("supports local component definitions with module symbol", () => {

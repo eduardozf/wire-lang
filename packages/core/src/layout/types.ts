@@ -1,5 +1,5 @@
-import type { NormalizedProperty } from "../model/types.js";
 import type { SymbolRoleMapping } from "../library/types.js";
+import type { NormalizedProperty } from "../model/types.js";
 
 /**
  * Renderer-independent layout model. Coordinates are abstract layout units with

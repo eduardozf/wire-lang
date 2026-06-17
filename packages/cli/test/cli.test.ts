@@ -1,10 +1,14 @@
 import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
 import { run } from "@wire-lang/cli";
+import { describe, expect, it } from "vitest";
 
-function capture(): { io: { out(s: string): void; err(s: string): void }; out: string[]; err: string[] } {
+function capture(): {
+  io: { out(s: string): void; err(s: string): void };
+  out: string[];
+  err: string[];
+} {
   const out: string[] = [];
   const err: string[] = [];
   return { io: { out: (s) => out.push(s), err: (s) => err.push(s) }, out, err };
@@ -41,9 +45,9 @@ describe("cli run", () => {
     const report = JSON.parse(cap.out.join("\n"));
     expect(report.ok).toBe(false);
     expect(report.command).toBe("check");
-    expect(report.diagnostics.some((d: { code: string }) => d.code === "component.unknown-type")).toBe(
-      true,
-    );
+    expect(
+      report.diagnostics.some((d: { code: string }) => d.code === "component.unknown-type"),
+    ).toBe(true);
     expect(report.summary.errors).toBeGreaterThanOrEqual(1);
   });
 
