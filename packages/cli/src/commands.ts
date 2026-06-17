@@ -1,6 +1,7 @@
 import { readFile, writeFile } from "node:fs/promises";
-import { compile, hasErrors, layout, serializeSvg } from "@wire-lang/core";
 import type { Diagnostic } from "@wire-lang/core";
+import { compile, hasErrors, layout, serializeSvg } from "@wire-lang/core";
+import type { JsonReport } from "./format.js";
 import { countDiagnostics, formatHuman, formatJson } from "./format.js";
 
 export interface CliIo {
@@ -22,25 +23,29 @@ async function readSource(file: string, io: CliIo): Promise<string | null> {
   }
 }
 
-function reportCheck(
+/** Emit one diagnostic report, as JSON or human text, for any command. */
+function emit(io: CliIo, json: boolean, report: JsonReport): void {
+  if (json) {
+    io.out(formatJson(report));
+  } else {
+    io.out(formatHuman(report.file, report.diagnostics));
+  }
+}
+
+function buildReport(
+  command: string,
   file: string,
   diagnostics: readonly Diagnostic[],
-  json: boolean,
-  io: CliIo,
-): void {
-  if (json) {
-    io.out(
-      formatJson({
-        file,
-        command: "check",
-        ok: !hasErrors(diagnostics),
-        diagnostics,
-        summary: countDiagnostics(diagnostics),
-      }),
-    );
-  } else {
-    io.out(formatHuman(file, diagnostics));
-  }
+  extra: { ok: boolean; out?: string },
+): JsonReport {
+  return {
+    file,
+    command,
+    ok: extra.ok,
+    ...(extra.out !== undefined ? { out: extra.out } : {}),
+    diagnostics,
+    summary: countDiagnostics(diagnostics),
+  };
 }
 
 /** `wire check <file>` */
@@ -48,7 +53,7 @@ export async function runCheck(file: string, json: boolean, io: CliIo): Promise<
   const source = await readSource(file, io);
   if (source === null) return EXIT_USAGE;
   const { diagnostics } = compile(source);
-  reportCheck(file, diagnostics, json, io);
+  emit(io, json, buildReport("check", file, diagnostics, { ok: !hasErrors(diagnostics) }));
   return hasErrors(diagnostics) ? EXIT_FATAL : EXIT_OK;
 }
 
@@ -64,20 +69,8 @@ export async function runRender(
 
   const result = compile(source);
   if (!result.ok) {
-    if (json) {
-      io.out(
-        formatJson({
-          file,
-          command: "render",
-          ok: false,
-          diagnostics: result.diagnostics,
-          summary: countDiagnostics(result.diagnostics),
-        }),
-      );
-    } else {
-      io.out(formatHuman(file, result.diagnostics));
-      io.err("render aborted: source has fatal diagnostics");
-    }
+    emit(io, json, buildReport("render", file, result.diagnostics, { ok: false }));
+    if (!json) io.err("render aborted: source has fatal diagnostics");
     return EXIT_FATAL;
   }
 
@@ -90,20 +83,7 @@ export async function runRender(
     return EXIT_USAGE;
   }
 
-  if (json) {
-    io.out(
-      formatJson({
-        file,
-        command: "render",
-        ok: true,
-        out,
-        diagnostics: result.diagnostics,
-        summary: countDiagnostics(result.diagnostics),
-      }),
-    );
-  } else {
-    io.out(formatHuman(file, result.diagnostics));
-    io.out(`rendered ${file} -> ${out}`);
-  }
+  emit(io, json, buildReport("render", file, result.diagnostics, { ok: true, out }));
+  if (!json) io.out(`rendered ${file} -> ${out}`);
   return EXIT_OK;
 }

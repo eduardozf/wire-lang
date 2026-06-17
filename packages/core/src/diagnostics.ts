@@ -50,12 +50,10 @@ export const DiagnosticCodes = {
   // component
   componentUnknownType: "component.unknown-type",
   componentDuplicateId: "component.duplicate-id",
-  componentUnknownTerminal: "component.unknown-terminal",
   componentMissingRecommendedProperty: "component.missing-recommended-property",
   componentUnknownProperty: "component.unknown-property",
   componentInvalidPropertyValue: "component.invalid-property-value",
   componentUnusualDesignator: "component.unusual-designator",
-  componentNoConnections: "component.no-connections",
 
   // local definitions
   defineDuplicateTerminal: "define.duplicate-terminal",
@@ -75,6 +73,8 @@ export const DiagnosticCodes = {
   groupUnknownComponent: "group.unknown-component",
   groupDuplicateMembership: "group.duplicate-membership",
   groupIdCollision: "group.id-collision",
+  /** Groups are accepted but the bundled renderer does not yet lay them out. */
+  groupNotYetHonored: "group.not-yet-honored",
 
   // render
   renderUnknownTarget: "render.unknown-target",
@@ -82,6 +82,8 @@ export const DiagnosticCodes = {
   renderDuplicate: "render.duplicate",
   renderInvalidValue: "render.invalid-value",
   renderUnknownKey: "render.unknown-key",
+  /** Hint is accepted but the bundled renderer does not yet position by it. */
+  renderNotYetHonored: "render.not-yet-honored",
 
   // annotation
   annotationUnknownTarget: "annotation.unknown-target",
