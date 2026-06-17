@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
-import { parse } from "@wire-lang/core";
 import type { ComponentNode, NetNode } from "@wire-lang/core";
+import { parse } from "@wire-lang/core";
+import { describe, expect, it } from "vitest";
 
 const LED = `schematic
   title "LED current limiting circuit"
@@ -66,7 +66,9 @@ describe("parse", () => {
   });
 
   it("recovers from an unknown statement with an error node + diagnostic", () => {
-    const result = parse(`schematic\n  draw wire from R1 to D1\n  component R1 Resistor value=1k\n`);
+    const result = parse(
+      `schematic\n  draw wire from R1 to D1\n  component R1 Resistor value=1k\n`,
+    );
     expect(result.ok).toBe(false);
     const errorNode = result.ast.statements.find((s) => s.kind === "Error");
     expect(errorNode).toBeDefined();

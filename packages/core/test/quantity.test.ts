@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
 import { parseQuantity } from "@wire-lang/core";
+import { describe, expect, it } from "vitest";
 
 describe("parseQuantity", () => {
   it("parses unit suffixes", () => {

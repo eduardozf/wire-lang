@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
 import { compile, layout } from "@wire-lang/core";
+import { describe, expect, it } from "vitest";
 
 const LED = `schematic
   component BT1 Battery voltage=5V

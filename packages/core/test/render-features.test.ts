@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
 import { compile, layout, renderSvg } from "@wire-lang/core";
+import { describe, expect, it } from "vitest";
 
 describe("layout/render features", () => {
   it("places junction dots at interior taps of a 3-way net", () => {
@@ -54,6 +54,30 @@ describe("layout/render features", () => {
     expect(d1.symbol).toBe("led");
     expect(d1.roleMappings).toContainEqual({ role: "anode", terminal: "positive_leg" });
     expect(() => renderSvg(model)).not.toThrow();
+  });
+
+  it("renders the complex symbol set (transistor, ground, header, switch, inductor, polarized cap)", () => {
+    const svg = renderSvg(`schematic
+  title "Symbol coverage"
+  component Q1 NPNTransistor
+  component R1 Resistor value=1k
+  component L1 Inductor inductance=10mH
+  component C1 PolarizedCapacitor capacitance=100uF
+  component SW1 PushButton
+  component J1 Header pins=[VCC,GND]
+  component G1 GroundReference
+  net VCC: J1.VCC, R1.1
+  net B: R1.2, Q1.B
+  net C: Q1.C, L1.1
+  net OUT: L1.2, C1.+
+  net SWN: SW1.1, C1.-
+  net GND: Q1.E, G1.GND, J1.GND, SW1.2
+`);
+    expect(svg.startsWith("<svg")).toBe(true);
+    expect(svg).toContain('data-wire-symbol="npn-transistor"');
+    expect(svg).toContain('data-wire-symbol="ground-reference"');
+    expect(svg).toContain('data-wire-symbol="push-button"');
+    expect(svg).toMatchSnapshot();
   });
 
   it("produces stable SVG output (snapshot)", () => {
