@@ -1,0 +1,17 @@
+schematic
+  title "Battery LED with push button"
+  description "A 3V battery lights a red LED through a current-limiting resistor when the push button is pressed."
+
+  component BT1 Battery voltage=3V
+  component SW1 PushButton normally=open
+  component R1 Resistor value=220ohm
+  component D1 LED color=red
+
+  net VCC: BT1.+, SW1.1
+  connect SW1.2, R1.1
+  connect R1.2, D1.A
+  net GND: D1.C, BT1.-
+
+  annotation "Press to light the LED" near SW1
+  annotation "Current-limiting resistor" near R1
+  render direction=left-to-right

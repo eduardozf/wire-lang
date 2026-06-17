@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Wire Lang — symbol bench</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #1f2937;
+        --muted: #6b7280;
+        --line: #e5e7eb;
+        --accent: #2563eb;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font: 14px/1.5 system-ui, sans-serif;
+        color: var(--ink);
+        background: #f8fafc;
+      }
+      header {
+        display: flex;
+        gap: 16px;
+        align-items: center;
+        flex-wrap: wrap;
+        padding: 12px 18px;
+        background: #fff;
+        border-bottom: 1px solid var(--line);
+      }
+      header h1 { font-size: 15px; margin: 0 12px 0 0; }
+      label { color: var(--muted); font-size: 12px; }
+      select, input {
+        font: inherit;
+        padding: 5px 8px;
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+        background: #fff;
+      }
+      input { width: 220px; }
+      main { padding: 18px; }
+      .stage {
+        position: relative;
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        overflow: hidden;
+      }
+      #canvas { display: block; width: 100%; height: auto; cursor: crosshair; }
+      .hud {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        font: 12px ui-monospace, monospace;
+        background: rgba(17, 24, 39, 0.86);
+        color: #f9fafb;
+        padding: 6px 9px;
+        border-radius: 6px;
+        pointer-events: none;
+        white-space: pre;
+      }
+      .toast {
+        position: absolute;
+        bottom: 12px;
+        left: 50%;
+        transform: translateX(-50%) translateY(8px);
+        background: var(--accent);
+        color: #fff;
+        padding: 6px 12px;
+        border-radius: 999px;
+        font: 12px ui-monospace, monospace;
+        opacity: 0;
+        transition: opacity 0.15s, transform 0.15s;
+      }
+      .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+      .note { color: var(--muted); font-size: 12px; margin: 10px 2px 0; }
+      .error {
+        color: #b91c1c;
+        font: 13px ui-monospace, monospace;
+        white-space: pre-wrap;
+        padding: 14px;
+      }
+
+      /* Symbol styles — mirror packages/core/src/render/render-svg.ts STYLES.
+         Kept in sync by hand (dev tool only). */
+      .wire-symbol { stroke: #1f2937; stroke-width: 1.5; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+      .wire-symbol-bg { stroke: #1f2937; stroke-width: 1.5; fill: #ffffff; }
+      .wire-symbol-fill { fill: #1f2937; stroke: none; }
+      .wire-label { fill: #111827; font: 600 11px system-ui, sans-serif; }
+      /* Pin labels (modules) shrunk for the bench's zoom. */
+      .wire-pin-label { fill: #374151; font: 2px system-ui, sans-serif; }
+
+      /* Grid — font sizes are in canvas units, sized for the bench's ~10x zoom. */
+      .grid-minor { stroke: #eef2f7; stroke-width: 0.25; }
+      .grid-major { stroke: #d7dee8; stroke-width: 0.4; }
+      .grid-axis { stroke: #94a3b8; stroke-width: 0.6; }
+      .grid-label { fill: #94a3b8; font-family: ui-monospace, monospace; }
+      .grid-center { stroke: #c7b2f0; stroke-width: 0.5; stroke-dasharray: 2 2; }
+      .term-dot { fill: #2563eb; }
+      .cursor-dot { fill: #ef4444; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Wire Lang · symbol bench</h1>
+      <span>
+        <label for="symbol">Symbol</label>
+        <select id="symbol"></select>
+      </span>
+      <span>
+        <label for="props">Props</label>
+        <input id="props" placeholder="e.g. color=red" />
+      </span>
+    </header>
+    <main>
+      <div class="stage">
+        <svg id="canvas" xmlns="http://www.w3.org/2000/svg"></svg>
+        <div class="hud" id="hud">hover the grid…</div>
+        <div class="toast" id="toast">copied</div>
+      </div>
+      <p class="note" id="note"></p>
+    </main>
+    <script type="module" src="/tools/symbol-bench/bench.js"></script>
+  </body>
+</html>
