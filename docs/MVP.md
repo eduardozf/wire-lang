@@ -1,0 +1,409 @@
+# Wire Lang MVP
+
+This document defines the first useful version of Wire Lang: a JavaScript/TypeScript library for turning textual electronic schematic descriptions into readable SVG diagrams.
+
+Wire Lang is not a breadboard tool, PCB layout tool, simulator, BOM manager, or visual editor in the MVP. It is a documentation-oriented schematic renderer with strong authoring feedback for humans, editors, and AI agents.
+
+The main product reference is Mermaid: a text-first documentation workflow where source blocks render into diagrams. Wire Lang follows that product shape for electronic schematics, but it is not a Mermaid plugin and does not aim for Mermaid syntax compatibility.
+
+## Goals
+
+- Let users describe electronic schematics with a declarative `.wire` source format.
+- Render documentation-friendly, standalone SVG output.
+- Keep the electrical model precise by using components, terminals, and nets.
+- Provide structured diagnostics and AST feedback for editor and AI-assisted authoring.
+- Use deterministic, stable auto-layout so small source edits do not unnecessarily redraw the whole schematic.
+- Ship a small built-in component library for common educational and prototyping circuits.
+
+## Non-Goals
+
+- No electrical simulation.
+- No PCB layout, footprints, routing, or manufacturing output.
+- No breadboard layout.
+- No BOM generation.
+- No custom symbol drawing language.
+- No Canvas renderer.
+- No CLI in the MVP.
+- No Markdown processor or VS Code extension in the MVP.
+- No formal IEC 60617, IEEE 315, or other standards compliance claim.
+
+## Source Format
+
+Wire files use the `.wire` extension, are UTF-8, and contain exactly one source document in the MVP.
+
+Every MVP document starts with the `schematic` document kind:
+
+```wire
+schematic
+  title "LED current limiting circuit"
+  description "A 5V battery drives a red LED through a 220 ohm resistor."
+
+  component BT1 Battery voltage=5V
+  component R1 Resistor value=220ohm
+  component D1 LED color=red
+
+  net VCC: BT1.+, R1.1
+  connect R1.2, D1.A
+  net GND: D1.C, BT1.-
+
+  annotation "Current limiting resistor" near R1
+  render direction=left-to-right
+```
+
+The core language is declarative. The source declares components, nets, annotations, groups, and render hints; it does not contain absolute coordinates.
+
+## Core Concepts
+
+**Component Instance**
+: A uniquely identified occurrence of a component type in a schematic, declared with `component`.
+
+**Terminal**
+: A named connection point exposed by a component type.
+
+**Net**
+: A logical electrical connection joining one or more terminals.
+
+**Visual Wire**
+: The rendered line used to show part of a net. Wires are visual output; nets are the electrical model.
+
+**Schematic Symbol**
+: The visual representation of a component.
+
+**Module Symbol**
+: A generic block symbol with exposed terminals, used for headers and local module-style components.
+
+## Statements
+
+### Components
+
+```wire
+component R1 Resistor value=220ohm
+component D1 LED color=red
+component J1 Header pins=[VCC,GND,SDA,SCL]
+```
+
+Component statements require the `component` keyword. Each component instance has a unique instance ID.
+
+Conventional designator prefixes, such as `R` for resistors and `D` for LEDs, should produce warnings when mismatched rather than errors.
+
+### Local Component Definitions
+
+Local definitions override standard component definitions within the same source document.
+
+```wire
+define component SoilSensor
+  terminal VCC
+  terminal GND
+  terminal AOUT
+  terminal DOUT
+  symbol module
+end
+
+component S1 SoilSensor
+```
+
+Blocks use `define ... end`; indentation is for readability only.
+
+If a local component uses a built-in symbol with semantic roles, it must map its terminals to the symbol roles:
+
+```wire
+define component MyLed
+  terminal positive_leg
+  terminal negative_leg
+  symbol led
+    map anode = positive_leg
+    map cathode = negative_leg
+  end
+end
+```
+
+Custom symbol definitions are outside the MVP. Local components without specialized symbols use `symbol module`.
+
+### Nets
+
+Named nets:
+
+```wire
+net VCC: BT1.+, R1.1
+net GND: D1.C, BT1.-
+```
+
+Anonymous nets:
+
+```wire
+connect R1.2, D1.A
+```
+
+Repeated named net declarations merge into one logical net:
+
+```wire
+net VCC: BT1.+
+net VCC: R1.1, C1.1
+```
+
+A terminal assigned to multiple different nets is a fatal validation issue.
+
+Floating nets, with only one terminal, are allowed and produce warnings.
+
+### Power Nets
+
+Names such as `VCC`, `5V`, `3V3`, and `GND` are conventional power nets. They are not magic globals and do not create hidden connections.
+
+`GND` does not automatically create a `GroundReference` component:
+
+```wire
+component G1 GroundReference
+net GND: G1.GND, BT1.-
+```
+
+Nets render as visual wires by default. Label rendering requires an explicit render hint:
+
+```wire
+render net VCC style=label
+```
+
+### Groups
+
+Groups guide layout. A component instance can belong to at most one group in the MVP.
+
+```wire
+group Inputs: S1, R_PULLUP
+group Outputs: D1, R_LED
+
+render Inputs side=left
+render Outputs side=right
+```
+
+Instance IDs and group names share a target namespace, so `render TARGET ...` is never ambiguous. Net names live in their own namespace and are targeted with `render net NAME ...`.
+
+### Render Hints
+
+MVP render hints:
+
+```wire
+render direction=left-to-right
+render R1 orientation=vertical
+render Inputs side=left
+render U1 anchor=center
+render net GND style=wire
+render net VCC style=label
+```
+
+Supported values:
+
+- `direction`: `left-to-right`, `right-to-left`, `top-to-bottom`, `bottom-to-top`
+- `orientation`: `horizontal`, `vertical`
+- `side`: `left`, `right`, `top`, `bottom`
+- `anchor`: `center`
+- net `style`: `wire`, `label`
+
+Default direction is `left-to-right`.
+
+Duplicate or unresolvable render hints produce warning diagnostics. Duplicate global hints use the last value.
+
+### Annotations
+
+Comments are source-only and do not appear in the public AST. Visible text uses annotations:
+
+```wire
+// Source-only comment
+annotation "Status LED" near D1
+annotation "Power rail" near net VCC
+```
+
+MVP annotations target either a component instance or a named net.
+
+## Standard Component Library
+
+The MVP ships a small standard component library.
+
+| Component | Terminals | Properties | Default Labels | Symbol |
+| --- | --- | --- | --- | --- |
+| `Resistor` | `1`, `2` | recommended `value: resistance` | `id`, `value` | `resistor` |
+| `Capacitor` | `1`, `2` | recommended `capacitance: capacitance` | `id`, `capacitance` | `capacitor` |
+| `PolarizedCapacitor` | `+`, `-` | recommended `capacitance: capacitance` | `id`, `capacitance` | `polarized-capacitor` |
+| `Inductor` | `1`, `2` | recommended `inductance: inductance` | `id`, `inductance` | `inductor` |
+| `Diode` | `A`, `C` | none | `id` | `diode` |
+| `LED` | `A`, `C` | optional `color: enum(red, green, blue, yellow, white, amber)` | `id` | `led` |
+| `NPNTransistor` | `C`, `B`, `E` | none | `id` | `npn-transistor` |
+| `PNPTransistor` | `C`, `B`, `E` | none | `id` | `pnp-transistor` |
+| `Battery` | `+`, `-` | recommended `voltage: voltage` | `id`, `voltage` | `battery` |
+| `GroundReference` | `GND` | none | none | `ground-reference` |
+| `SPSTSwitch` | `1`, `2` | optional `state: enum(open, closed)` | `id` | `spst-switch` |
+| `PushButton` | `1`, `2` | optional `normally: enum(open, closed)` | `id` | `push-button` |
+| `Header` | from `pins=[...]` | recommended `pins: pin-list` | `id` | `module` |
+
+MOSFETs and complex board modules such as Arduino boards are outside the MVP.
+
+## Properties and Quantities
+
+Component definitions declare property types. Supported MVP property value kinds:
+
+- quantity
+- string
+- boolean
+- enum
+
+Unit-bearing properties normalize to quantities in the schematic model while preserving useful display labels.
+
+Examples accepted by the parser:
+
+```wire
+value=220ohm
+value=220Ω
+value=10k
+voltage=5V
+capacitance=100nF
+```
+
+Missing recommended properties produce warning diagnostics, not errors. Unknown properties produce warning diagnostics and are preserved in the schematic model for future tools or plugins.
+
+## Parsing, Compilation, and Rendering
+
+The MVP public APIs are:
+
+```ts
+parse(source): ParseResult
+compile(source | ast): CompileResult
+renderSvg(source | model): string
+```
+
+`parse(source)` returns a public AST for valid source, or a partial AST with diagnostics for invalid source.
+
+The partial AST is structural. It uses error nodes for invalid fragments and is not a lossless token-level tree. Relevant AST nodes carry source locations with line, column, and offset ranges.
+
+`compile(source | ast)` returns a normalized schematic model and diagnostics.
+
+`renderSvg(source | model)` is the happy-path API. It returns an SVG string on success and throws `WireLangError` with structured diagnostics when rendering cannot complete.
+
+## Diagnostics
+
+Diagnostics include:
+
+- severity: `error` or `warning`
+- stable diagnostic code
+- human-readable message
+- source location
+- optional suggested fixes for high-confidence mechanical corrections
+
+Fatal validation issues produce errors. Recoverable validation issues produce warnings.
+
+Fatal examples:
+
+- unknown document kind
+- syntax that prevents structural parsing
+- unknown component type
+- unknown terminal on a resolved component type
+- one terminal assigned to multiple different nets
+- malformed local component definition that cannot be resolved
+
+Warning examples:
+
+- component instance with no connections
+- floating net
+- missing recommended property
+- unknown property
+- unusual designator prefix
+- duplicate or unresolved render hint
+- multiple disconnected subschematics
+
+Suggested fixes must not invent circuit intent. They are appropriate for mechanical changes such as canonical capitalization or alias replacement.
+
+## Schematic Model
+
+The schematic model is renderer-independent and contains:
+
+- document metadata: title, description, language version
+- resolved component types used by the document
+- component instances
+- local component definitions
+- normalized nets
+- annotations
+- render hints
+- diagnostics
+
+The model includes only component types used by the document, not the full standard component library.
+
+Declaration order does not carry electrical meaning. Reference resolution happens after parsing.
+
+## Layout Model
+
+The layout model is renderer-independent and uses abstract layout units, not SVG pixels.
+
+Auto-layout is the default. Absolute coordinates are outside the MVP.
+
+Stable auto-layout is a core requirement:
+
+- same source + same library version + same renderer version should produce the same SVG
+- source order and instance IDs are deterministic tie-breakers
+- small source edits should avoid unnecessary global diagram churn where practical
+
+Layout priority:
+
+1. render hints
+2. stability
+3. source order
+4. crossing reduction
+5. compactness
+
+Multiple disconnected subschematics are allowed and render separately in stable source order.
+
+## SVG Renderer
+
+The MVP renderer emits standalone SVG by default. External styling can be supported as an integration option.
+
+SVG output should include:
+
+- accessible `<title>` and `<desc>` from source title/description or generated fallback text
+- real SVG `<text>` labels, not outlined text paths
+- stable `data-wire-*` metadata
+- stable classes
+- sanitized IDs where IDs are emitted
+- junction dots for explicit visual wire connections
+
+Crossing wires without a junction dot are not connected.
+
+Standard symbols use an IEC-style visual profile where practical. Wire Lang does not claim full IEC 60617, IEEE 315, or other formal standards compliance.
+
+## DOM Auto Render
+
+The browser integration finds source blocks by default:
+
+```css
+pre.wire-lang, code.wire-lang
+```
+
+`run()` should preserve the original source block and insert a separate rendered container. It must be idempotent by default:
+
+```ts
+await run()
+await run() // does not duplicate output
+await run({ force: true }) // may re-render explicitly
+```
+
+## Post-MVP Roadmap
+
+High-priority follow-ups:
+
+- VS Code extension with syntax highlighting, diagnostics, and authoring feedback
+- CLI wrapper for rendering `.wire` files to SVG
+- Markdown/MDX integrations using the `wire` fenced code tag
+- custom component libraries passed through the JavaScript API
+
+Later extensions:
+
+- Canvas renderer
+- custom symbol definition language
+- simulation plugin
+- BOM plugin
+- complex board modules such as Arduino and ESP32
+- MOSFETs, op-amps, relays, motors, displays, sensors, and richer component libraries
+- interactive links in SVG output
+
+## Reference Documents
+
+- [CONTEXT.md](../CONTEXT.md) defines the project language and domain vocabulary.
+- [ADR 0001](./adr/0001-javascript-library-with-svg-renderer.md) records the JavaScript library and SVG renderer decision.
+- [ADR 0002](./adr/0002-stable-auto-layout.md) records the stable auto-layout decision.
+- [ADR 0003](./adr/0003-iec-style-symbols-without-compliance-claim.md) records the IEC-style-without-compliance-claim decision.
+- [ADR 0004](./adr/0004-public-and-partial-ast-for-authoring-feedback.md) records the public and partial AST decision.
