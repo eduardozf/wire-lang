@@ -232,6 +232,34 @@ _Avoid_: source-level electrical declarations, per-element drawing commands
 The initial product form of Wire Lang, exposing APIs to parse source documents and render schematics in JavaScript or TypeScript environments.
 _Avoid_: CLI-first tool, desktop application
 
+**Agent Authoring Workflow**:
+A feedback loop where a human or AI coding agent writes a **Wire File**, checks diagnostics, renders SVG output, inspects the result, and revises the source.
+_Avoid_: polished web editor, simulation workflow
+
+**Developer CLI**:
+The minimal command-line surface that lets developers and AI coding agents check **Wire Files** and render SVG during the MVP.
+_Avoid_: CLI-first product, polished end-user application
+
+**Check Command**:
+A **Developer CLI** command that reports parse, reference, validation, and render-blocking diagnostics for a **Wire File** without producing SVG output.
+_Avoid_: render command, syntax-only parser smoke test
+
+**Render Command**:
+A **Developer CLI** command that turns a **Wire File** into an SVG file when no fatal diagnostics prevent rendering.
+_Avoid_: DOM auto render, browser preview
+
+**Watch Command**:
+A **Developer CLI** command that reruns checking and rendering when a **Wire File** changes.
+_Avoid_: language server, web editor
+
+**Human Diagnostic Output**:
+The default **Developer CLI** diagnostic format optimized for people reading terminal output.
+_Avoid_: machine-readable contract, JSON API
+
+**Machine Diagnostic Output**:
+A JSON **Developer CLI** diagnostic format optimized for AI coding agents, scripts, and automation.
+_Avoid_: human terminal formatting, unstable message parsing
+
 **Compile API**:
 The public API that turns a **Source Document** into a **Schematic Model** and **Diagnostics**.
 _Avoid_: public AST API, SVG rendering
@@ -245,8 +273,8 @@ The public happy-path API that turns a **Source Document** or **Schematic Model*
 _Avoid_: CLI command, simulation API
 
 **DOM Auto Render**:
-A browser integration that finds Wire Lang source blocks in the DOM and replaces or augments them with rendered schematics.
-_Avoid_: command-line rendering, manual API usage
+A post-MVP browser integration that finds Wire Lang source blocks in the DOM and replaces or augments them with rendered schematics.
+_Avoid_: MVP command-line rendering, manual API usage
 
 **DOM Source Block**:
 An HTML `pre` or `code` element containing a **Source Document** for **DOM Auto Render**.
@@ -344,6 +372,10 @@ _Avoid_: DOM source block, wire file
 A future editor integration for Wire Lang syntax highlighting, diagnostics, and authoring feedback.
 _Avoid_: MVP core library, SVG renderer
 
+**Headless Language Server**:
+A post-MVP editor-service integration that provides Wire Lang diagnostics and authoring feedback through the Language Server Protocol without being tied to one editor.
+_Avoid_: MVP CLI, VS Code extension
+
 **Line Comment**:
 A `//` comment in a **Source Document** that documents the source without changing the schematic.
 _Avoid_: block comment, render label
@@ -432,8 +464,13 @@ _Avoid_: package version, renderer version
 - The **SVG Renderer** emits stable **SVG Metadata** for rendered components, nets, and annotations.
 - The **SVG Renderer** produces **Standalone SVG** by default.
 - **Theme Styling** is applied through SVG/CSS rather than schematic source syntax in the MVP.
-- The initial product is a **JavaScript Library** with programmatic rendering APIs and optional **DOM Auto Render**.
+- The initial product is a **JavaScript Library** with programmatic rendering APIs and a minimal **Developer CLI**.
+- **DOM Auto Render** is a post-MVP follow-up for Mermaid-style documentation embedding.
 - The MVP **JavaScript Library** exposes a **Parse API**, **Compile API**, and **Render API**.
+- The MVP supports an **Agent Authoring Workflow** through the **Developer CLI**.
+- The **Developer CLI** exposes a **Check Command**, **Render Command**, and **Watch Command**.
+- The **Developer CLI** emits **Human Diagnostic Output** by default and **Machine Diagnostic Output** when requested.
+- A **Headless Language Server** is a post-MVP follow-up that can reuse the parser and validation foundation.
 - Parsing and normalization return **Diagnostics** and **Authoring Feedback** for source problems.
 - The MVP **Standard Component Library** includes basic passive components, basic semiconductors, power/reference components, switches, connectors/modules, and BJT transistors.
 
@@ -527,6 +564,9 @@ Terminals are user-defined through recommended `pins: pin-list`; default label `
 >
 > **Dev:** "Should syntax highlighting ship in the MVP?"
 > **Domain expert:** "No. A **VS Code Extension** should be prioritized shortly after the MVP, using the public parse and diagnostics APIs."
+>
+> **Dev:** "Should the MVP ship a language server like TypeScript?"
+> **Domain expert:** "No. The MVP feedback loop is the **Developer CLI**; a **Headless Language Server** is the next editor-facing step after the MVP."
 >
 > **Dev:** "Can one `.wire` file contain multiple schematics?"
 > **Domain expert:** "Not in the MVP. A **Wire File** contains exactly one **Source Document**."
@@ -693,11 +733,17 @@ Terminals are user-defined through recommended `pins: pin-list`; default label `
 > **Dev:** "Should `.wire` files include `theme dark` or per-element CSS?"
 > **Domain expert:** "Not in the MVP. Use **Theme Styling** through SVG classes and CSS custom properties."
 >
-> **Dev:** "Should the first release be a CLI like a compiler?"
-> **Domain expert:** "No. The first release is a **JavaScript Library**; a CLI can be added later as a thin wrapper."
+> **Dev:** "Should the first release be CLI-first like a compiler?"
+> **Domain expert:** "No. The core product remains a **JavaScript Library**, but the MVP includes a minimal **Developer CLI** so coding agents and developers can check `.wire` files and render SVG from the terminal."
+>
+> **Dev:** "What commands does the first CLI need?"
+> **Domain expert:** "The MVP needs a **Check Command**, **Render Command**, and **Watch Command** to support the **Agent Authoring Workflow**."
+>
+> **Dev:** "Should Codex parse terminal text to understand diagnostics?"
+> **Domain expert:** "No. The **Developer CLI** should show **Human Diagnostic Output** by default and provide **Machine Diagnostic Output** with JSON for agents and scripts."
 >
 > **Dev:** "How does browser auto-render find Wire Lang diagrams?"
-> **Domain expert:** "By default, **DOM Auto Render** finds **DOM Source Blocks** matching `pre.wire-lang` and `code.wire-lang`."
+> **Domain expert:** "After the MVP, **DOM Auto Render** should find **DOM Source Blocks** matching `pre.wire-lang` and `code.wire-lang`."
 >
 > **Dev:** "Should auto-render destroy the original source block?"
 > **Domain expert:** "No. It should preserve the **DOM Source Block** and insert a separate **DOM Render Container** for the SVG."
@@ -759,7 +805,7 @@ Terminals are user-defined through recommended `pins: pin-list`; default label `
 - The default file extension for a **Wire File** is `.wire`.
 - **Wire Files** are UTF-8; Unicode is allowed in values, labels, and annotations.
 - The recommended **Markdown Fence** tag is `wire`, but direct Markdown integration is outside the core MVP.
-- Syntax highlighting and editor extensions are outside the MVP; a **VS Code Extension** is a high-priority post-MVP follow-up.
+- Syntax highlighting and editor extensions are outside the MVP; a **Headless Language Server** and **VS Code Extension** are high-priority post-MVP follow-ups.
 - A **Wire File** contains exactly one **Source Document** in the MVP.
 - The MVP supports `//` **Line Comments** and does not need block comments.
 - **Line Comments** do not need to appear in the MVP **Public AST**.
@@ -824,14 +870,18 @@ Terminals are user-defined through recommended `pins: pin-list`; default label `
 - The **SVG Renderer** should emit stable **SVG Metadata** using sanitized IDs, `data-wire-*` attributes, and classes.
 - **Interactive Links** are outside the MVP.
 - MVP visual theming uses **Theme Styling** through SVG classes and CSS custom properties, not `.wire` syntax.
-- The MVP is a **JavaScript Library** with programmatic API and optional **DOM Auto Render**.
-- **DOM Auto Render** uses `wire-lang` as the default class for **DOM Source Blocks**.
-- **DOM Auto Render** preserves source blocks and inserts separate **DOM Render Containers**.
-- **DOM Auto Render** is idempotent by default and may support explicit forced re-rendering.
+- The MVP is a **JavaScript Library** with programmatic API and a minimal **Developer CLI**.
+- **DOM Auto Render** is outside the MVP and remains a high-priority post-MVP follow-up.
+- Post-MVP **DOM Auto Render** should use `wire-lang` as the default class for **DOM Source Blocks**.
+- Post-MVP **DOM Auto Render** should preserve source blocks and insert separate **DOM Render Containers**.
+- Post-MVP **DOM Auto Render** should be idempotent by default and may support explicit forced re-rendering.
 - The MVP public APIs are `parse(source)`, `compile(source | ast)`, and `renderSvg(source | model)`.
 - `renderSvg(source | model)` returns an SVG string on success and throws when rendering cannot complete.
 - Happy-path APIs throw **WireLangError** with structured **Diagnostics** when they cannot complete.
-- CLI support is outside the MVP and may be added in a later version.
+- The MVP is not CLI-first, but it includes a minimal **Developer CLI** for the **Agent Authoring Workflow**.
+- The MVP **Developer CLI** includes a **Check Command**, **Render Command**, and **Watch Command**.
+- The MVP **Developer CLI** uses **Human Diagnostic Output** by default and supports **Machine Diagnostic Output** through JSON.
+- The MVP does not ship a **Headless Language Server**; it remains a post-MVP follow-up.
 - Parser and normalizer APIs should return structured **Diagnostics** and **Authoring Feedback** rather than only throwing the first error.
 - **Diagnostics** include stable **Diagnostic Codes** organized by area, such as parse, reference, net, component, and render.
 - **Recoverable Validation Issues** produce warning **Diagnostics** by default.

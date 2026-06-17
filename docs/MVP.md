@@ -1,6 +1,6 @@
 # Wire Lang MVP
 
-This document defines the first useful version of Wire Lang: a JavaScript/TypeScript library for turning textual electronic schematic descriptions into readable SVG diagrams.
+This document defines the first useful version of Wire Lang: a JavaScript/TypeScript library and minimal developer CLI for turning textual electronic schematic descriptions into readable SVG diagrams.
 
 Wire Lang is not a breadboard tool, PCB layout tool, simulator, BOM manager, or visual editor in the MVP. It is a documentation-oriented schematic renderer with strong authoring feedback for humans, editors, and AI agents.
 
@@ -12,6 +12,7 @@ The main product reference is Mermaid: a text-first documentation workflow where
 - Render documentation-friendly, standalone SVG output.
 - Keep the electrical model precise by using components, terminals, and nets.
 - Provide structured diagnostics and AST feedback for editor and AI-assisted authoring.
+- Support an agent/developer feedback loop for checking `.wire` source and rendering SVG from the command line.
 - Use deterministic, stable auto-layout so small source edits do not unnecessarily redraw the whole schematic.
 - Ship a small built-in component library for common educational and prototyping circuits.
 
@@ -23,8 +24,10 @@ The main product reference is Mermaid: a text-first documentation workflow where
 - No BOM generation.
 - No custom symbol drawing language.
 - No Canvas renderer.
-- No CLI in the MVP.
-- No Markdown processor or VS Code extension in the MVP.
+- No polished end-user CLI beyond minimal check, render, and watch commands.
+- No preview server command in the MVP.
+- No browser auto-render in the MVP.
+- No headless language server, Markdown processor, or VS Code extension in the MVP.
 - No formal IEC 60617, IEEE 315, or other standards compliance claim.
 
 ## Source Format
@@ -276,6 +279,66 @@ The partial AST is structural. It uses error nodes for invalid fragments and is 
 
 `renderSvg(source | model)` is the happy-path API. It returns an SVG string on success and throws `WireLangError` with structured diagnostics when rendering cannot complete.
 
+The MVP parser and validation foundation is Langium. This keeps the grammar, typed syntax model, validation hooks, and future language-server path aligned while the first shipped feedback surface remains the library and developer CLI.
+
+The MVP does not ship a language server. The first usable authoring loop is command-line driven; a headless language server and editor extensions are post-MVP follow-ups.
+
+## Package Structure
+
+Wire Lang uses a monorepo for the MVP so the core library, CLI, and future browser/editor-facing packages can evolve behind clear package boundaries.
+
+Initial MVP packages:
+
+- `wire-lang`: user-facing aggregate package that re-exports the common API and provides the `wire` binary
+- `@wire-lang/core`: parser, validators, compiler, schematic model, layout model, and SVG renderer
+- `@wire-lang/cli`: `wire check`, `wire render`, and `wire watch`
+
+Post-MVP packages:
+
+- `@wire-lang/browser`
+- `@wire-lang/language-server`
+- editor integrations such as a VS Code extension
+
+The monorepo uses pnpm workspaces, TypeScript project references for package-level type checking, and tsup for package builds.
+
+MVP packages are ESM-only and target Node.js 20 or newer. The MVP does not ship CommonJS builds.
+
+Vitest is the primary MVP test runner. Tests should cover parser diagnostics, schematic model normalization, layout stability, SVG output, and CLI behavior. Browser automation can be added later for DOM auto-render integration.
+
+The MVP uses a custom deterministic layout engine rather than a general graph layout dependency. The first layout implementation should be modest and schematic-specific: source-order and render-hint driven placement, deterministic component groups, stable module pin layout, orthogonal visual wires, and snapshot-tested layout/SVG output.
+
+The SVG renderer generates markup directly from the layout model through a small deterministic SVG/XML serializer. It does not use D3, a browser DOM dependency, JSX, or a virtual DOM layer in the MVP.
+
+## Agent and Developer CLI
+
+The MVP includes a minimal command-line interface for developer and AI-agent feedback loops. It is a thin wrapper around the core parser, compiler, layout, and SVG renderer.
+
+Required MVP commands:
+
+```bash
+wire check path/to/circuit.wire
+wire check path/to/circuit.wire --json
+wire render path/to/circuit.wire --out path/to/circuit.svg
+wire render path/to/circuit.wire --out path/to/circuit.svg --json
+wire watch path/to/circuit.wire --out path/to/circuit.svg
+```
+
+`wire check` reports parse, reference, validation, and render-blocking diagnostics without producing SVG output.
+
+`wire render` writes standalone SVG output when rendering can complete and reports structured diagnostics when it cannot.
+
+`wire watch` reruns checking and rendering when the input file changes.
+
+The MVP does not include `wire preview` or a local preview server. Previewing is done by opening the generated SVG file directly.
+
+The CLI emits human-readable diagnostics by default and supports `--json` for machine-readable diagnostic output. JSON output must include stable diagnostic codes, severity, message, source range, and suggested fixes when available.
+
+CLI exit codes:
+
+- `0`: command completed and no fatal diagnostics prevented the requested operation; warnings may be present
+- `1`: source has fatal diagnostics or rendering cannot complete
+- `2`: CLI usage, file I/O, or configuration problem
+
 ## Diagnostics
 
 Diagnostics include:
@@ -365,15 +428,15 @@ Crossing wires without a junction dot are not connected.
 
 Standard symbols use an IEC-style visual profile where practical. Wire Lang does not claim full IEC 60617, IEEE 315, or other formal standards compliance.
 
-## DOM Auto Render
+## Post-MVP Browser Auto Render
 
-The browser integration finds source blocks by default:
+Browser auto-render is outside the MVP. The planned post-MVP browser integration finds source blocks by default:
 
 ```css
 pre.wire-lang, code.wire-lang
 ```
 
-`run()` should preserve the original source block and insert a separate rendered container. It must be idempotent by default:
+`run()` should preserve the original source block and insert a separate rendered container. It should be idempotent by default:
 
 ```ts
 await run()
@@ -385,8 +448,9 @@ await run({ force: true }) // may re-render explicitly
 
 High-priority follow-ups:
 
+- browser auto-render for `pre.wire-lang` and `code.wire-lang`
+- headless language server using the MVP Langium grammar and validators
 - VS Code extension with syntax highlighting, diagnostics, and authoring feedback
-- CLI wrapper for rendering `.wire` files to SVG
 - Markdown/MDX integrations using the `wire` fenced code tag
 - custom component libraries passed through the JavaScript API
 
@@ -407,3 +471,16 @@ Later extensions:
 - [ADR 0002](./adr/0002-stable-auto-layout.md) records the stable auto-layout decision.
 - [ADR 0003](./adr/0003-iec-style-symbols-without-compliance-claim.md) records the IEC-style-without-compliance-claim decision.
 - [ADR 0004](./adr/0004-public-and-partial-ast-for-authoring-feedback.md) records the public and partial AST decision.
+- [ADR 0005](./adr/0005-minimal-developer-cli-for-agent-feedback.md) records the minimal developer CLI decision.
+- [ADR 0006](./adr/0006-langium-parser-and-language-server-foundation.md) records the Langium parser and language-server foundation decision.
+- [ADR 0007](./adr/0007-monorepo-package-structure.md) records the monorepo package-structure decision.
+- [ADR 0008](./adr/0008-public-wire-lang-package.md) records the public aggregate package decision.
+- [ADR 0009](./adr/0009-pnpm-typescript-project-references-and-tsup.md) records the package manager and build toolchain decision.
+- [ADR 0010](./adr/0010-vitest-primary-test-runner.md) records the MVP test runner decision.
+- [ADR 0011](./adr/0011-custom-deterministic-layout-engine.md) records the custom deterministic layout engine decision.
+- [ADR 0012](./adr/0012-direct-svg-serializer.md) records the direct SVG renderer decision.
+- [ADR 0013](./adr/0013-cli-human-and-json-diagnostics.md) records the CLI diagnostic output decision.
+- [ADR 0014](./adr/0014-cli-exit-codes.md) records the CLI exit-code decision.
+- [ADR 0015](./adr/0015-no-preview-server-in-mvp.md) records the MVP preview decision.
+- [ADR 0016](./adr/0016-browser-auto-render-post-mvp.md) records the browser auto-render scope decision.
+- [ADR 0017](./adr/0017-esm-only-node-20.md) records the runtime and module-format decision.
