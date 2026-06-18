@@ -37,6 +37,10 @@ Primary audiences:
 - CI runs lint, typecheck, tests, and build.
 - Security workflow runs `pnpm audit --prod`.
 - Dependabot watches npm and GitHub Actions dependencies.
+- The `wire-lang` Agent Skill is installable from the public repository with
+  `npx skills add eduardozf/wire-lang --skill wire-lang`.
+- GitHub Actions republishes the skill snapshot to skills.sh when the skill or
+  a publishable package manifest changes.
 - The manual release workflow can run npm dry-runs from packed tarballs and can
   publish from a `v*` tag after npm authentication is configured.
 - `pnpm release:check` includes a clean-consumer package smoke test: it packs
@@ -77,6 +81,26 @@ clean-consumer package smoke test.
 The GitHub release workflow uses the same checks, packs tarballs, dry-runs `npm
 publish`, and can publish in dependency order when manually run in `publish`
 mode from a `v*` tag.
+
+## Agent Skill Publication
+
+Agent Skills are installed from Git repositories rather than an npm-style
+skill package. The skills.sh directory learns about public skills from
+successful `skills add` events and snapshots the files under
+`skills/wire-lang/`. The snapshot is identified by the skill folder's Git tree
+hash; there is no separate semantic version field for the skill.
+
+Run the local discovery check before publishing:
+
+```bash
+pnpm skill:check
+```
+
+The `Publish Agent Skill` workflow performs that check and then runs
+`pnpm skill:publish` against the public `main` branch. It runs after changes to
+`skills/wire-lang/**` or `packages/*/package.json`, so both authoring updates
+and package version bumps refresh the directory snapshot. It can also be run
+manually for the initial publication or a registry refresh.
 
 Manual publish fallback, only after reviewing the dry-run contents:
 

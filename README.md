@@ -77,6 +77,12 @@ Wire Lang is built for AI-assisted authoring:
 - A bundled [Agent Skill](./skills/wire-lang/SKILL.md) teaches assistants the
   syntax and component library so they generate valid `.wire` source.
 
+Install the authoring skill with the open Agent Skills CLI:
+
+```bash
+npx skills add eduardozf/wire-lang --skill wire-lang
+```
+
 ## Examples
 
 | RC filter                                                                                          | Soil sensor module                                                                                  | NPN LED driver                                                                                      |
@@ -157,11 +163,11 @@ symbol art; it does not claim formal IEC/IEEE compliance. See
 
 ### Packages & development
 
-| Package                                  | Role                                                       |
-| ---------------------------------------- | ---------------------------------------------------------- |
-| [`wire-lang`](./packages/wire-lang)      | User-facing aggregate package and the `wire` binary        |
-| [`@wire-lang/core`](./packages/core)     | Parser, compiler, schematic model, layout engine, renderer |
-| [`@wire-lang/cli`](./packages/cli)       | `wire check`, `wire render`, `wire watch`                  |
+| Package                              | Role                                                       |
+| ------------------------------------ | ---------------------------------------------------------- |
+| [`wire-lang`](./packages/wire-lang)  | User-facing aggregate package and the `wire` binary        |
+| [`@wire-lang/core`](./packages/core) | Parser, compiler, schematic model, layout engine, renderer |
+| [`@wire-lang/cli`](./packages/cli)   | `wire check`, `wire render`, `wire watch`                  |
 
 ```bash
 pnpm install
