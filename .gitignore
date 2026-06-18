@@ -2,6 +2,9 @@ node_modules/
 dist/
 *.tsbuildinfo
 coverage/
+release-tarballs/
+*.tgz
+pnpm-publish-summary.json
 .DS_Store
 *.log
 

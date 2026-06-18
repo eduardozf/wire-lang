@@ -1,6 +1,13 @@
-# Langium Parser and Language Server Foundation
+# Hand-Written MVP Parser with Langium Migration Path
 
-Wire Lang's MVP will use Langium as the parser and validation foundation, with the same grammar and validation model intended to support a future language server. We chose this over a hand-written parser, Lezer, Tree-sitter, or Chevrotain because the first workflow needs structured diagnostics for coding agents now, while preserving a direct path to TypeScript-like editor feedback later. The MVP feedback surface remains CLI-driven; a headless language server and VS Code extension are post-MVP follow-ups.
+Wire Lang's MVP ships a small hand-written tokenizer and recursive-descent
+parser in `@wire-lang/core`, while keeping Langium as the planned migration
+path for a future language server. We chose this over requiring Langium in the
+first release because the MVP needed a complete, tested
+`parse -> compile -> layout -> renderSvg -> CLI` pipeline before investing in
+grammar/codegen tuning for Wire Lang's token mix. The public AST and diagnostic
+contracts remain parser-independent so a later Langium implementation can
+replace the parser without breaking consumers.
 
 ## Implementation status
 

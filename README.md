@@ -2,7 +2,19 @@
 
 Text-first electronic schematics for documentation, prototyping, and AI-assisted authoring.
 
-Wire Lang is a planned JavaScript/TypeScript library and minimal developer CLI for describing electronic circuits in a small declarative language and rendering them as clean, readable SVG schematics.
+Wire Lang is a JavaScript/TypeScript library and developer CLI for describing
+electronic circuits in a small declarative language and rendering them as
+clean, readable SVG schematics.
+
+![Rendered LED current limiting circuit](./docs/assets/led-current-limiter.svg)
+
+## Install
+
+```bash
+npm install wire-lang
+```
+
+## Quick Start
 
 ```wire
 schematic
@@ -20,6 +32,31 @@ schematic
   annotation "Current limiting resistor" near R1
   render direction=left-to-right
 ```
+
+Render it from the CLI:
+
+```bash
+npx wire render led.wire --out led.svg
+```
+
+Or use the library API:
+
+```ts
+import { compile, parse, renderSvg } from "wire-lang";
+
+const parsed = parse(source);
+const compiled = compile(source);
+const svg = renderSvg(source);
+```
+
+## Example Gallery
+
+| RC filter                                                                                          | Soil sensor module                                                                                  | NPN LED driver                                                                                      |
+| -------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| <img src="./docs/assets/rc-filter.svg" alt="RC low-pass filter rendered by Wire Lang" width="260"> | <img src="./docs/assets/soil-sensor.svg" alt="Soil sensor input rendered by Wire Lang" width="260"> | <img src="./docs/assets/npn-led-driver.svg" alt="NPN LED driver rendered by Wire Lang" width="260"> |
+
+See the [full example gallery](./docs/EXAMPLES.md) and the source files in
+[examples/](./examples).
 
 ## Status
 
@@ -143,7 +180,7 @@ define component LED
 end
 ```
 
-## Planned API
+## API
 
 The MVP API is designed around authoring feedback and a simple happy path:
 
@@ -155,15 +192,24 @@ const compiled = compile(source);
 const svg = renderSvg(source);
 ```
 
-Planned behavior:
-
 - `parse(source)` returns a public AST for valid source, or a partial AST with diagnostics for invalid source.
 - `compile(source | ast)` returns a renderer-independent schematic model and diagnostics.
 - `renderSvg(source | model)` returns an SVG string on success and throws `WireLangError` with diagnostics if rendering cannot complete.
 
-The MVP parser and validation foundation is planned to use Langium so grammar, diagnostics, and future language-server support can share the same model. The first MVP feedback loop is CLI-driven; the headless language server and VS Code extension are post-MVP follow-ups.
+The current MVP ships a small hand-written parser in `@wire-lang/core`. The
+public AST and diagnostic contract are implementation-independent so a future
+Langium grammar can power the headless language server and editor integrations
+without changing the public API.
 
-The MVP repository is planned as a pnpm monorepo with separate packages for core rendering and the developer CLI. Users install the `wire-lang` aggregate package, while scoped workspace packages keep implementation boundaries clear. Packages are ESM-only and target Node.js 20 or newer. TypeScript project references provide package-level type checking, tsup builds the packages, and Vitest is the primary test runner. Layout is a custom deterministic engine rather than a general graph-layout dependency, and SVG output is generated through a direct serializer. Browser auto-render, the language server, and editor integrations are post-MVP packages.
+The repository is a pnpm monorepo with separate packages for core rendering and
+the developer CLI. Users install the `wire-lang` aggregate package, while
+scoped workspace packages keep implementation boundaries clear. Packages are
+ESM-only and target Node.js 20 or newer. TypeScript project references provide
+package-level type checking, tsup builds the packages, and Vitest is the
+primary test runner. Layout is a custom deterministic engine rather than a
+general graph-layout dependency, and SVG output is generated through a direct
+serializer. Browser auto-render, the language server, and editor integrations
+are post-MVP packages.
 
 Post-MVP browser auto-render is planned to mirror the ergonomics of documentation diagram tools:
 
@@ -181,7 +227,7 @@ schematic
 </script>
 ```
 
-The minimal CLI is planned for developer and AI-agent feedback:
+The minimal CLI is available for developer and AI-agent feedback:
 
 ```bash
 wire check examples/led.wire
@@ -228,9 +274,15 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for the symbol artwork policy.
 ## Project Documents
 
 - [MVP specification](./docs/MVP.md)
+- [Example gallery](./docs/EXAMPLES.md)
 - [Domain vocabulary](./CONTEXT.md)
 - [Architecture decisions](./docs/adr/)
+- [Open source release plan](./docs/OPEN_SOURCE_RELEASE.md)
 - [Contributing guide](./CONTRIBUTING.md)
+- [Code of conduct](./CODE_OF_CONDUCT.md)
+- [Support guide](./SUPPORT.md)
+- [Security review](./SECURITY_REVIEW.md)
+- [Changelog](./CHANGELOG.md)
 - [MIT license](./LICENSE)
 
 ## Contributing

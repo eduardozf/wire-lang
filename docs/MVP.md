@@ -291,7 +291,11 @@ The partial AST is structural. It uses error nodes for invalid fragments and is 
 
 `renderSvg(source | model)` is the happy-path API. It returns an SVG string on success and throws `WireLangError` with structured diagnostics when rendering cannot complete.
 
-The MVP parser and validation foundation is Langium. This keeps the grammar, typed syntax model, validation hooks, and future language-server path aligned while the first shipped feedback surface remains the library and developer CLI.
+The MVP ships a small hand-written tokenizer and parser in `@wire-lang/core`.
+The public AST, source ranges, error-node recovery, and structured diagnostics
+are deliberately decoupled from that implementation so the parser can later
+move to Langium without changing the public API. Langium remains the planned
+foundation for the headless language server and editor tooling.
 
 The MVP does not ship a language server. The first usable authoring loop is command-line driven; a headless language server and editor extensions are post-MVP follow-ups.
 
@@ -465,7 +469,7 @@ High-priority follow-ups:
   group-aware layout (today these emit `render.not-yet-honored` /
   `group.not-yet-honored` warnings)
 - browser auto-render for `pre.wire-lang` and `code.wire-lang`
-- headless language server using the MVP Langium grammar and validators
+- headless language server using a Langium grammar and the existing validators
 - VS Code extension with syntax highlighting, diagnostics, and authoring feedback
 - Markdown/MDX integrations using the `wire` fenced code tag
 - custom component libraries passed through the JavaScript API
@@ -488,7 +492,7 @@ Later extensions:
 - [ADR 0003](./adr/0003-iec-style-symbols-without-compliance-claim.md) records the IEC-style-without-compliance-claim decision.
 - [ADR 0004](./adr/0004-public-and-partial-ast-for-authoring-feedback.md) records the public and partial AST decision.
 - [ADR 0005](./adr/0005-minimal-developer-cli-for-agent-feedback.md) records the minimal developer CLI decision.
-- [ADR 0006](./adr/0006-langium-parser-and-language-server-foundation.md) records the Langium parser and language-server foundation decision.
+- [ADR 0006](./adr/0006-langium-parser-and-language-server-foundation.md) records the hand-written MVP parser and Langium migration-path decision.
 - [ADR 0007](./adr/0007-monorepo-package-structure.md) records the monorepo package-structure decision.
 - [ADR 0008](./adr/0008-public-wire-lang-package.md) records the public aggregate package decision.
 - [ADR 0009](./adr/0009-pnpm-typescript-project-references-and-tsup.md) records the package manager and build toolchain decision.

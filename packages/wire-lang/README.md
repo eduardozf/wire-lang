@@ -4,6 +4,8 @@ Text-first electronic schematics rendered to SVG. This is the user-facing
 aggregate package: it re-exports the [`@wire-lang/core`](https://www.npmjs.com/package/@wire-lang/core)
 API and ships the `wire` CLI.
 
+![Rendered LED current limiting circuit](https://raw.githubusercontent.com/eduardozf/wire-lang/main/docs/assets/led-current-limiter.svg)
+
 ```bash
 npm install wire-lang
 ```
@@ -44,7 +46,9 @@ const svg = renderSvg(source); // throws WireLangError on fatal source
 The full programmatic API (`parse`, `compile`, `layout`, `serializeSvg`, types,
 diagnostics) is re-exported from `@wire-lang/core`. See the
 [project README](https://github.com/eduardozf/wire-lang#readme) for language
-documentation and scope.
+documentation and scope, and the
+[example gallery](https://github.com/eduardozf/wire-lang/blob/main/docs/EXAMPLES.md)
+for more rendered schematics.
 
 ## License
 

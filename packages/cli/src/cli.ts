@@ -1,8 +1,11 @@
+import { createRequire } from "node:module";
 import type { CliIo } from "./commands.js";
 import { EXIT_OK, EXIT_USAGE, runCheck, runRender } from "./commands.js";
 import { runWatch } from "./watch.js";
 
-const VERSION = "0.0.0";
+const require = createRequire(import.meta.url);
+const packageJson = require("../package.json") as { version: string };
+const VERSION = packageJson.version;
 
 const HELP = `wire - Wire Lang developer CLI
 

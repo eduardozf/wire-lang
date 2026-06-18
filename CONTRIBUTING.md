@@ -43,6 +43,10 @@ node packages/wire-lang/dist/bin.js render examples/led.wire --out led.svg
 
 CI runs lint, typecheck, test, and build on every pull request.
 
+Use the GitHub issue and pull request templates when contributing publicly.
+Questions belong in discussions when enabled, or in an issue marked as a
+question. Please follow the [Code of Conduct](./CODE_OF_CONDUCT.md).
+
 ## Keep the docs in sync
 
 When behavior, vocabulary, scope, or architecture changes, update the relevant

@@ -1,0 +1,48 @@
+name: Feature request
+description: Suggest a language, API, renderer, or tooling improvement.
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What user need or workflow should Wire Lang support?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: Describe the behavior, syntax, API, or documentation change you want.
+    validations:
+      required: true
+
+  - type: textarea
+    id: example
+    attributes:
+      label: Example
+      description: Include example `.wire` source, expected SVG behavior, or TypeScript usage if useful.
+      render: wire
+    validations:
+      required: false
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Scope
+      options:
+        - MVP-compatible improvement
+        - Post-MVP roadmap item
+        - Unsure
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Any workaround or different design you considered.
+    validations:
+      required: false

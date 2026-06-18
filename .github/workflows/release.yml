@@ -1,0 +1,75 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Run a dry-run publish check, or publish to npm"
+        required: true
+        default: "dry-run"
+        type: choice
+        options:
+          - "dry-run"
+          - "publish"
+      npm_tag:
+        description: "npm dist-tag to use when publishing"
+        required: true
+        default: "latest"
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  npm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 20
+          cache: pnpm
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run release checks
+        run: pnpm release:check
+
+      - name: Pack release tarballs
+        run: |
+          set -euo pipefail
+          mkdir -p release-tarballs
+          pnpm --filter @wire-lang/core pack --pack-destination release-tarballs
+          pnpm --filter @wire-lang/cli pack --pack-destination release-tarballs
+          pnpm --filter wire-lang pack --pack-destination release-tarballs
+          ls -la release-tarballs
+
+      - name: Dry-run npm publish from tarballs
+        run: |
+          set -euo pipefail
+          npm publish --dry-run --access public --tag "${{ inputs.npm_tag }}" release-tarballs/wire-lang-core-*.tgz
+          npm publish --dry-run --access public --tag "${{ inputs.npm_tag }}" release-tarballs/wire-lang-cli-*.tgz
+          npm publish --dry-run --access public --tag "${{ inputs.npm_tag }}" release-tarballs/wire-lang-[0-9]*.tgz
+
+      - name: Require tag for real publish
+        if: inputs.mode == 'publish' && !startsWith(github.ref, 'refs/tags/v')
+        run: |
+          echo "Real publish must run from a v* tag, for example refs/tags/v0.1.0." >&2
+          exit 1
+
+      - name: Publish npm tarballs
+        if: inputs.mode == 'publish'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -euo pipefail
+          npm publish --provenance --access public --tag "${{ inputs.npm_tag }}" release-tarballs/wire-lang-core-*.tgz
+          npm publish --provenance --access public --tag "${{ inputs.npm_tag }}" release-tarballs/wire-lang-cli-*.tgz
+          npm publish --provenance --access public --tag "${{ inputs.npm_tag }}" release-tarballs/wire-lang-[0-9]*.tgz

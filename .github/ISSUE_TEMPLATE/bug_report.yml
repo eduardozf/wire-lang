@@ -1,0 +1,69 @@
+name: Bug report
+description: Report a reproducible problem with Wire Lang.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug. Please include enough detail for someone else to reproduce it.
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What happened, and what did you expect instead?
+    validations:
+      required: true
+
+  - type: textarea
+    id: source
+    attributes:
+      label: Minimal .wire source
+      description: Paste the smallest source file that demonstrates the problem.
+      render: wire
+    validations:
+      required: false
+
+  - type: textarea
+    id: command
+    attributes:
+      label: Command or API call
+      description: Show the exact command or TypeScript call you used.
+      render: shell
+    validations:
+      required: false
+
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Output, diagnostics, or rendered result
+      description: Paste CLI output, JSON diagnostics, SVG snippets, screenshots, or a short description of the bad rendering.
+    validations:
+      required: false
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Package version, commit SHA, or branch.
+      placeholder: "0.1.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Parser / syntax
+        - Diagnostics
+        - Compiler / schematic model
+        - Layout
+        - SVG rendering
+        - CLI
+        - Documentation
+        - Packaging / npm
+        - Other
+    validations:
+      required: true

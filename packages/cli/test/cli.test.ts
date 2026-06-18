@@ -1,8 +1,12 @@
 import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { run } from "@wire-lang/cli";
 import { describe, expect, it } from "vitest";
+
+const require = createRequire(import.meta.url);
+const packageJson = require("../package.json") as { version: string };
 
 function capture(): {
   io: { out(s: string): void; err(s: string): void };
@@ -95,5 +99,12 @@ describe("cli run", () => {
     const code = await run(["--help"], cap.io);
     expect(code).toBe(0);
     expect(cap.out.join("\n")).toContain("Wire Lang developer CLI");
+  });
+
+  it("--version returns the package version", async () => {
+    const cap = capture();
+    const code = await run(["--version"], cap.io);
+    expect(code).toBe(0);
+    expect(cap.out).toEqual([packageJson.version]);
   });
 });

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" class="wire-lang" viewBox="0 0 406 194" width="406" height="194" role="img" data-wire-lang-version="0.1.0">
+<title>RC low-pass filter</title>
+<desc>A first-order RC low-pass filter between a header input and output.</desc>
+<style>.wire-lang { background: #ffffff; }
+.wire-wire { stroke: #1f2937; stroke-width: 1.5; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.wire-symbol { stroke: #1f2937; stroke-width: 1.5; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.wire-symbol-bg { stroke: #1f2937; stroke-width: 1.5; fill: #ffffff; }
+.wire-symbol-fill { fill: #1f2937; stroke: none; }
+.wire-junction { fill: #1f2937; }
+.wire-label { fill: #111827; font: 600 11px var(--wire-font, system-ui, sans-serif); }
+.wire-pin-label { fill: #374151; font: 9px var(--wire-font, system-ui, sans-serif); }
+.wire-net-label { fill: #2563eb; font: 600 10px var(--wire-font, system-ui, sans-serif); }
+.wire-annotation { fill: #6b7280; font: italic 10px var(--wire-font, system-ui, sans-serif); }</style>
+<rect class="wire-background" x="0" y="0" width="406" height="194" fill="#ffffff"/>
+<g class="wire-wires"><g class="wire-net" data-wire-kind="net" data-wire-style="wire" data-wire-net="IN"><line class="wire-wire" x1="53" y1="106" x2="190" y2="106"/><line class="wire-wire" x1="53" y1="80" x2="53" y2="106"/><line class="wire-wire" x1="190" y1="58" x2="190" y2="106"/></g><g class="wire-net" data-wire-kind="net" data-wire-style="wire" data-wire-net="OUT"><line class="wire-wire" x1="87" y1="132" x2="306" y2="132"/><line class="wire-wire" x1="254" y1="58" x2="254" y2="132"/><line class="wire-wire" x1="306" y1="58" x2="306" y2="132"/><line class="wire-wire" x1="87" y1="80" x2="87" y2="132"/></g><g class="wire-net" data-wire-kind="net" data-wire-style="wire" data-wire-net="GND"><line class="wire-wire" x1="121" y1="158" x2="370" y2="158"/><line class="wire-wire" x1="370" y1="58" x2="370" y2="158"/><line class="wire-wire" x1="121" y1="80" x2="121" y2="158"/></g></g>
+<g class="wire-component" data-wire-kind="component" data-wire-id="J1" data-wire-type="Header" data-wire-symbol="module" id="wire-component-J1"><rect class="wire-symbol-bg" x="36" y="36" width="102" height="44" rx="3"/><line class="wire-symbol" x1="53" y1="80" x2="61" y2="80"/><text class="wire-pin-label" x="61" y="83" text-anchor="middle">IN</text><line class="wire-symbol" x1="87" y1="80" x2="87" y2="72"/><text class="wire-pin-label" x="87" y="69" text-anchor="middle">OUT</text><line class="wire-symbol" x1="121" y1="80" x2="113" y2="80"/><text class="wire-pin-label" x="113" y="83" text-anchor="middle">GND</text><text class="wire-label" x="87" y="30" text-anchor="middle">J1</text></g><g class="wire-component" data-wire-kind="component" data-wire-id="R1" data-wire-type="Resistor" data-wire-symbol="resistor" id="wire-component-R1"><path class="wire-symbol" fill="none" d="M 190 58 L 204 58 L 207 51 L 213 65 L 219 51 L 225 65 L 231 51 L 237 65 L 240 58 L 254 58"/><text class="wire-label" x="222" y="41" text-anchor="middle">R1</text><text class="wire-label" x="222" y="28" text-anchor="middle">1k</text></g><g class="wire-component" data-wire-kind="component" data-wire-id="C1" data-wire-type="Capacitor" data-wire-symbol="capacitor" id="wire-component-C1"><path class="wire-symbol" fill="none" d="M 306 58 L 335 58"/><path class="wire-symbol" fill="none" d="M 341 58 L 370 58"/><line class="wire-symbol" x1="335" y1="48" x2="335" y2="68"/><line class="wire-symbol" x1="341" y1="48" x2="341" y2="68"/><text class="wire-label" x="338" y="41" text-anchor="middle">C1</text><text class="wire-label" x="338" y="28" text-anchor="middle">100nF</text></g>
+<g class="wire-junctions"><circle class="wire-junction" cx="254" cy="132" r="2.8"/></g>
+<g class="wire-labels"><text class="wire-annotation" x="196.5" y="144" text-anchor="middle">Cutoff ~1.6 kHz</text></g>
+</svg>
