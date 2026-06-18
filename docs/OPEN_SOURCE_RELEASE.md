@@ -126,8 +126,12 @@ handle simulation, PCB layout, breadboard layout, or browser auto-render yet.
 - The GitHub private vulnerability-reporting URL in `SECURITY.md` requires the
   repository to exist at `eduardozf/wire-lang` with GitHub security advisories
   enabled.
-- The release workflow uses npm provenance, but npm authentication still needs
-  external setup before the first real publish: configure npm trusted publishing
-  for the GitHub workflow, or add an `NPM_TOKEN` repository secret.
+- The release workflow authenticates to npm via OIDC trusted publishing (no
+  `NPM_TOKEN` secret). Before the first real publish, complete the external
+  setup: (1) create a GitHub `release` environment with required reviewers,
+  (2) configure each package's trusted publisher on npmjs.com (user
+  `eduardozf`, repo `wire-lang`, workflow `release.yml`, environment `release`),
+  and (3) bootstrap the initial version of each unpublished package once, since
+  a trusted publisher can only be attached to a package that already exists.
 - Browser rendering and editor integrations are post-MVP. Keep them out of the
   first-release promise unless they are implemented.
