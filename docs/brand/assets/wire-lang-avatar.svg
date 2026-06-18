@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img">
+  <title>Wire Lang avatar</title>
+  <desc>Circular Wire Lang avatar with the reversed WL monogram.</desc>
+  <circle cx="128" cy="128" r="128" fill="#16181d"/>
+  <g transform="translate(53.760 62.568) scale(1.258305)">
+    <path fill="none" d="M18 28 33 78 48 46 63 78 78 28 78 78 100 78" stroke="#faf9f7" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="18" cy="28" r="7" fill="#faf9f7"/>
+    <circle cx="33" cy="78" r="7" fill="#faf9f7"/>
+    <circle cx="78" cy="28" r="6.4" fill="#16181d" stroke="#faf9f7" stroke-width="3.4"/>
+    <circle cx="100" cy="78" r="7" fill="#faf9f7"/>
+  </g>
+</svg>

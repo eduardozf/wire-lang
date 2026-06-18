@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img">
+  <title>Wire Lang app icon</title>
+  <desc>Square Wire Lang app icon asset.</desc>
+  <rect x="0.5" y="0.5" width="511" height="511" rx="118" fill="#faf9f7" stroke="#e6e4dd"/>
+  <g transform="translate(87.040 107.086) scale(2.863729)">
+    <path fill="none" d="M18 28 33 78 48 46 63 78 78 28 78 78 100 78" stroke="#16181d" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="18" cy="28" r="7" fill="#16181d"/>
+    <circle cx="33" cy="78" r="7" fill="#16181d"/>
+    <circle cx="78" cy="28" r="6.4" fill="#faf9f7" stroke="#16181d" stroke-width="3.4"/>
+    <circle cx="100" cy="78" r="7" fill="#16181d"/>
+  </g>
+</svg>

@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="./docs/brand/assets/wire-lang-lockup-horizontal.svg" alt="Wire Lang" width="420">
+</p>
+
 # Wire Lang
 
 Text-first electronic schematics for documentation, prototyping, and AI-assisted authoring.
@@ -275,6 +279,7 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for the symbol artwork policy.
 
 - [MVP specification](./docs/MVP.md)
 - [Example gallery](./docs/EXAMPLES.md)
+- [Brand assets](./docs/brand/)
 - [Domain vocabulary](./CONTEXT.md)
 - [Architecture decisions](./docs/adr/)
 - [Open source release plan](./docs/OPEN_SOURCE_RELEASE.md)

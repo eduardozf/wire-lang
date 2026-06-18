@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 128" width="520" height="128" role="img">
+  <title>Wire Lang lockup</title>
+  <desc>Horizontal Wire Lang lockup with WL monogram, wordmark, and tagline.</desc>
+  <rect width="520" height="128" fill="transparent"/>
+  <g transform="translate(20 20) scale(0.846154)">
+    <path fill="none" d="M18 28 33 78 48 46 63 78 78 28 78 78 100 78" stroke="#16181d" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="18" cy="28" r="7" fill="#16181d"/>
+    <circle cx="33" cy="78" r="7" fill="#16181d"/>
+    <circle cx="78" cy="28" r="6.4" fill="#faf9f7" stroke="#16181d" stroke-width="3.4"/>
+    <circle cx="100" cy="78" r="7" fill="#16181d"/>
+  </g>
+  <line x1="140" y1="36" x2="140" y2="92" stroke="#e6e4dd" stroke-width="1"/>
+  <text x="164" y="62" fill="#16181d" font-family="JetBrains Mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, monospace" font-size="34" font-weight="700">wire<tspan fill="#9a978f">&#183;</tspan>lang</text>
+  <text x="166" y="86" fill="#6f6c64" font-family="JetBrains Mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, monospace" font-size="11" font-weight="600" letter-spacing="3.1">SCHEMATICS AS CODE</text>
+</svg>

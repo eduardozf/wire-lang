@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 196" width="240" height="196" role="img">
+  <title>Wire Lang compact lockup</title>
+  <desc>Stacked Wire Lang lockup for compact brand placements.</desc>
+  <g transform="translate(62 22) scale(0.983051)">
+    <path fill="none" d="M18 28 33 78 48 46 63 78 78 28 78 78 100 78" stroke="#16181d" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="18" cy="28" r="7" fill="#16181d"/>
+    <circle cx="33" cy="78" r="7" fill="#16181d"/>
+    <circle cx="78" cy="28" r="6.4" fill="#faf9f7" stroke="#16181d" stroke-width="3.4"/>
+    <circle cx="100" cy="78" r="7" fill="#16181d"/>
+  </g>
+  <text x="120" y="148" text-anchor="middle" fill="#16181d" font-family="JetBrains Mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, monospace" font-size="30" font-weight="700">wire<tspan fill="#9a978f">&#183;</tspan>lang</text>
+</svg>
