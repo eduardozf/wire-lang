@@ -99,6 +99,7 @@ on significant changes.
 - Add GitHub Actions lint/security checks (`actionlint` and/or `zizmor`) to
   release-readiness CI.
 - Generate an SBOM for releases with `syft` or `cdxgen`.
-- Configure npm trusted publishing for `.github/workflows/release.yml`, or add
-  an `NPM_TOKEN` repository secret, before running the workflow in `publish`
-  mode.
+- The release workflow uses OIDC trusted publishing (no long-lived `NPM_TOKEN`)
+  and is gated behind the `release` environment. Before running it in `publish`
+  mode, configure each package's trusted publisher on npmjs.com and create the
+  `release` environment with required reviewers.
