@@ -486,7 +486,7 @@ Later extensions:
 
 ## Reference Documents
 
-- [CONTEXT.md](../CONTEXT.md) defines the project language and domain vocabulary.
+- [CONTEXT.md](./CONTEXT.md) defines the project language and domain vocabulary.
 - [ADR 0001](./adr/0001-javascript-library-with-svg-renderer.md) records the JavaScript library and SVG renderer decision.
 - [ADR 0002](./adr/0002-stable-auto-layout.md) records the stable auto-layout decision.
 - [ADR 0003](./adr/0003-iec-style-symbols-without-compliance-claim.md) records the IEC-style-without-compliance-claim decision.
