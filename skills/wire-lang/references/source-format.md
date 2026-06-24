@@ -29,9 +29,11 @@ schematic
 component R1 Resistor value=220ohm
 component D1 LED color=red
 component J1 Header pins=[VCC,GND,SDA,SCL]
+component U1 IC pins=[1:VCC@left, 2:GND@left, 3:OUT@right]
 ```
 
-Use `component ID Type` for every component instance.
+Use `component ID Type` for every component instance. For `IC`, pins are
+`number:name@side`; the number and `@side` are optional (side defaults to `left`).
 
 ### Named Nets
 
@@ -49,6 +51,15 @@ connect R1.2, D1.A
 ```
 
 Use `connect` when the electrical node does not need a reusable name.
+
+### No-Connect
+
+```wire
+no-connect U1.7
+```
+
+Mark a terminal as intentionally unconnected. It renders as an `X`. A terminal
+cannot be both in a net and `no-connect`.
 
 ### Local Components
 
@@ -80,6 +91,7 @@ Use annotations for visible diagram text. Use comments only for source notes.
 
 ```wire
 render direction=left-to-right
+render crossings=hop
 render R1 orientation=vertical
 render Inputs side=left
 render U1 anchor=center
@@ -88,8 +100,10 @@ render net VCC style=label
 
 Render hints guide layout but do not change the circuit.
 
-`direction` and net `style` are honored today. `orientation`, `side`, and
-`anchor` (and `group` layout) are accepted and validated but not yet positioned
-by the bundled renderer — using them emits a `render.not-yet-honored` (or
-`group.not-yet-honored`) warning. They are safe to write for forward
-compatibility; they just have no visual effect yet.
+`direction`, `crossings`, and net `style` are honored today. `crossings=hop`
+draws a small hop where wires cross without a junction (default is `gap`, which
+leaves crossings overlapping). `orientation`, `side`, and `anchor` (and `group`
+layout) are accepted and validated but not yet positioned by the bundled renderer
+— using them emits a `render.not-yet-honored` (or `group.not-yet-honored`)
+warning. They are safe to write for forward compatibility; they just have no
+visual effect yet.

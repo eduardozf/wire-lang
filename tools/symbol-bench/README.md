@@ -32,6 +32,10 @@ The edit loop: hover to find where you want a point → type that `{ along, acro
 into the symbol recipe → watch it update live.
 
 Notes:
+- The symbol picker is derived from the standard library
+  (`standardComponentNames()`), so new component types appear automatically. Add
+  an entry to `SAMPLE_PROPS` in `bench.js` only when a type renders better with
+  example props (e.g. `Header`/`IC` need a `pins=[...]` list to draw anything).
 - `pnpm bench --no-watch` just serves (build core yourself with
   `pnpm --filter @wire-lang/core run build:js`).
 - `PORT=xxxx pnpm bench` to change the port.

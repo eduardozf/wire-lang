@@ -18,3 +18,8 @@ change:
   surprising without context.
 - `skills/wire-lang/` for user-facing authoring instructions, examples, and
   syntax guidance.
+
+The symbol bench picker is derived from the standard library, so new component
+types appear there automatically. When a type needs example props to render
+meaningfully (e.g. `Header`/`IC` need a `pins=[...]` list), add a `SAMPLE_PROPS`
+entry in `tools/symbol-bench/bench.js` in the same change.

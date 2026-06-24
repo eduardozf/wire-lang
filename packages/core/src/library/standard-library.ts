@@ -150,6 +150,82 @@ const DEFINITIONS: readonly ComponentTypeDef[] = [
     symbol: "module",
     designatorPrefixes: ["J", "P", "CN", "H"],
   },
+  {
+    name: "FerriteBead",
+    terminals: ["1", "2"],
+    properties: [],
+    defaultLabels: ["id"],
+    symbol: "ferrite-bead",
+    designatorPrefixes: ["FB", "L"],
+  },
+  {
+    name: "TVSDiode",
+    terminals: ["A", "C"],
+    properties: [{ name: "bidirectional", kind: "boolean" }],
+    defaultLabels: ["id"],
+    symbol: "tvs-diode",
+    roleMappings: [
+      { role: "anode", terminal: "A" },
+      { role: "cathode", terminal: "C" },
+    ],
+    designatorPrefixes: ["D", "TVS"],
+  },
+  {
+    name: "Speaker",
+    terminals: ["+", "-"],
+    properties: [],
+    defaultLabels: ["id"],
+    symbol: "speaker",
+    roleMappings: [
+      { role: "positive", terminal: "+" },
+      { role: "negative", terminal: "-" },
+    ],
+    designatorPrefixes: ["LS", "SP"],
+  },
+  {
+    name: "Antenna",
+    terminals: ["1"],
+    properties: [],
+    defaultLabels: ["id"],
+    symbol: "antenna",
+    designatorPrefixes: ["ANT", "E"],
+  },
+  {
+    name: "TestPoint",
+    terminals: ["1"],
+    properties: [{ name: "name", kind: "string" }],
+    defaultLabels: ["id", "name"],
+    symbol: "test-point",
+    designatorPrefixes: ["TP"],
+  },
+  {
+    name: "PTC",
+    terminals: ["1", "2"],
+    properties: [],
+    defaultLabels: ["id"],
+    symbol: "ptc",
+    designatorPrefixes: ["F", "RT"],
+  },
+  {
+    name: "PowerFlag",
+    terminals: ["1"],
+    // `name` is the rail label drawn inside the flag (e.g. VBAT, 5V, 3V3, VCC).
+    // It is a visual flag only and does not create a hidden global net.
+    properties: [{ name: "name", kind: "string", recommended: true }],
+    defaultLabels: [],
+    symbol: "power-flag",
+    designatorPrefixes: ["PWR", "PR", "PF"],
+  },
+  {
+    name: "IC",
+    terminals: [],
+    dynamicTerminals: true,
+    // Pins carry an optional number and side: `pins=[1:VCC@left, 2:GND@left]`.
+    properties: [{ name: "pins", kind: "ic-pin-list", recommended: true }],
+    defaultLabels: ["id"],
+    symbol: "ic",
+    designatorPrefixes: ["U", "IC"],
+  },
 ];
 
 const BY_NAME: ReadonlyMap<string, ComponentTypeDef> = new Map(

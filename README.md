@@ -10,6 +10,14 @@
   </picture>
 </p>
 
+<p align="center">
+  <a href="https://www.npmjs.com/package/wire-lang"><img src="https://img.shields.io/npm/v/wire-lang.svg?color=cb3837&logo=npm" alt="npm version"></a>
+  <a href="https://www.npmjs.com/package/wire-lang"><img src="https://img.shields.io/npm/dm/wire-lang.svg?color=cb3837" alt="npm downloads"></a>
+  <a href="https://github.com/eduardozf/wire-lang/actions/workflows/ci.yml"><img src="https://github.com/eduardozf/wire-lang/actions/workflows/ci.yml/badge.svg" alt="CI status"></a>
+  <a href="./LICENSE"><img src="https://img.shields.io/npm/l/wire-lang.svg?color=blue" alt="MIT license"></a>
+  <img src="https://img.shields.io/node/v/wire-lang.svg" alt="Node version">
+</p>
+
 **Text-first electronic schematics.** Describe a circuit in a small declarative
 language and render it as a clean, documentation-ready SVG.
 

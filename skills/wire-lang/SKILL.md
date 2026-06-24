@@ -73,6 +73,13 @@ component choices or unsupported requested behavior.
 - "Make this vertical" is a render hint, not a component property.
 - "Arduino board" is outside the MVP standard library; model it as a local
   module-style component if needed.
+- "Chip with numbered pins" is the `IC` type: `pins=[1:VCC@left, 2:GND@left,
+  3:OUT@right]`. Connect pins by name.
+- "Leave this pin unused / N.C." is a `no-connect TERMINAL` statement, not a
+  floating net.
+- "Mark the 3V3 rail" can use a `PowerFlag name=3V3`; it is a visual flag, not a
+  hidden global net.
+- "Show wire hops where lines cross" is `render crossings=hop`.
 
 ## Keep This Skill Current
 

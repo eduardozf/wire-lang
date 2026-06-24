@@ -1,10 +1,10 @@
 import { compile } from "../compiler/compile.js";
 import { WireLangError } from "../errors.js";
 import { layout } from "../layout/engine.js";
-import type { LayoutModel } from "../layout/types.js";
+import type { LayoutModel, Point, Segment } from "../layout/types.js";
 import type { SchematicModel } from "../model/types.js";
 import { LANGUAGE_VERSION } from "../model/types.js";
-import { circle, escapeAttr, escapeText, fmt, sanitizeId, text } from "./svg-serializer.js";
+import { circle, escapeAttr, escapeText, fmt, line, sanitizeId, text } from "./svg-serializer.js";
 import { renderComponent } from "./symbols.js";
 
 const STYLES = `
@@ -21,15 +21,90 @@ const STYLES = `
 `.trim();
 
 const JUNCTION_RADIUS = 2.8;
+const HOP_RADIUS = 4;
+const EPS = 0.01;
+
+function isHorizontal(segment: Segment): boolean {
+  return (
+    Math.abs(segment.from.y - segment.to.y) < EPS && Math.abs(segment.from.x - segment.to.x) > EPS
+  );
+}
+
+function isVertical(segment: Segment): boolean {
+  return (
+    Math.abs(segment.from.x - segment.to.x) < EPS && Math.abs(segment.from.y - segment.to.y) > EPS
+  );
+}
+
+function pointKey(point: Point): string {
+  return `${Math.round(point.x * 10)},${Math.round(point.y * 10)}`;
+}
+
+/**
+ * Find, per horizontal segment, the x positions where another wire's vertical
+ * segment crosses it at a point that is not a junction. The horizontal segment
+ * is the one that "hops" over the vertical one.
+ */
+function computeHops(model: LayoutModel): Map<Segment, number[]> {
+  const horizontals: Segment[] = [];
+  const verticals: Segment[] = [];
+  for (const wire of model.wires) {
+    for (const segment of wire.segments) {
+      if (isHorizontal(segment)) horizontals.push(segment);
+      else if (isVertical(segment)) verticals.push(segment);
+    }
+  }
+
+  const junctions = new Set<string>();
+  for (const wire of model.wires) {
+    for (const junction of wire.junctions) junctions.add(pointKey(junction));
+  }
+
+  const hops = new Map<Segment, number[]>();
+  for (const h of horizontals) {
+    const hy = h.from.y;
+    const hMin = Math.min(h.from.x, h.to.x);
+    const hMax = Math.max(h.from.x, h.to.x);
+    for (const v of verticals) {
+      const vx = v.from.x;
+      const vMin = Math.min(v.from.y, v.to.y);
+      const vMax = Math.max(v.from.y, v.to.y);
+      const crossesX = vx > hMin + EPS && vx < hMax - EPS;
+      const crossesY = hy > vMin + EPS && hy < vMax - EPS;
+      if (!crossesX || !crossesY) continue;
+      if (junctions.has(pointKey({ x: vx, y: hy }))) continue;
+      const list = hops.get(h) ?? [];
+      list.push(vx);
+      hops.set(h, list);
+    }
+  }
+  return hops;
+}
+
+function hoppedPath(segment: Segment, hopXs: readonly number[]): string {
+  const dir = segment.to.x >= segment.from.x ? 1 : -1;
+  const sweep = dir > 0 ? 0 : 1; // keep the bump on the same (upper) side
+  const y = segment.from.y;
+  const ordered = [...hopXs].sort((a, b) => dir * (a - b));
+  let d = `M ${fmt(segment.from.x)} ${fmt(y)}`;
+  for (const hx of ordered) {
+    d += ` L ${fmt(hx - HOP_RADIUS * dir)} ${fmt(y)}`;
+    d += ` A ${fmt(HOP_RADIUS)} ${fmt(HOP_RADIUS)} 0 0 ${sweep} ${fmt(hx + HOP_RADIUS * dir)} ${fmt(y)}`;
+  }
+  d += ` L ${fmt(segment.to.x)} ${fmt(segment.to.y)}`;
+  return `<path class="wire-wire" fill="none" d="${d}"/>`;
+}
 
 function renderWires(model: LayoutModel): string {
+  const hops = model.crossings === "hop" ? computeHops(model) : null;
   const groups: string[] = [];
   for (const wire of model.wires) {
     const segments = wire.segments
-      .map(
-        (segment) =>
-          `<line class="wire-wire" x1="${fmt(segment.from.x)}" y1="${fmt(segment.from.y)}" x2="${fmt(segment.to.x)}" y2="${fmt(segment.to.y)}"/>`,
-      )
+      .map((segment) => {
+        const hopXs = hops?.get(segment);
+        if (hopXs && hopXs.length > 0) return hoppedPath(segment, hopXs);
+        return `<line class="wire-wire" x1="${fmt(segment.from.x)}" y1="${fmt(segment.from.y)}" x2="${fmt(segment.to.x)}" y2="${fmt(segment.to.y)}"/>`;
+      })
       .join("");
     const netAttr = wire.anonymous ? "" : ` data-wire-net="${escapeAttr(wire.net)}"`;
     groups.push(
@@ -37,6 +112,27 @@ function renderWires(model: LayoutModel): string {
     );
   }
   return groups.join("");
+}
+
+function renderNoConnects(model: LayoutModel): string {
+  if (model.noConnects.length === 0) return "";
+  const size = 4;
+  const marks = model.noConnects
+    .map((point) => {
+      const a = line(
+        { x: point.x - size, y: point.y - size },
+        { x: point.x + size, y: point.y + size },
+        "wire-symbol",
+      );
+      const b = line(
+        { x: point.x - size, y: point.y + size },
+        { x: point.x + size, y: point.y - size },
+        "wire-symbol",
+      );
+      return `<g data-wire-kind="no-connect">${a}${b}</g>`;
+    })
+    .join("");
+  return `<g class="wire-no-connects">${marks}</g>`;
 }
 
 function renderJunctions(model: LayoutModel): string {
@@ -81,9 +177,12 @@ export function serializeSvg(model: LayoutModel): string {
     `<g class="wire-wires">${renderWires(model)}</g>`,
     renderComponents(model),
     renderJunctions(model),
+    renderNoConnects(model),
     renderLabels(model),
     `</svg>`,
-  ].join("\n");
+  ]
+    .filter((fragment) => fragment !== "")
+    .join("\n");
 }
 
 /**

@@ -3,9 +3,10 @@ import type { Dimension } from "./quantity.js";
 /**
  * Value kinds an electrical property can take. `quantity`, `string`, `boolean`,
  * and `enum` are the spec property kinds; `pin-list` is the structural kind used
- * by `Header`, whose terminals come from `pins=[...]`.
+ * by `Header`, whose terminals come from `pins=[...]`. `ic-pin-list` is the
+ * richer structural kind used by `IC`, whose pins carry `number:name@side`.
  */
-export type PropertyKind = "quantity" | "string" | "boolean" | "enum" | "pin-list";
+export type PropertyKind = "quantity" | "string" | "boolean" | "enum" | "pin-list" | "ic-pin-list";
 
 export interface PropertyDef {
   readonly name: string;

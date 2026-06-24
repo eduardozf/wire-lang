@@ -2,6 +2,7 @@ import type {
   ComponentNode,
   DefineComponentNode,
   DocumentNode,
+  NoConnectNode,
   PropertyNode,
   RenderNode,
   TerminalRefNode,
@@ -16,18 +17,28 @@ import { resolveTerminal } from "../library/types.js";
 import type {
   CompileResult,
   ComponentInstance,
+  CrossingStyle,
   Direction,
   Group,
+  IcPin,
   LocalComponentDef,
   Net,
   NetStyle,
   NetTerminalRef,
+  NoConnect,
   NormalizedProperty,
   Orientation,
   SchematicModel,
   Side,
 } from "../model/types.js";
-import { DIRECTIONS, LANGUAGE_VERSION, NET_STYLES, ORIENTATIONS, SIDES } from "../model/types.js";
+import {
+  CROSSING_STYLES,
+  DIRECTIONS,
+  LANGUAGE_VERSION,
+  NET_STYLES,
+  ORIENTATIONS,
+  SIDES,
+} from "../model/types.js";
 import { parseDocument } from "../parser/parser.js";
 import type { SourceRange } from "../source.js";
 import { countConnectedSubschematics } from "./connectivity.js";
@@ -63,6 +74,12 @@ class Compiler {
   private description: string | null = null;
   private direction: Direction = "left-to-right";
   private directionSet = false;
+  private crossings: CrossingStyle = "gap";
+  private crossingsSet = false;
+
+  private readonly noConnects: NoConnect[] = [];
+  /** `component.terminal` keys that have been marked `no-connect`. */
+  private readonly noConnectKeys = new Set<string>();
 
   private readonly annotations: {
     text: string;
@@ -95,17 +112,22 @@ class Compiler {
       }
     }
 
-    // Pass 4: groups.
+    // Pass 4: no-connect flags (after nets so conflicts are detectable).
+    for (const statement of ast.statements) {
+      if (statement.kind === "NoConnect") this.collectNoConnect(statement);
+    }
+
+    // Pass 5: groups.
     for (const statement of ast.statements) {
       if (statement.kind === "Group") this.collectGroup(statement.name, statement);
     }
 
-    // Pass 5: annotations.
+    // Pass 6: annotations.
     for (const statement of ast.statements) {
       if (statement.kind === "Annotation") this.collectAnnotation(statement);
     }
 
-    // Pass 6: render hints (after targets exist).
+    // Pass 7: render hints (after targets exist).
     for (const statement of ast.statements) {
       if (statement.kind === "Render") this.collectRender(statement);
     }
@@ -269,10 +291,16 @@ class Compiler {
 
     const properties: NormalizedProperty[] = [];
     let dynamicTerminals: string[] | null = null;
+    let icPins: IcPin[] | null = null;
     for (const property of node.properties) {
       const normalized = this.normalizeProperty(property, type);
       properties.push(normalized);
-      if (type?.dynamicTerminals && property.name === "pins" && normalized.items) {
+      if (!type?.dynamicTerminals || property.name !== "pins" || !normalized.items) continue;
+      const def = type.properties.find((entry) => entry.name === "pins");
+      if (def?.kind === "ic-pin-list") {
+        icPins = this.parseIcPins(normalized.items, property);
+        dynamicTerminals = icPins.map((pin) => pin.name);
+      } else {
         dynamicTerminals = [...normalized.items];
       }
     }
@@ -293,6 +321,7 @@ class Compiler {
       local: isLocal,
       symbol,
       roleMappings: [...roleMappings],
+      pins: icPins ?? undefined,
       sourceIndex: this.instances.length,
       orientation: null,
       side: null,
@@ -358,8 +387,110 @@ class Compiler {
         }
         return { ...base, items: value.items, known: true };
       }
+      case "ic-pin-list": {
+        if (value.valueKind !== "list") {
+          this.reportInvalidValue(property, "must be a list like [1:VCC@left, 2:GND@right]");
+        }
+        return { ...base, items: value.items, known: true };
+      }
       default:
         return { ...base, known: true };
+    }
+  }
+
+  /**
+   * Parse `IC` pin items of the form `[number:]name[@side]` into structured
+   * pins. Pin numbers and sides are optional; an omitted side defaults to
+   * `left`. Duplicate pin names are dropped with a diagnostic.
+   */
+  private parseIcPins(items: readonly string[], property: PropertyNode): IcPin[] {
+    const pins: IcPin[] = [];
+    const seen = new Set<string>();
+    const pinPattern = /^(?:([^:@\s]+):)?([^:@\s]+)(?:@([^:@\s]+))?$/;
+    for (const item of items) {
+      const match = pinPattern.exec(item);
+      if (!match) {
+        this.reportInvalidValue(
+          property,
+          `has malformed pin "${item}" (expected number:name@side)`,
+        );
+        continue;
+      }
+      const [, rawNumber, name, rawSide] = match;
+      const pinName = name!;
+      let side: Side = "left";
+      if (rawSide !== undefined) {
+        if (!SIDES.includes(rawSide as Side)) {
+          this.reportInvalidValue(
+            property,
+            `pin "${pinName}" has invalid side "${rawSide}" (expected ${SIDES.join("/")})`,
+          );
+        } else {
+          side = rawSide as Side;
+        }
+      }
+      if (seen.has(pinName)) {
+        this.reportInvalidValue(property, `has duplicate pin name "${pinName}"`);
+        continue;
+      }
+      seen.add(pinName);
+      pins.push({ number: rawNumber ?? null, name: pinName, side });
+    }
+    return pins;
+  }
+
+  // ---- no-connect flags ----------------------------------------------------
+
+  private collectNoConnect(node: NoConnectNode): void {
+    for (const member of node.members) {
+      const instance = this.instanceById.get(member.component);
+      if (!instance) {
+        this.report(
+          "error",
+          DiagnosticCodes.noConnectUnknownComponent,
+          `no-connect references unknown component "${member.component}".`,
+          member.componentRange,
+        );
+        continue;
+      }
+
+      let terminal = member.terminal;
+      if (!this.unresolvedComponentIds.has(member.component) && instance.type) {
+        const resolved = resolveTerminal(instance.type, member.terminal, instance.terminals);
+        if (!resolved) {
+          this.report(
+            "error",
+            DiagnosticCodes.noConnectUnknownTerminal,
+            `Component "${member.component}" (${instance.typeName}) has no terminal "${member.terminal}".`,
+            member.terminalRange,
+          );
+          continue;
+        }
+        terminal = resolved;
+      }
+
+      const key = `${member.component}.${terminal}`;
+      const owner = this.terminalOwner.get(key);
+      if (owner !== undefined) {
+        this.report(
+          "error",
+          DiagnosticCodes.noConnectConflict,
+          `Terminal ${key} is marked no-connect but is also connected to net ${owner}.`,
+          member.range,
+        );
+        continue;
+      }
+      if (this.noConnectKeys.has(key)) {
+        this.report(
+          "warning",
+          DiagnosticCodes.noConnectDuplicate,
+          `Terminal ${key} is already marked no-connect.`,
+          member.range,
+        );
+        continue;
+      }
+      this.noConnectKeys.add(key);
+      this.noConnects.push({ component: member.component, terminal });
     }
   }
 
@@ -581,6 +712,28 @@ class Compiler {
 
   private collectRender(node: RenderNode): void {
     if (node.scope === "global") {
+      if (node.hintKey === "crossings") {
+        if (!CROSSING_STYLES.includes(node.hintValue as CrossingStyle)) {
+          this.report(
+            "warning",
+            DiagnosticCodes.renderInvalidValue,
+            `Invalid crossings style "${node.hintValue}" (expected ${CROSSING_STYLES.join("/")}).`,
+            node.range,
+          );
+          return;
+        }
+        if (this.crossingsSet) {
+          this.report(
+            "warning",
+            DiagnosticCodes.renderDuplicate,
+            "Duplicate global crossings hint; using the last value.",
+            node.range,
+          );
+        }
+        this.crossings = node.hintValue as CrossingStyle;
+        this.crossingsSet = true;
+        return;
+      }
       if (node.hintKey !== "direction") {
         this.report(
           "warning",
@@ -771,6 +924,7 @@ class Compiler {
       local: instance.local,
       symbol: instance.symbol,
       roleMappings: instance.roleMappings,
+      pins: instance.pins,
       sourceIndex: instance.sourceIndex,
       orientation: instance.orientation,
       side: instance.side,
@@ -798,11 +952,13 @@ class Compiler {
       description: this.description,
       languageVersion: LANGUAGE_VERSION,
       direction: this.direction,
+      crossings: this.crossings,
       components,
       localDefinitions,
       nets,
       groups,
       annotations: this.annotations.map((annotation) => ({ ...annotation })),
+      noConnects: this.noConnects.map((noConnect) => ({ ...noConnect })),
       diagnostics: this.diagnostics,
     };
   }
@@ -828,6 +984,7 @@ interface MutableInstance {
   local: boolean;
   symbol: string;
   roleMappings: SymbolRoleMapping[];
+  pins?: readonly IcPin[];
   sourceIndex: number;
   orientation: Orientation | null;
   side: Side | null;

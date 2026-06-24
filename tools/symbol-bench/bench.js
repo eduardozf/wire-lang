@@ -1,27 +1,43 @@
 // Symbol bench client. Renders one symbol large on a labeled along/across grid
 // and reports the live coordinate under the cursor. Imports the real renderer so
 // what you see is exactly what ships.
-import { compile, layout, renderComponent } from "/packages/core/dist/index.js";
+import {
+  compile,
+  getStandardComponent,
+  layout,
+  renderComponent,
+  standardComponentNames,
+} from "/packages/core/dist/index.js";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 
+// Representative props to seed the editable Props box, keyed by component type.
+// Only list a type here when an example renders better than no props at all
+// (Header/IC need pins to draw anything); everything else defaults to "".
+const SAMPLE_PROPS = {
+  LED: "color=red",
+  Resistor: "value=1k",
+  Capacitor: "capacitance=100nF",
+  PolarizedCapacitor: "capacitance=10uF",
+  Inductor: "inductance=10mH",
+  Battery: "voltage=9V",
+  SPSTSwitch: "state=closed",
+  PushButton: "normally=open",
+  TVSDiode: "bidirectional=true",
+  TestPoint: "name=TP1",
+  PowerFlag: "name=VCC",
+  Header: "pins=[A,B,C]",
+  IC: "pins=[1:VCC@left, 2:GND@left, 3:OUT@right]",
+};
+
 // symbol -> a representative one-component schematic (no nets needed; layout
-// still places terminals). `props` seeds the editable Props box.
-const SYMBOLS = [
-  { symbol: "led", type: "LED", props: "color=red" },
-  { symbol: "diode", type: "Diode", props: "" },
-  { symbol: "resistor", type: "Resistor", props: "value=1k" },
-  { symbol: "capacitor", type: "Capacitor", props: "capacitance=100nF" },
-  { symbol: "polarized-capacitor", type: "PolarizedCapacitor", props: "capacitance=10uF" },
-  { symbol: "inductor", type: "Inductor", props: "inductance=10mH" },
-  { symbol: "battery", type: "Battery", props: "voltage=9V" },
-  { symbol: "spst-switch", type: "SPSTSwitch", props: "state=closed" },
-  { symbol: "push-button", type: "PushButton", props: "normally=open" },
-  { symbol: "npn-transistor", type: "NPNTransistor", props: "" },
-  { symbol: "pnp-transistor", type: "PNPTransistor", props: "" },
-  { symbol: "ground-reference", type: "GroundReference", props: "" },
-  { symbol: "module", type: "Header", props: "pins=[A,B,C]" },
-];
+// still places terminals). The list is derived from the standard library, so
+// new component types appear automatically. `props` seeds the editable box.
+const SYMBOLS = standardComponentNames().map((type) => ({
+  type,
+  symbol: getStandardComponent(type).symbol,
+  props: SAMPLE_PROPS[type] ?? "",
+}));
 
 const els = {
   symbol: document.getElementById("symbol"),

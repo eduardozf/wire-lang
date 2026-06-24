@@ -87,6 +87,15 @@ component J1 Header pins=[VCC,GND,SDA,SCL]
 
 Component statements require the `component` keyword. Each component instance has a unique instance ID.
 
+`IC` blocks use a richer pin list, `pins=[number:name@side, ...]`, where the pin
+number and the box side (`left`, `right`, `top`, `bottom`) are optional. An
+omitted side defaults to `left`. The component's terminals are the pin names; the
+number and name both render next to the pin.
+
+```wire
+component U1 IC pins=[1:VCC@left, 2:GND@left, 3:OUT@right, 4:EN@right]
+```
+
 Conventional designator prefixes, such as `R` for resistors and `D` for LEDs, should produce warnings when mismatched rather than errors.
 
 ### Local Component Definitions
@@ -165,6 +174,18 @@ Nets render as visual wires by default. Label rendering requires an explicit ren
 render net VCC style=label
 ```
 
+### No-Connect
+
+Mark a terminal as intentionally unconnected with `no-connect`. It renders as an
+`X` on the pin and documents that the pin is deliberately left open.
+
+```wire
+no-connect U1.7
+```
+
+A `no-connect` terminal must not also appear in a net; doing so is a fatal
+validation issue. Repeating a `no-connect` for the same terminal is a warning.
+
 ### Groups
 
 Groups are intended to guide layout. A component instance can belong to at most
@@ -191,6 +212,7 @@ MVP render hints:
 
 ```wire
 render direction=left-to-right
+render crossings=hop
 render R1 orientation=vertical
 render Inputs side=left
 render U1 anchor=center
@@ -201,12 +223,15 @@ render net VCC style=label
 Supported values:
 
 - `direction`: `left-to-right`, `right-to-left`, `top-to-bottom`, `bottom-to-top` — honored.
+- `crossings`: `gap`, `hop` — honored.
 - net `style`: `wire`, `label` — honored.
 - `orientation`: `horizontal`, `vertical` — accepted, not yet honored.
 - `side`: `left`, `right`, `top`, `bottom` — accepted, not yet honored.
 - `anchor`: `center` — accepted, not yet honored.
 
-Default direction is `left-to-right`.
+Default direction is `left-to-right`. Default crossings style is `gap`: wires that
+cross without a junction dot simply overlap. `crossings=hop` draws a small
+semicircular hop on the horizontal wire at each non-junction crossing.
 
 > **Status:** `direction` and net `style` are honored by the bundled layout
 > engine. `orientation`, `side`, and `anchor` are validated and recorded on the
@@ -247,6 +272,23 @@ The MVP ships a small standard component library.
 | `SPSTSwitch` | `1`, `2` | optional `state: enum(open, closed)` | `id` | `spst-switch` |
 | `PushButton` | `1`, `2` | optional `normally: enum(open, closed)` | `id` | `push-button` |
 | `Header` | from `pins=[...]` | recommended `pins: pin-list` | `id` | `module` |
+| `FerriteBead` | `1`, `2` | none | `id` | `ferrite-bead` |
+| `TVSDiode` | `A`, `C` | optional `bidirectional: boolean` | `id` | `tvs-diode` |
+| `Speaker` | `+`, `-` | none | `id` | `speaker` |
+| `Antenna` | `1` | none | `id` | `antenna` |
+| `TestPoint` | `1` | optional `name: string` | `id`, `name` | `test-point` |
+| `PTC` | `1`, `2` | none | `id` | `ptc` |
+| `PowerFlag` | `1` | recommended `name: string` | none | `power-flag` |
+| `IC` | from `pins=[...]` | recommended `pins: ic-pin-list` | `id` | `ic` |
+
+Designator prefixes: `FerriteBead` → `FB`/`L`, `TVSDiode` → `D`/`TVS`, `Speaker` →
+`LS`/`SP`, `Antenna` → `ANT`/`E`, `TestPoint` → `TP`, `PTC` → `F`/`RT`,
+`PowerFlag` → `PWR`/`PR`/`PF`, `IC` → `U`/`IC`.
+
+`TVSDiode` maps `anode`→`A` and `cathode`→`C`; `Speaker` maps `positive`→`+` and
+`negative`→`-`. `PowerFlag` draws its `name` (e.g. `VBAT`, `5V`, `3V3`, `VCC`)
+inside the flag glyph; it is a visual rail flag only and does not create a hidden
+global net.
 
 MOSFETs and complex board modules such as Arduino boards are outside the MVP.
 
@@ -440,7 +482,9 @@ SVG output should include:
 - sanitized IDs where IDs are emitted
 - junction dots for explicit visual wire connections
 
-Crossing wires without a junction dot are not connected.
+Crossing wires without a junction dot are not connected. By default they simply
+overlap; `render crossings=hop` draws a wire-hop glyph at such crossings to make
+the "not connected" relationship explicit.
 
 Standard symbols use an IEC-style visual profile where practical. Wire Lang does not claim full IEC 60617, IEEE 315, or other formal standards compliance.
 

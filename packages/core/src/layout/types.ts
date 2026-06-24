@@ -1,5 +1,5 @@
 import type { SymbolRoleMapping } from "../library/types.js";
-import type { NormalizedProperty } from "../model/types.js";
+import type { CrossingStyle, NormalizedProperty } from "../model/types.js";
 
 /**
  * Renderer-independent layout model. Coordinates are abstract layout units with
@@ -22,6 +22,8 @@ export interface LayoutTerminal {
   readonly name: string;
   readonly point: Point;
   readonly side: TerminalSide;
+  /** Pin number for IC-style components; absent otherwise. */
+  readonly number?: string | null;
 }
 
 export interface LayoutComponent {
@@ -62,6 +64,10 @@ export interface LayoutModel {
   readonly components: readonly LayoutComponent[];
   readonly wires: readonly LayoutWire[];
   readonly labels: readonly LayoutLabel[];
+  /** Points where a terminal is marked `no-connect` (rendered as an X). */
+  readonly noConnects: readonly Point[];
+  /** How non-junction wire crossings are drawn. */
+  readonly crossings: CrossingStyle;
   readonly title: string | null;
   readonly description: string | null;
 }

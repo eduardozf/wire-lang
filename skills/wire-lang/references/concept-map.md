@@ -11,6 +11,8 @@ writing `.wire` source, not for developing the implementation.
 - Component Instance -> has -> Component Type
 - Component Type -> exposes -> Terminals
 - Terminal references -> connect through -> Nets
+- Terminal -> can be marked unused by -> `no-connect`
+- IC pin -> declared as -> `number:name@side`
 - Named Net -> has -> source-level name
 - Anonymous Net -> created by -> `connect`
 - Render Hint -> guides -> layout

@@ -9,6 +9,8 @@ export type Direction = "left-to-right" | "right-to-left" | "top-to-bottom" | "b
 export type Orientation = "horizontal" | "vertical";
 export type Side = "left" | "right" | "top" | "bottom";
 export type NetStyle = "wire" | "label";
+/** How visual wires that cross without a junction are drawn. */
+export type CrossingStyle = "gap" | "hop";
 
 export const DIRECTIONS: readonly Direction[] = [
   "left-to-right",
@@ -19,6 +21,17 @@ export const DIRECTIONS: readonly Direction[] = [
 export const ORIENTATIONS: readonly Orientation[] = ["horizontal", "vertical"];
 export const SIDES: readonly Side[] = ["left", "right", "top", "bottom"];
 export const NET_STYLES: readonly NetStyle[] = ["wire", "label"];
+export const CROSSING_STYLES: readonly CrossingStyle[] = ["gap", "hop"];
+
+/**
+ * A pin on an `IC` block: an optional pin number, the terminal name, and the
+ * box edge it sits on. Derived from `pins=[number:name@side, ...]`.
+ */
+export interface IcPin {
+  readonly number: string | null;
+  readonly name: string;
+  readonly side: Side;
+}
 
 export interface NormalizedProperty {
   readonly name: string;
@@ -50,6 +63,8 @@ export interface ComponentInstance {
   readonly local: boolean;
   readonly symbol: string;
   readonly roleMappings: readonly SymbolRoleMapping[];
+  /** Structured pin layout for `IC` blocks; absent for other component types. */
+  readonly pins?: readonly IcPin[];
   readonly sourceIndex: number;
   // Resolved render hints:
   readonly orientation: Orientation | null;
@@ -78,6 +93,12 @@ export interface Net {
   readonly sourceIndex: number;
 }
 
+/** A terminal marked as intentionally unconnected with `no-connect`. */
+export interface NoConnect {
+  readonly component: string;
+  readonly terminal: string;
+}
+
 export interface Annotation {
   readonly text: string;
   readonly targetKind: "component" | "net";
@@ -95,11 +116,14 @@ export interface SchematicModel {
   readonly description: string | null;
   readonly languageVersion: string;
   readonly direction: Direction;
+  /** How non-junction wire crossings are drawn (`gap` by default). */
+  readonly crossings: CrossingStyle;
   readonly components: readonly ComponentInstance[];
   readonly localDefinitions: readonly LocalComponentDef[];
   readonly nets: readonly Net[];
   readonly groups: readonly Group[];
   readonly annotations: readonly Annotation[];
+  readonly noConnects: readonly NoConnect[];
   readonly diagnostics: readonly Diagnostic[];
 }
 

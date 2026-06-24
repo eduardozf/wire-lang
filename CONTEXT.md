@@ -352,6 +352,26 @@ _Avoid_: net, physical cable
 A filled dot rendered where visual wires explicitly connect at a junction.
 _Avoid_: wire crossing, decorative point
 
+**Wire Hop**:
+An optional semicircular glyph drawn where two **Visual Wires** cross without a **Junction Dot**, making the "not connected" relationship explicit. Enabled with `render crossings=hop`.
+_Avoid_: junction dot, electrical connection
+
+**No-Connect Flag**:
+A mark on a component terminal declaring it intentionally unconnected, drawn as an `X`. Declared with a `no-connect` statement.
+_Avoid_: floating net, junction dot
+
+**No-Connect Statement**:
+A source statement, `no-connect TERMINAL`, that marks one or more terminals as intentionally unconnected.
+_Avoid_: connect statement, net declaration
+
+**Power Flag**:
+A single-terminal **Component** (`PowerFlag`) whose `name` labels a power rail, such as `VBAT`, `5V`, or `3V3`. It is a visual flag and does not create a hidden global **Net**.
+_Avoid_: power net, magic global, ground reference
+
+**Pin Number**:
+The optional numeric (or alphanumeric) designator of an `IC` pin, declared in `pins=[number:name@side]` and rendered alongside the pin name.
+_Avoid_: terminal name, instance ID
+
 **Source Document**:
 The text authored by a user to declare the components and nets of a **Schematic**.
 _Avoid_: drawing, canvas, generated diagram
@@ -514,6 +534,30 @@ Terminals `1`, `2`; optional `normally: enum(open, closed)`; default label `id`;
 
 **Header**:
 Terminals are user-defined through recommended `pins: pin-list`; default label `id`; symbol `module`.
+
+**FerriteBead**:
+Terminals `1`, `2`; no properties; default label `id`; symbol `ferrite-bead`; designators `FB`/`L`.
+
+**TVSDiode**:
+Terminals `A`, `C`; optional `bidirectional: boolean`; default label `id`; symbol `tvs-diode`; maps `anode` to `A` and `cathode` to `C`; designators `D`/`TVS`.
+
+**Speaker**:
+Terminals `+`, `-`; no properties; default label `id`; symbol `speaker`; maps `positive` to `+` and `negative` to `-`; designators `LS`/`SP`.
+
+**Antenna**:
+Terminal `1`; no properties; default label `id`; symbol `antenna`; designators `ANT`/`E`.
+
+**TestPoint**:
+Terminal `1`; optional `name: string`; default labels `id`, `name`; symbol `test-point`; designator `TP`.
+
+**PTC**:
+Terminals `1`, `2`; no properties; default label `id`; symbol `ptc`; designators `F`/`RT`. The resettable-fuse / polyfuse variant; the plain fuse is tracked separately.
+
+**PowerFlag**:
+Terminal `1`; recommended `name: string` (e.g. `VBAT`, `5V`, `3V3`, `VCC`) drawn inside the flag; no default label; symbol `power-flag`; designators `PWR`/`PR`/`PF`. A visual rail flag, not a hidden global net.
+
+**IC**:
+Terminals are user-defined through recommended `pins: ic-pin-list` written as `pins=[number:name@side, ...]`; default label `id`; symbol `ic`; designators `U`/`IC`.
 
 ## Example dialogue
 
@@ -892,6 +936,10 @@ Terminals are user-defined through recommended `pins: pin-list`; default label `
 - The MVP includes a **Public AST** and **Partial AST** to support high-quality editor and AI feedback.
 - The MVP **Partial AST** is structural and uses **Error Nodes**; it is not a lossless token-level AST.
 - MVP **Public AST** and **Partial AST** nodes carry **Source Locations**.
-- The MVP **Standard Component Library** should include `Resistor`, `Capacitor`, `PolarizedCapacitor`, `Inductor`, `LED`, `Diode`, `NPNTransistor`, `PNPTransistor`, `Battery`, `GroundReference`, `SPSTSwitch`, `PushButton`, and `Header`.
+- The MVP **Standard Component Library** should include `Resistor`, `Capacitor`, `PolarizedCapacitor`, `Inductor`, `LED`, `Diode`, `NPNTransistor`, `PNPTransistor`, `Battery`, `GroundReference`, `SPSTSwitch`, `PushButton`, `Header`, `FerriteBead`, `TVSDiode`, `Speaker`, `Antenna`, `TestPoint`, `PTC`, `PowerFlag`, and `IC`.
+- A **No-Connect Flag** (`no-connect TERMINAL`) marks a terminal as intentionally unconnected; it renders as an `X` and conflicts with assigning that terminal to a **Net**.
+- A **Wire Hop** is an opt-in render of crossing **Visual Wires** (`render crossings=hop`); the default `gap` style leaves crossings overlapping.
+- An `IC` block declares pins as `pins=[number:name@side]`; the **Pin Number** and box side are optional, and an omitted side defaults to `left`.
+- A **Power Flag** is a visual rail label, not a **Power Net** or hidden global connection.
 - MOSFETs are out of scope for the MVP.
 - Project documentation uses English canonical terms, while working conversation may happen in Portuguese.
