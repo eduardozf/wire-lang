@@ -52,7 +52,7 @@ question. Please follow the [Code of Conduct](./CODE_OF_CONDUCT.md).
 When behavior, vocabulary, scope, or architecture changes, update the relevant
 document in the same change (see `AGENTS.md`):
 
-- `CONTEXT.md` — domain vocabulary and resolved terminology.
+- `docs/CONTEXT.md` — domain vocabulary and resolved terminology.
 - `docs/MVP.md` — product scope, language semantics, APIs, diagnostics, and
   implementation contracts.
 - `docs/adr/` — hard-to-reverse architectural decisions.

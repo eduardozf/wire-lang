@@ -13,6 +13,6 @@ need.
 - **General usage questions:** open a GitHub discussion if discussions are
   enabled; otherwise open an issue and mark it as a question.
 
-For authoring `.wire` files, start with [README.md](./README.md), the examples
-in [examples/](./examples), and the user-facing skill instructions in
-[skills/wire-lang/](./skills/wire-lang).
+For authoring `.wire` files, start with [README.md](../README.md), the examples
+in [examples/](../examples), and the user-facing skill instructions in
+[skills/wire-lang/](../skills/wire-lang).
