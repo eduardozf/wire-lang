@@ -11,7 +11,7 @@ Keep the project documented as you work. When behavior, vocabulary, scope, or
 architecture changes, update the relevant source-of-truth document in the same
 change:
 
-- `CONTEXT.md` for domain vocabulary and resolved terminology.
+- `docs/CONTEXT.md` for domain vocabulary and resolved terminology.
 - `docs/MVP.md` for product scope, language semantics, APIs, diagnostics, and
   implementation contracts.
 - `docs/adr/` for hard-to-reverse architectural decisions that would be

@@ -167,7 +167,7 @@ There is no preview server; open the generated SVG directly.
 
 Wire Lang uses IEC-style conventions where practical with original, open-source
 symbol art; it does not claim formal IEC/IEEE compliance. See
-[CONTRIBUTING.md](./CONTRIBUTING.md) for the artwork policy.
+[CONTRIBUTING.md](./.github/CONTRIBUTING.md) for the artwork policy.
 
 ### Packages & development
 
@@ -192,16 +192,16 @@ not simulation, PCB/breadboard layout, BOMs, or editor integrations. See
 
 ## Documentation
 
-- [MVP specification](./docs/MVP.md) · [Example gallery](./docs/EXAMPLES.md) · [Domain vocabulary](./CONTEXT.md)
-- [Architecture decisions](./docs/adr/) · [Open source release plan](./docs/OPEN_SOURCE_RELEASE.md) · [Brand assets](./docs/brand/)
-- [Contributing](./CONTRIBUTING.md) · [Code of conduct](./CODE_OF_CONDUCT.md) · [Support](./SUPPORT.md) · [Security](./SECURITY_REVIEW.md) · [Changelog](./CHANGELOG.md)
+- [MVP specification](./docs/MVP.md) · [Example gallery](./docs/EXAMPLES.md) · [Domain vocabulary](./docs/CONTEXT.md)
+- [Architecture decisions](./docs/adr/) · [Brand assets](./docs/brand/)
+- [Contributing](./.github/CONTRIBUTING.md) · [Code of conduct](./.github/CODE_OF_CONDUCT.md) · [Support](./.github/SUPPORT.md) · [Security](./.github/SECURITY.md) · [Changelog](./CHANGELOG.md)
 
 ## Contributing
 
 Wire Lang is early and design-heavy. The most useful contributions right now are
 tightening the language spec, challenging ambiguous syntax, proposing test cases
 for parsing and layout stability, and designing original schematic symbols. Read
-[CONTRIBUTING.md](./CONTRIBUTING.md) first.
+[CONTRIBUTING.md](./.github/CONTRIBUTING.md) first.
 
 ## License
 
