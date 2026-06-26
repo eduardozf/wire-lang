@@ -229,9 +229,10 @@ Supported values:
 - `side`: `left`, `right`, `top`, `bottom` — accepted, not yet honored.
 - `anchor`: `center` — accepted, not yet honored.
 
-Default direction is `left-to-right`. Default crossings style is `gap`: wires that
-cross without a junction dot simply overlap. `crossings=hop` draws a small
-semicircular hop on the horizontal wire at each non-junction crossing.
+Default direction is `left-to-right`. Default crossings style is `hop`: wires
+that cross without a junction dot get a small semicircular hop on the horizontal
+wire at each non-junction crossing. `crossings=gap` opts out, leaving such
+crossings overlapping.
 
 > **Status:** `direction` and net `style` are honored by the bundled layout
 > engine. `orientation`, `side`, and `anchor` are validated and recorded on the
@@ -482,9 +483,9 @@ SVG output should include:
 - sanitized IDs where IDs are emitted
 - junction dots for explicit visual wire connections
 
-Crossing wires without a junction dot are not connected. By default they simply
-overlap; `render crossings=hop` draws a wire-hop glyph at such crossings to make
-the "not connected" relationship explicit.
+Crossing wires without a junction dot are not connected. By default a wire-hop
+glyph is drawn at such crossings to make the "not connected" relationship
+explicit; `render crossings=gap` opts out and lets them simply overlap.
 
 Standard symbols use an IEC-style visual profile where practical. Wire Lang does not claim full IEC 60617, IEEE 315, or other formal standards compliance.
 

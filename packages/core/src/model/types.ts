@@ -116,7 +116,7 @@ export interface SchematicModel {
   readonly description: string | null;
   readonly languageVersion: string;
   readonly direction: Direction;
-  /** How non-junction wire crossings are drawn (`gap` by default). */
+  /** How non-junction wire crossings are drawn (`hop` by default). */
   readonly crossings: CrossingStyle;
   readonly components: readonly ComponentInstance[];
   readonly localDefinitions: readonly LocalComponentDef[];

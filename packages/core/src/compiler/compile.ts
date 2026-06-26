@@ -74,7 +74,7 @@ class Compiler {
   private description: string | null = null;
   private direction: Direction = "left-to-right";
   private directionSet = false;
-  private crossings: CrossingStyle = "gap";
+  private crossings: CrossingStyle = "hop";
   private crossingsSet = false;
 
   private readonly noConnects: NoConnect[] = [];

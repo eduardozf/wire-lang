@@ -100,9 +100,9 @@ render net VCC style=label
 
 Render hints guide layout but do not change the circuit.
 
-`direction`, `crossings`, and net `style` are honored today. `crossings=hop`
-draws a small hop where wires cross without a junction (default is `gap`, which
-leaves crossings overlapping). `orientation`, `side`, and `anchor` (and `group`
+`direction`, `crossings`, and net `style` are honored today. By default
+(`crossings=hop`) a small hop is drawn where wires cross without a junction;
+`crossings=gap` opts out and leaves crossings overlapping. `orientation`, `side`, and `anchor` (and `group`
 layout) are accepted and validated but not yet positioned by the bundled renderer
 — using them emits a `render.not-yet-honored` (or `group.not-yet-honored`)
 warning. They are safe to write for forward compatibility; they just have no

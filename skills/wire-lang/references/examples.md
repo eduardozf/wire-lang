@@ -137,7 +137,6 @@ schematic
   net GND: U1.GND, C1.2, G1.GND
 
   no-connect U1.NC
-  render crossings=hop
 ```
 
 Why this is good:
@@ -145,7 +144,7 @@ Why this is good:
 - `IC` pins carry numbers and sides; connect them by name (`U1.IN`, `U1.OUT`).
 - `PowerFlag name=3V3` labels the rail without inventing a hidden global net.
 - The unused pin is documented with `no-connect` instead of being left silent.
-- `render crossings=hop` draws hops where wires cross without a junction.
+- Wires that cross without a junction get a hop by default (`render crossings=gap` opts out).
 
 ## Bad: Connecting And No-Connecting The Same Pin
 

@@ -353,7 +353,7 @@ A filled dot rendered where visual wires explicitly connect at a junction.
 _Avoid_: wire crossing, decorative point
 
 **Wire Hop**:
-An optional semicircular glyph drawn where two **Visual Wires** cross without a **Junction Dot**, making the "not connected" relationship explicit. Enabled with `render crossings=hop`.
+A semicircular glyph drawn where two **Visual Wires** cross without a **Junction Dot**, making the "not connected" relationship explicit. Drawn by default (`crossings=hop`); `render crossings=gap` opts out.
 _Avoid_: junction dot, electrical connection
 
 **No-Connect Flag**:
@@ -938,7 +938,7 @@ Terminals are user-defined through recommended `pins: ic-pin-list` written as `p
 - MVP **Public AST** and **Partial AST** nodes carry **Source Locations**.
 - The MVP **Standard Component Library** should include `Resistor`, `Capacitor`, `PolarizedCapacitor`, `Inductor`, `LED`, `Diode`, `NPNTransistor`, `PNPTransistor`, `Battery`, `GroundReference`, `SPSTSwitch`, `PushButton`, `Header`, `FerriteBead`, `TVSDiode`, `Speaker`, `Antenna`, `TestPoint`, `PTC`, `PowerFlag`, and `IC`.
 - A **No-Connect Flag** (`no-connect TERMINAL`) marks a terminal as intentionally unconnected; it renders as an `X` and conflicts with assigning that terminal to a **Net**.
-- A **Wire Hop** is an opt-in render of crossing **Visual Wires** (`render crossings=hop`); the default `gap` style leaves crossings overlapping.
+- A **Wire Hop** is drawn by default where **Visual Wires** cross without a junction (`crossings=hop`); `render crossings=gap` opts out and leaves crossings overlapping.
 - An `IC` block declares pins as `pins=[number:name@side]`; the **Pin Number** and box side are optional, and an omitted side defaults to `left`.
 - A **Power Flag** is a visual rail label, not a **Power Net** or hidden global connection.
 - MOSFETs are out of scope for the MVP.

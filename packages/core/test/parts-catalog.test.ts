@@ -198,11 +198,11 @@ describe("parts catalog: wire hops", () => {
   net Y: R2.2, R3.2
 `;
 
-  it("draws a hop arc only when crossings=hop is requested", () => {
-    const gap = renderSvg(CROSSING);
-    const hop = renderSvg(`${CROSSING}  render crossings=hop\n`);
+  it("draws a hop arc by default and suppresses it with crossings=gap", () => {
+    const def = renderSvg(CROSSING);
+    const gap = renderSvg(`${CROSSING}  render crossings=gap\n`);
+    expect(def).toContain(" A 4 4 ");
     expect(gap).not.toContain(" A 4 4 ");
-    expect(hop).toContain(" A 4 4 ");
   });
 
   it("warns on an invalid crossings value", () => {
@@ -211,8 +211,8 @@ describe("parts catalog: wire hops", () => {
     expect(diagnostics.some((d) => d.code === "render.invalid-value")).toBe(true);
   });
 
-  it("defaults crossings to gap", () => {
-    expect(compile(CROSSING).model.crossings).toBe("gap");
+  it("defaults crossings to hop", () => {
+    expect(compile(CROSSING).model.crossings).toBe("hop");
   });
 });
 
