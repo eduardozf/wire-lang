@@ -8,6 +8,9 @@ pnpm-publish-summary.json
 .DS_Store
 *.log
 
+# Local-only internal docs (kept out of the public repo)
+local-docs/
+
 # Local credentials and private keys
 .env*
 !.env.example
