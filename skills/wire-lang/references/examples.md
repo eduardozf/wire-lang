@@ -120,3 +120,42 @@ Why this is good:
 - The unsupported sensor is modeled as a local module.
 - Module terminals are explicit.
 - Named nets clarify the public connections.
+
+## Good: IC With Numbered Pins, Power Flag, And No-Connect
+
+```wire
+schematic
+  title "Regulator with numbered pins"
+
+  component U1 IC pins=[1:IN@left, 2:GND@bottom, 3:OUT@right, 4:NC@right]
+  component PWR1 PowerFlag name=3V3
+  component C1 Capacitor capacitance=1uF
+  component G1 GroundReference
+
+  net VIN: U1.IN, C1.1
+  net VOUT: U1.OUT, PWR1.1
+  net GND: U1.GND, C1.2, G1.GND
+
+  no-connect U1.NC
+```
+
+Why this is good:
+
+- `IC` pins carry numbers and sides; connect them by name (`U1.IN`, `U1.OUT`).
+- `PowerFlag name=3V3` labels the rail without inventing a hidden global net.
+- The unused pin is documented with `no-connect` instead of being left silent.
+- Wires that cross without a junction get a hop by default (`render crossings=gap` opts out).
+
+## Bad: Connecting And No-Connecting The Same Pin
+
+```wire
+schematic
+  component U1 IC pins=[1:VCC@left, 2:NC@right]
+  component R1 Resistor value=1k
+
+  net VCC: U1.VCC, R1.1
+  no-connect U1.VCC
+```
+
+Problem: a terminal cannot be both wired into a net and marked `no-connect`.
+Mark only genuinely unused pins (here, `U1.NC`).

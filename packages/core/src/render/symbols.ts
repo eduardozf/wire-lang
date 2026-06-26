@@ -1,4 +1,4 @@
-import { LEAD } from "../layout/geometry.js";
+import { IC_STUB, LEAD } from "../layout/geometry.js";
 import type { LayoutComponent, Point } from "../layout/types.js";
 import {
   circle,
@@ -144,6 +144,14 @@ function group(...parts: string[]): string {
 function ledColor(component: LayoutComponent): string | null {
   const color = component.properties.find((property) => property.name === "color")?.raw;
   return color ? (LED_COLORS[color] ?? null) : null;
+}
+
+function stringProp(component: LayoutComponent, name: string): string | null {
+  return component.properties.find((property) => property.name === name)?.raw ?? null;
+}
+
+function boolProp(component: LayoutComponent, name: string): boolean {
+  return stringProp(component, name) === "true";
 }
 
 function drawResistor(pen: Pen, length: number): string {
@@ -300,6 +308,133 @@ function drawSwitch(pen: Pen, length: number, pushButton: boolean): string {
   return group(...parts);
 }
 
+function drawFerriteBead(pen: Pen, length: number): string {
+  const center = length / 2;
+  const halfWidth = 11; // half of the bead body along the axis
+  const halfHeight = 7; // half of the bead body across the axis
+  return group(
+    pen.lead({ from: { along: 0, across: 0 }, to: { along: length, across: 0 } }), // wire through
+    pen.wire({
+      points: [
+        { along: center - halfWidth, across: -halfHeight },
+        { along: center + halfWidth, across: -halfHeight },
+        { along: center + halfWidth, across: halfHeight },
+        { along: center - halfWidth, across: halfHeight },
+        { along: center - halfWidth, across: -halfHeight },
+      ],
+    }),
+  );
+}
+
+function drawTvsDiode(pen: Pen, length: number, component: LayoutComponent): string {
+  const center = length / 2;
+  const tip = 7; // half-length of each triangle body
+  const height = 16; // body and bar height
+  if (boolProp(component, "bidirectional")) {
+    // Two opposing diodes sharing a central bar: conducts in both directions.
+    return group(
+      pen.lead({ from: { along: 0, across: 0 }, to: { along: center - tip - 3, across: 0 } }),
+      pen.lead({ from: { along: center + tip + 3, across: 0 }, to: { along: length, across: 0 } }),
+      pen.triangle({
+        points: [
+          { along: center - tip - 3, across: -height / 2 },
+          { along: center - tip - 3, across: height / 2 },
+          { along: center, across: 0 },
+        ],
+      }),
+      pen.triangle({
+        points: [
+          { along: center + tip + 3, across: -height / 2 },
+          { along: center + tip + 3, across: height / 2 },
+          { along: center, across: 0 },
+        ],
+      }),
+      pen.bar({ at: center, height }),
+    );
+  }
+  // Unidirectional TVS: a diode with a bent cathode bar (transient-suppressor mark).
+  return group(
+    pen.lead({ from: { along: 0, across: 0 }, to: { along: center - tip, across: 0 } }),
+    pen.lead({ from: { along: center + tip, across: 0 }, to: { along: length, across: 0 } }),
+    pen.triangle({
+      points: [
+        { along: center - tip, across: -height / 2 },
+        { along: center - tip, across: height / 2 },
+        { along: center + tip, across: 0 },
+      ],
+    }),
+    pen.wire({
+      points: [
+        { along: center + tip - 4, across: -height / 2 },
+        { along: center + tip, across: -height / 2 },
+        { along: center + tip, across: height / 2 },
+        { along: center + tip + 4, across: height / 2 },
+      ],
+    }),
+  );
+}
+
+function drawSpeaker(pen: Pen, length: number): string {
+  const center = length / 2;
+  const coilHalf = 4; // half-width of the driver block along the axis
+  const coilHeight = 18; // driver block height
+  const coneReach = 11; // how far the cone mouth extends past the block
+  const coneMouth = 28; // cone mouth height
+  return group(
+    pen.lead({ from: { along: 0, across: 0 }, to: { along: center - coilHalf, across: 0 } }),
+    pen.lead({
+      from: { along: center + coilHalf + 11, across: 0 },
+      to: { along: length, across: 0 },
+    }),
+    // Driver block (the coil/magnet).
+    pen.wire({
+      points: [
+        { along: center - coilHalf, across: -coilHeight / 2 },
+        { along: center + coilHalf, across: -coilHeight / 2 },
+        { along: center + coilHalf, across: coilHeight / 2 },
+        { along: center - coilHalf, across: coilHeight / 2 },
+        { along: center - coilHalf, across: -coilHeight / 2 },
+      ],
+    }),
+    // Cone mouth opening toward the second terminal.
+    pen.wire({
+      points: [
+        { along: center + coilHalf, across: -coilHeight / 2 },
+        { along: center + coilHalf + coneReach, across: -coneMouth / 2 },
+        { along: center + coilHalf + coneReach, across: coneMouth / 2 },
+        { along: center + coilHalf, across: coilHeight / 2 },
+      ],
+    }),
+  );
+}
+
+function drawPtc(pen: Pen, length: number): string {
+  const center = length / 2;
+  const halfWidth = 13; // half of the body along the axis
+  const halfHeight = 8; // half of the body across the axis
+  return group(
+    pen.lead({ from: { along: 0, across: 0 }, to: { along: center - halfWidth, across: 0 } }),
+    pen.lead({ from: { along: center + halfWidth, across: 0 }, to: { along: length, across: 0 } }),
+    pen.wire({
+      points: [
+        { along: center - halfWidth, across: -halfHeight },
+        { along: center + halfWidth, across: -halfHeight },
+        { along: center + halfWidth, across: halfHeight },
+        { along: center - halfWidth, across: halfHeight },
+        { along: center - halfWidth, across: -halfHeight },
+      ],
+    }),
+    // Thermistor mark: a horizontal foot rising diagonally across the body.
+    pen.wire({
+      points: [
+        { along: center - halfWidth + 3, across: halfHeight - 1 },
+        { along: center - halfWidth + 7, across: halfHeight - 1 },
+        { along: center + halfWidth - 3, across: -halfHeight + 1 },
+      ],
+    }),
+  );
+}
+
 function drawGround(component: LayoutComponent): string {
   const terminal = component.terminals[0];
   if (!terminal) return "";
@@ -317,6 +452,108 @@ function drawGround(component: LayoutComponent): string {
     p.bar({ at: length * 0.68, height: 16 }),
     p.bar({ at: length * 0.9, height: 8 }),
   );
+}
+
+function drawPowerFlag(component: LayoutComponent): string {
+  const terminal = component.terminals[0];
+  if (!terminal) return "";
+  const { frame, length } = makeFrame(terminal.point, component.center);
+  const p = makePen(frame);
+  const name = stringProp(component, "name") ?? "PWR";
+  // An arrow pointing up the stem to the rail, with the rail name beneath it.
+  const labelPoint = frame({ along: length * 1.9, across: 0 });
+  return group(
+    p.arrow({ from: { along: length * 1.5, across: 0 }, to: { along: 0, across: 0 } }),
+    text(name, labelPoint, "middle", "wire-label"),
+  );
+}
+
+function drawTestPoint(component: LayoutComponent): string {
+  const terminal = component.terminals[0];
+  if (!terminal) return "";
+  const { frame, length } = makeFrame(terminal.point, component.center);
+  const p = makePen(frame);
+  return group(
+    p.wire({
+      points: [
+        { along: 0, across: 0 },
+        { along: length * 0.6, across: 0 },
+      ],
+    }), // stem
+    p.circle({ at: { along: length * 0.85, across: 0 }, radius: 5 }), // probe ring
+  );
+}
+
+function drawAntenna(component: LayoutComponent): string {
+  const terminal = component.terminals[0];
+  if (!terminal) return "";
+  const { frame, length } = makeFrame(terminal.point, component.center);
+  const p = makePen(frame);
+  return group(
+    p.wire({
+      points: [
+        { along: 0, across: 0 },
+        { along: length * 0.5, across: 0 },
+      ],
+    }), // mast
+    // Two rays fanning out from the top of the mast.
+    p.segment({ from: { along: length * 0.5, across: 0 }, to: { along: length, across: -12 } }),
+    p.segment({ from: { along: length * 0.5, across: 0 }, to: { along: length, across: 12 } }),
+  );
+}
+
+function drawIc(component: LayoutComponent): string {
+  const { position, size } = component;
+  // The box is the bounding box inset by the stub margin reserved on every side.
+  const boxX = position.x + IC_STUB;
+  const boxY = position.y + IC_STUB;
+  const boxW = size.width - 2 * IC_STUB;
+  const boxH = size.height - 2 * IC_STUB;
+  const parts = [rect(boxX, boxY, boxW, boxH, "wire-symbol-bg")];
+  for (const terminal of component.terminals) {
+    const t = terminal.point;
+    let edge: Point;
+    let namePoint: Point;
+    let nameAnchor: "start" | "middle" | "end";
+    let numberPoint: Point;
+    let numberAnchor: "start" | "middle" | "end";
+    switch (terminal.side) {
+      case "left":
+        edge = { x: boxX, y: t.y };
+        namePoint = { x: boxX + 6, y: t.y + 3 };
+        nameAnchor = "start";
+        numberPoint = { x: boxX - 4, y: t.y - 4 };
+        numberAnchor = "end";
+        break;
+      case "right":
+        edge = { x: boxX + boxW, y: t.y };
+        namePoint = { x: boxX + boxW - 6, y: t.y + 3 };
+        nameAnchor = "end";
+        numberPoint = { x: boxX + boxW + 4, y: t.y - 4 };
+        numberAnchor = "start";
+        break;
+      case "top":
+        edge = { x: t.x, y: boxY };
+        namePoint = { x: t.x, y: boxY + 12 };
+        nameAnchor = "middle";
+        numberPoint = { x: t.x + 4, y: boxY - 5 };
+        numberAnchor = "start";
+        break;
+      default:
+        edge = { x: t.x, y: boxY + boxH };
+        namePoint = { x: t.x, y: boxY + boxH - 7 };
+        nameAnchor = "middle";
+        numberPoint = { x: t.x + 4, y: boxY + boxH + 11 };
+        numberAnchor = "start";
+        break;
+    }
+    parts.push(line(t, edge, "wire-symbol"));
+    parts.push(text(terminal.name, namePoint, nameAnchor, "wire-pin-label"));
+    if (terminal.number != null && terminal.number !== "") {
+      parts.push(text(terminal.number, numberPoint, numberAnchor, "wire-pin-label"));
+    }
+  }
+  return parts.join("");
 }
 
 function boundaryPoint(from: Point, to: Point, radius: number): Point {
@@ -471,6 +708,14 @@ function drawTwoTerminal(component: LayoutComponent): string | null {
       return drawSwitch(p, length, false);
     case "push-button":
       return drawSwitch(p, length, true);
+    case "ferrite-bead":
+      return drawFerriteBead(p, length);
+    case "tvs-diode":
+      return drawTvsDiode(p, length, component);
+    case "speaker":
+      return drawSpeaker(p, length);
+    case "ptc":
+      return drawPtc(p, length);
     default:
       return null;
   }
@@ -496,11 +741,23 @@ export function renderComponent(component: LayoutComponent): string {
     case "ground-reference":
       glyph = drawGround(component);
       break;
+    case "power-flag":
+      glyph = drawPowerFlag(component);
+      break;
+    case "test-point":
+      glyph = drawTestPoint(component);
+      break;
+    case "antenna":
+      glyph = drawAntenna(component);
+      break;
     case "npn-transistor":
       glyph = drawTransistor(component, false);
       break;
     case "pnp-transistor":
       glyph = drawTransistor(component, true);
+      break;
+    case "ic":
+      glyph = drawIc(component);
       break;
     case "module":
       glyph = drawModule(component);

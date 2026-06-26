@@ -225,7 +225,10 @@ export function layout(model: SchematicModel): LayoutModel {
     const center = tf({ main: entry.centerMain, cross: 0 });
     const terminals = entry.geom.terminals.map((terminal) => {
       const point = tf({ main: entry.mainStart + terminal.main, cross: terminal.cross });
-      return { name: terminal.name, point, side: sideOf(point, center) };
+      // IC pins carry an explicit local-frame side; rotate it into the flow's
+      // visual frame. Other symbols derive the side from the point's position.
+      const side = terminal.side ? rotateSide(terminal.side, vertical) : sideOf(point, center);
+      return { name: terminal.name, point, side, number: terminal.number };
     });
     return {
       id: entry.instance.id,
@@ -258,11 +261,19 @@ export function layout(model: SchematicModel): LayoutModel {
     kind: label.kind,
   }));
 
+  const noConnects: Point[] = [];
+  for (const noConnect of model.noConnects) {
+    const point = terminalPoints.get(`${noConnect.component}.${noConnect.terminal}`);
+    if (point) noConnects.push(tf(point));
+  }
+
   return {
     size,
     components: layoutComponents,
     wires: layoutWires,
     labels: layoutLabels,
+    noConnects,
+    crossings: model.crossings,
     title: model.title,
     description: model.description,
   };
@@ -289,4 +300,23 @@ function sideOf(point: Point, center: Point): TerminalSide {
   const dy = point.y - center.y;
   if (Math.abs(dx) >= Math.abs(dy)) return dx < 0 ? "left" : "right";
   return dy < 0 ? "top" : "bottom";
+}
+
+/**
+ * Map a component's local-frame side onto its rendered side. A vertical flow
+ * swaps the main and cross axes, so local left/right become top/bottom and local
+ * top/bottom become left/right. Horizontal flows keep the local side as-is.
+ */
+function rotateSide(side: TerminalSide, vertical: boolean): TerminalSide {
+  if (!vertical) return side;
+  switch (side) {
+    case "left":
+      return "top";
+    case "right":
+      return "bottom";
+    case "top":
+      return "left";
+    case "bottom":
+      return "right";
+  }
 }

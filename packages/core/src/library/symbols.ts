@@ -17,6 +17,14 @@ const SYMBOL_REQUIRED_ROLES: Record<string, readonly string[]> = {
   "spst-switch": [],
   "push-button": [],
   module: [],
+  "ferrite-bead": [],
+  "tvs-diode": ["anode", "cathode"],
+  speaker: ["positive", "negative"],
+  antenna: [],
+  "test-point": [],
+  ptc: [],
+  "power-flag": [],
+  ic: [],
 };
 
 export function requiredSymbolRoles(symbol: string): readonly string[] {

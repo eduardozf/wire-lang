@@ -23,6 +23,7 @@ export type StatementNode =
   | DefineComponentNode
   | NetNode
   | ConnectNode
+  | NoConnectNode
   | GroupNode
   | AnnotationNode
   | RenderNode
@@ -107,6 +108,11 @@ export interface NetNode extends NodeBase {
 
 export interface ConnectNode extends NodeBase {
   readonly kind: "Connect";
+  readonly members: readonly TerminalRefNode[];
+}
+
+export interface NoConnectNode extends NodeBase {
+  readonly kind: "NoConnect";
   readonly members: readonly TerminalRefNode[];
 }
 

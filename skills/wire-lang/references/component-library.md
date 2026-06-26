@@ -18,6 +18,17 @@ Lang source.
 | `SPSTSwitch` | `1`, `2` | optional `state` | `id` |
 | `PushButton` | `1`, `2` | optional `normally` | `id` |
 | `Header` | from `pins=[...]` | recommended `pins` | `id` |
+| `FerriteBead` | `1`, `2` | none | `id` |
+| `TVSDiode` | `A`, `C` | optional `bidirectional` | `id` |
+| `Speaker` | `+`, `-` | none | `id` |
+| `Antenna` | `1` | none | `id` |
+| `TestPoint` | `1` | optional `name` | `id`, `name` |
+| `PTC` | `1`, `2` | none | `id` |
+| `PowerFlag` | `1` | recommended `name` | none |
+| `IC` | from `pins=[...]` | recommended `pins` | `id` |
+
+`PTC` is the resettable-fuse / polyfuse variant. `PowerFlag` draws its `name`
+(e.g. `5V`, `3V3`, `VBAT`) as a rail flag and is not a hidden global net.
 
 ## Property Examples
 
@@ -29,7 +40,21 @@ component D1 LED color=red
 component SW1 SPSTSwitch state=open
 component BTN1 PushButton normally=open
 component J1 Header pins=[VCC,GND,SDA,SCL]
+component FB1 FerriteBead
+component TVS1 TVSDiode bidirectional=true
+component LS1 Speaker
+component ANT1 Antenna
+component TP1 TestPoint name=VOUT
+component F1 PTC
+component PWR1 PowerFlag name=3V3
+component U1 IC pins=[1:VCC@left, 2:GND@left, 3:OUT@right, 4:EN@right]
 ```
+
+## IC Pins
+
+Use `IC` for chips that need numbered pins. Each pin is `number:name@side`, where
+the number and `@side` (`left`, `right`, `top`, `bottom`) are optional and an
+omitted side defaults to `left`. Connect pins by name, e.g. `net VCC: U1.VCC, ...`.
 
 ## Out Of MVP
 

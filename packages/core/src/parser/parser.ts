@@ -10,6 +10,7 @@ import type {
   GroupMemberNode,
   GroupNode,
   NetNode,
+  NoConnectNode,
   PropertyNode,
   PropertyValueNode,
   RenderNode,
@@ -161,6 +162,17 @@ class Parser {
         DiagnosticCodes.parseUnknownStatement,
       );
     }
+    // `no-connect` tokenizes as `no` `-` `connect`; recognize it before the
+    // generic keyword switch so the hyphenated statement keyword still works.
+    if (
+      token.value === "no" &&
+      this.peek(1).type === "minus" &&
+      this.peek(2).type === "word" &&
+      this.peek(2).value === "connect"
+    ) {
+      return this.parseNoConnect();
+    }
+
     switch (token.value) {
       case "title":
         return this.parseTitle();
@@ -303,19 +315,25 @@ class Parser {
   private parseListValue(): PropertyValueNode {
     const open = this.next(); // '['
     const items: string[] = [];
+    // Each comma-separated item is captured as raw source text so structured
+    // pin specs such as `1:VCC@left` survive tokenization; simple pin names
+    // round-trip unchanged. Per-item semantics are validated in the compiler.
     while (!this.atLineEnd() && this.current().type !== "rbracket") {
-      const item = this.current();
-      if (item.type === "word" || item.type === "number") {
-        items.push(item.value);
+      const itemStart = this.current().range.start;
+      let itemEnd = itemStart;
+      let sawToken = false;
+      while (
+        !this.atLineEnd() &&
+        this.current().type !== "comma" &&
+        this.current().type !== "rbracket"
+      ) {
+        itemEnd = this.current().range.end;
         this.next();
-      } else {
-        this.report(
-          "error",
-          DiagnosticCodes.parseUnexpectedToken,
-          "Expected a pin name in the list.",
-          item.range,
-        );
-        this.next();
+        sawToken = true;
+      }
+      if (sawToken) {
+        const raw = this.source.slice(itemStart.offset, itemEnd.offset).trim();
+        if (raw !== "") items.push(raw);
       }
       if (this.current().type === "comma") this.next();
     }
@@ -515,6 +533,23 @@ class Parser {
     const end = members.at(-1)?.range.end ?? start;
     this.finishLine();
     return { kind: "Connect", members, range: { start, end } };
+  }
+
+  private parseNoConnect(): NoConnectNode | ErrorNode {
+    const start = this.next().range.start; // 'no'
+    this.next(); // '-'
+    this.next(); // 'connect'
+    const members = this.parseMemberList();
+    if (members.length === 0) {
+      return this.errorLine(
+        start,
+        "Expected at least one terminal in a no-connect statement.",
+        DiagnosticCodes.parseExpectedTerminalRef,
+      );
+    }
+    const end = members.at(-1)?.range.end ?? start;
+    this.finishLine();
+    return { kind: "NoConnect", members, range: { start, end } };
   }
 
   private parseMemberList(): TerminalRefNode[] {

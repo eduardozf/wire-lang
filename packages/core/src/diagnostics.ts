@@ -69,6 +69,12 @@ export const DiagnosticCodes = {
   netUnknownComponent: "net.unknown-component",
   netUnknownTerminal: "net.unknown-terminal",
 
+  // no-connect
+  noConnectUnknownComponent: "no-connect.unknown-component",
+  noConnectUnknownTerminal: "no-connect.unknown-terminal",
+  noConnectDuplicate: "no-connect.duplicate",
+  noConnectConflict: "no-connect.conflict",
+
   // group
   groupUnknownComponent: "group.unknown-component",
   groupDuplicateMembership: "group.duplicate-membership",
