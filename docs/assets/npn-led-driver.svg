@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" class="wire-lang" viewBox="0 0 798 251" width="798" height="251" role="img" data-wire-lang-version="0.1.0">
+<svg xmlns="http://www.w3.org/2000/svg" class="wire-lang" viewBox="0 0 798 251" width="798" height="251" role="img" data-wire-lang-version="0.2.0">
 <title>NPN LED driver</title>
 <desc>An NPN transistor switches a green LED from a 9V supply, driven through a base resistor.</desc>
 <style>.wire-lang { background: #ffffff; }

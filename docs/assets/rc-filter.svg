@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" class="wire-lang" viewBox="0 0 406 194" width="406" height="194" role="img" data-wire-lang-version="0.1.0">
+<svg xmlns="http://www.w3.org/2000/svg" class="wire-lang" viewBox="0 0 406 194" width="406" height="194" role="img" data-wire-lang-version="0.2.0">
 <title>RC low-pass filter</title>
 <desc>A first-order RC low-pass filter between a header input and output.</desc>
 <style>.wire-lang { background: #ffffff; }

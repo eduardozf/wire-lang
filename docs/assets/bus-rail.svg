@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" class="wire-lang" viewBox="0 0 976 484" width="976" height="484" role="img" data-wire-lang-version="0.1.0">
+<svg xmlns="http://www.w3.org/2000/svg" class="wire-lang" viewBox="0 0 976 484" width="976" height="484" role="img" data-wire-lang-version="0.2.0">
 <title>Bus-rail layout demo</title>
 <desc>A sensor and LED driver around an MCU hub, drawn with top and bottom rails, a bundled sensor bus, colored control lines, and a button in the control band.</desc>
 <style>.wire-lang { background: #ffffff; }
