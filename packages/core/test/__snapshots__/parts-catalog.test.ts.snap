@@ -1,7 +1,7 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
 exports[`parts catalog: snapshot > renders a mixed-parts schematic stably 1`] = `
-"<svg xmlns="http://www.w3.org/2000/svg" class="wire-lang" viewBox="0 0 904 306" width="904" height="306" role="img" data-wire-lang-version="0.1.0">
+"<svg xmlns="http://www.w3.org/2000/svg" class="wire-lang" viewBox="0 0 904 306" width="904" height="306" role="img" data-wire-lang-version="0.2.0">
 <title>Parts catalog coverage</title>
 <desc>A schematic with 8 components.</desc>
 <style>.wire-lang { background: #ffffff; }

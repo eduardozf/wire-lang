@@ -1,6 +1,6 @@
 {
   "name": "wire-lang",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "description": "Text-first electronic schematics rendered to SVG. Aggregate package and `wire` CLI.",
   "keywords": ["wire-lang", "schematic", "electronics", "circuit", "svg", "diagram", "eda", "cli"],

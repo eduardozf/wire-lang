@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" class="wire-lang" viewBox="0 0 368 188" width="368" height="188" role="img" data-wire-lang-version="0.1.0">
+<svg xmlns="http://www.w3.org/2000/svg" class="wire-lang" viewBox="0 0 368 188" width="368" height="188" role="img" data-wire-lang-version="0.2.0">
 <title>LED current limiting circuit</title>
 <desc>A 5V battery drives a red LED through a 220 ohm resistor.</desc>
 <style>.wire-lang { background: #ffffff; }

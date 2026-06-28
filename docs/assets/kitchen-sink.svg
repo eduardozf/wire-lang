@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" class="wire-lang" viewBox="0 0 1528 287" width="1528" height="287" role="img" data-wire-lang-version="0.1.0">
+<svg xmlns="http://www.w3.org/2000/svg" class="wire-lang" viewBox="0 0 1528 287" width="1528" height="287" role="img" data-wire-lang-version="0.2.0">
 <title>Switched RLC bench demo</title>
 <desc>A switched 9V rail feeds an RLC network, a PNP low-side driver and an amber LED, with a filtered output header. Exercises every standard symbol.</desc>
 <style>.wire-lang { background: #ffffff; }
