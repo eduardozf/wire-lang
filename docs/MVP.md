@@ -213,6 +213,7 @@ MVP render hints:
 ```wire
 render direction=left-to-right
 render crossings=hop
+render layout=bus-rail
 render R1 orientation=vertical
 render Inputs side=left
 render U1 anchor=center
@@ -224,15 +225,22 @@ Supported values:
 
 - `direction`: `left-to-right`, `right-to-left`, `top-to-bottom`, `bottom-to-top` — honored.
 - `crossings`: `gap`, `hop` — honored.
+- `layout`: `flow`, `bus-rail` — honored.
 - net `style`: `wire`, `label` — honored.
 - `orientation`: `horizontal`, `vertical` — accepted, not yet honored.
 - `side`: `left`, `right`, `top`, `bottom` — accepted, not yet honored.
 - `anchor`: `center` — accepted, not yet honored.
 
-Default direction is `left-to-right`. Default crossings style is `hop`: wires
-that cross without a junction dot get a small semicircular hop on the horizontal
-wire at each non-junction crossing. `crossings=gap` opts out, leaving such
-crossings overlapping.
+Default direction is `left-to-right`. Default crossings style is `gap`: wires
+that cross without a junction dot are simply drawn overlapping (no glyph).
+`crossings=hop` opts in to a small semicircular hop on the horizontal wire at
+each non-junction crossing.
+
+Default layout is `flow` (a row of components with per-net rails). `layout=bus-rail`
+selects the bus-rail strategy described in the Layout Model section: a central
+hub between a top supply rail and a bottom ground rail, with grouped signals
+bundled into color-coded bus trunks. It forces `hop` crossings and a monospace
+label profile for legibility.
 
 > **Status:** `direction` and net `style` are honored by the bundled layout
 > engine. `orientation`, `side`, and `anchor` are validated and recorded on the
@@ -470,6 +478,44 @@ Layout priority:
 
 Multiple disconnected subschematics are allowed and render separately in stable source order.
 
+Multi-terminal nets route with orthogonal visual wires: each net gets a
+horizontal rail, and every terminal drops vertically to that rail. Rails are
+packed into shared cross-level tracks per side — nets whose horizontal extents
+are clear of each other share one track instead of each stepping further from
+the bodies, so a dense schematic does not stack a separate full-width rail per
+net. Distinct nets never render exactly collinear and overlapping — when several
+terminals share a coordinate (for example multiple pins on one IC edge) and
+route to the same side, their drops are fanned into separate lanes so each
+connection reads as its own line. Collinear segments merge only when they
+genuinely belong to the same net.
+
+### Bus-rail layout
+
+`render layout=bus-rail` selects an alternative strategy tuned for block
+diagrams. Blocks are laid left-to-right in source order between two horizontal
+power rails: a supply rail across the top and a ground rail across the bottom.
+Power is detected by net name — supply names
+(`VCC`, `VDD`, `3V3`, `5V`, `+…`, …) and ground names (`GND`, `VSS`, `0V`, …) —
+and every member taps straight to its rail with a junction dot, so a rail never
+runs through the middle of the drawing. Left/right (IC) pins drop straight to a
+rail; a module's top/bottom-edge pin that faces the opposite rail hooks out and
+routes around the box side rather than crossing the body. Multi-point signals
+that touch a module pin run as a trunk in a channel just below the row, dropping
+to each pin, so they never slice through a module box either.
+
+Signals are color-coded by family: supply (red), ground (dark), control inputs
+from buttons/switches (blue), and bundled signal groups (a cycling palette).
+When two blocks are joined by three or more signal nets, those nets are
+auto-bundled into a single thick **bus trunk**, labeled with the trunk name; each
+net leaves its pin horizontally and converges to one shared entry point per side,
+so the taps form a tidy funnel. Pairs with fewer shared nets stay as individual
+lines. Control nets route into the control band below the row as sharp
+right-angle (orthogonal) lines, not diagonals.
+Stroke weight encodes the role: thin signals, thicker rails, thickest trunks.
+This mode forces `hop` crossings and a monospace label profile. No new syntax is
+required beyond the hint — families and buses are inferred from net names and
+connectivity.
+
 ## SVG Renderer
 
 The MVP renderer emits standalone SVG by default. External styling can be supported as an integration option.
@@ -483,9 +529,10 @@ SVG output should include:
 - sanitized IDs where IDs are emitted
 - junction dots for explicit visual wire connections
 
-Crossing wires without a junction dot are not connected. By default a wire-hop
-glyph is drawn at such crossings to make the "not connected" relationship
-explicit; `render crossings=gap` opts out and lets them simply overlap.
+Crossing wires without a junction dot are not connected. By default (`gap`) such
+crossings are simply drawn overlapping; `render crossings=hop` opts in to a
+wire-hop glyph at each crossing to make the "not connected" relationship
+explicit.
 
 Standard symbols use an IEC-style visual profile where practical. Wire Lang does not claim full IEC 60617, IEEE 315, or other formal standards compliance.
 

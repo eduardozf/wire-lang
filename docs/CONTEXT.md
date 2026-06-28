@@ -353,7 +353,7 @@ A filled dot rendered where visual wires explicitly connect at a junction.
 _Avoid_: wire crossing, decorative point
 
 **Wire Hop**:
-A semicircular glyph drawn where two **Visual Wires** cross without a **Junction Dot**, making the "not connected" relationship explicit. Drawn by default (`crossings=hop`); `render crossings=gap` opts out.
+A semicircular glyph drawn where two **Visual Wires** cross without a **Junction Dot**, making the "not connected" relationship explicit. Opt-in via `render crossings=hop`; the default (`crossings=gap`) leaves such crossings simply overlapping.
 _Avoid_: junction dot, electrical connection
 
 **No-Connect Flag**:
@@ -367,6 +367,18 @@ _Avoid_: connect statement, net declaration
 **Power Flag**:
 A single-terminal **Component** (`PowerFlag`) whose `name` labels a power rail, such as `VBAT`, `5V`, or `3V3`. It is a visual flag and does not create a hidden global **Net**.
 _Avoid_: power net, magic global, ground reference
+
+**Power Rail** (bus-rail layout):
+A horizontal trunk that distributes one power **Net** across the drawing — a supply rail along the top, a ground rail along the bottom — to which every member taps straight up or down with a **Junction Dot**. Detected by net name in the `bus-rail` layout. A rail never runs through the middle of the diagram or crosses a signal.
+_Avoid_: bus trunk, signal wire
+
+**Bus Trunk** (bus-rail layout):
+A single thick line that visually bundles three or more signal **Nets** running between the same two blocks. Each net leaves its pin horizontally and converges to one shared entry point per side of the trunk, forming a tidy funnel; the trunk is decorative bundling, not an electrical **Net** of its own.
+_Avoid_: power rail, single net, junction
+
+**Net Family** (bus-rail layout):
+A color class a **Net** is grouped into for legibility — supply (red), ground (dark), control (blue), and bundled signal groups (a cycling palette). Inferred from net names and member components, applied consistently across the drawing.
+_Avoid_: net style, group
 
 **Pin Number**:
 The optional numeric (or alphanumeric) designator of an `IC` pin, declared in `pins=[number:name@side]` and rendered alongside the pin name.

@@ -7,6 +7,12 @@ posts, and regression-checking the current visual style.
 The MVP renderer is deterministic, but layout is still intentionally modest.
 Some routing and label placement will improve in later releases.
 
+Regenerate this gallery with:
+
+```sh
+pnpm examples:update
+```
+
 ## LED Current Limiter
 
 Source: [examples/led.wire](../examples/led.wire)
@@ -36,3 +42,9 @@ Source: [examples/npn-led-driver.wire](../examples/npn-led-driver.wire)
 Source: [examples/kitchen-sink.wire](../examples/kitchen-sink.wire)
 
 ![Switched RLC bench demo](./assets/kitchen-sink.svg)
+
+## Bus-Rail Layout
+
+Source: [examples/bus-rail.wire](../examples/bus-rail.wire)
+
+![Bus-rail layout demo](./assets/bus-rail.svg)

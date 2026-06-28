@@ -1,7 +1,7 @@
 import { compile } from "../compiler/compile.js";
 import { WireLangError } from "../errors.js";
 import { layout } from "../layout/engine.js";
-import type { LayoutModel, Point, Segment } from "../layout/types.js";
+import type { LayoutLabel, LayoutModel, LayoutWire, Point, Segment } from "../layout/types.js";
 import type { SchematicModel } from "../model/types.js";
 import { LANGUAGE_VERSION } from "../model/types.js";
 import { circle, escapeAttr, escapeText, fmt, line, sanitizeId, text } from "./svg-serializer.js";
@@ -19,6 +19,13 @@ const STYLES = `
 .wire-net-label { fill: #2563eb; font: 600 10px var(--wire-font, system-ui, sans-serif); }
 .wire-annotation { fill: #6b7280; font: italic 10px var(--wire-font, system-ui, sans-serif); }
 `.trim();
+
+/** Bus-rail-only styles, appended when the layout asks for a monospace profile. */
+const BUS_RAIL_STYLE = [
+  ".wire-lang { --wire-font: ui-monospace, SFMono-Regular, Menlo, monospace; }",
+  ".wire-rail-label { fill: #1f2937; font: 700 11px var(--wire-font, system-ui, sans-serif); }",
+  ".wire-bus-label { fill: #1f2937; font: 700 10px var(--wire-font, system-ui, sans-serif); }",
+].join("\n");
 
 const JUNCTION_RADIUS = 2.8;
 const HOP_RADIUS = 4;
@@ -81,7 +88,7 @@ function computeHops(model: LayoutModel): Map<Segment, number[]> {
   return hops;
 }
 
-function hoppedPath(segment: Segment, hopXs: readonly number[]): string {
+function hoppedPath(segment: Segment, hopXs: readonly number[], style: string): string {
   const dir = segment.to.x >= segment.from.x ? 1 : -1;
   const sweep = dir > 0 ? 0 : 1; // keep the bump on the same (upper) side
   const y = segment.from.y;
@@ -92,18 +99,27 @@ function hoppedPath(segment: Segment, hopXs: readonly number[]): string {
     d += ` A ${fmt(HOP_RADIUS)} ${fmt(HOP_RADIUS)} 0 0 ${sweep} ${fmt(hx + HOP_RADIUS * dir)} ${fmt(y)}`;
   }
   d += ` L ${fmt(segment.to.x)} ${fmt(segment.to.y)}`;
-  return `<path class="wire-wire" fill="none" d="${d}"/>`;
+  return `<path class="wire-wire" fill="none" d="${d}"${style}/>`;
+}
+
+/** Inline stroke overrides for colored/weighted wires (bus-rail families). */
+function wireStyle(wire: LayoutWire): string {
+  const parts: string[] = [];
+  if (wire.color) parts.push(`stroke:${wire.color}`);
+  if (wire.width != null) parts.push(`stroke-width:${wire.width}`);
+  return parts.length > 0 ? ` style="${parts.join(";")}"` : "";
 }
 
 function renderWires(model: LayoutModel): string {
   const hops = model.crossings === "hop" ? computeHops(model) : null;
   const groups: string[] = [];
   for (const wire of model.wires) {
+    const style = wireStyle(wire);
     const segments = wire.segments
       .map((segment) => {
         const hopXs = hops?.get(segment);
-        if (hopXs && hopXs.length > 0) return hoppedPath(segment, hopXs);
-        return `<line class="wire-wire" x1="${fmt(segment.from.x)}" y1="${fmt(segment.from.y)}" x2="${fmt(segment.to.x)}" y2="${fmt(segment.to.y)}"/>`;
+        if (hopXs && hopXs.length > 0) return hoppedPath(segment, hopXs, style);
+        return `<line class="wire-wire" x1="${fmt(segment.from.x)}" y1="${fmt(segment.from.y)}" x2="${fmt(segment.to.x)}" y2="${fmt(segment.to.y)}"${style}/>`;
       })
       .join("");
     const netAttr = wire.anonymous ? "" : ` data-wire-net="${escapeAttr(wire.net)}"`;
@@ -153,10 +169,21 @@ function renderComponents(model: LayoutModel): string {
   return groups.join("");
 }
 
+const LABEL_CLASS: Record<LayoutLabel["kind"], string> = {
+  annotation: "wire-annotation",
+  "net-label": "wire-net-label",
+  "rail-label": "wire-rail-label",
+  "bus-label": "wire-bus-label",
+  component: "wire-label",
+};
+
 function renderLabels(model: LayoutModel): string {
   const items = model.labels.map((label) => {
-    const cls = label.kind === "annotation" ? "wire-annotation" : "wire-net-label";
-    return text(label.text, label.point, label.anchor, cls);
+    const cls = LABEL_CLASS[label.kind];
+    const styled = label.color
+      ? `<text class="${cls}" x="${fmt(label.point.x)}" y="${fmt(label.point.y)}" text-anchor="${label.anchor}" style="fill:${label.color}">${escapeText(label.text)}</text>`
+      : text(label.text, label.point, label.anchor, cls);
+    return styled;
   });
   return items.length > 0 ? `<g class="wire-labels">${items.join("")}</g>` : "";
 }
@@ -172,7 +199,7 @@ export function serializeSvg(model: LayoutModel): string {
     `<svg xmlns="http://www.w3.org/2000/svg" class="wire-lang" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" role="img" data-wire-lang-version="${LANGUAGE_VERSION}">`,
     `<title>${escapeText(titleText)}</title>`,
     `<desc>${escapeText(descText)}</desc>`,
-    `<style>${STYLES}</style>`,
+    `<style>${model.monospace ? `${STYLES}\n${BUS_RAIL_STYLE}` : STYLES}</style>`,
     `<rect class="wire-background" x="0" y="0" width="${width}" height="${height}" fill="#ffffff"/>`,
     `<g class="wire-wires">${renderWires(model)}</g>`,
     renderComponents(model),

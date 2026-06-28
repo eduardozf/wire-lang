@@ -93,9 +93,9 @@ npx skills add eduardozf/wire-lang --skill wire-lang
 
 ## Examples
 
-| RC filter                                                                                          | Soil sensor module                                                                                  | NPN LED driver                                                                                      |
-| -------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| <img src="./docs/assets/rc-filter.svg" alt="RC low-pass filter rendered by Wire Lang" width="260"> | <img src="./docs/assets/soil-sensor.svg" alt="Soil sensor input rendered by Wire Lang" width="260"> | <img src="./docs/assets/npn-led-driver.svg" alt="NPN LED driver rendered by Wire Lang" width="260"> |
+| LED current limiter                                                                                                    | Soil sensor (bus-rail)                                                                               | Bus-rail block diagram                                                                                |
+| ---------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| <img src="./docs/assets/led-current-limiter.svg" alt="LED current limiting circuit rendered by Wire Lang" width="260"> | <img src="./docs/assets/soil-sensor.svg" alt="Soil sensor module rendered by Wire Lang" width="260"> | <img src="./docs/assets/bus-rail.svg" alt="Bus-rail block diagram rendered by Wire Lang" width="260"> |
 
 See the [full gallery](./docs/EXAMPLES.md) and source in [examples/](./examples).
 

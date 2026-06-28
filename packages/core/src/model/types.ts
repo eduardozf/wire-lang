@@ -11,6 +11,12 @@ export type Side = "left" | "right" | "top" | "bottom";
 export type NetStyle = "wire" | "label";
 /** How visual wires that cross without a junction are drawn. */
 export type CrossingStyle = "gap" | "hop";
+/**
+ * Layout strategy. `flow` is the default row-of-components engine; `bus-rail`
+ * arranges a central hub with peripherals between a top supply rail and a bottom
+ * ground rail, bundling grouped signals into color-coded bus trunks.
+ */
+export type LayoutMode = "flow" | "bus-rail";
 
 export const DIRECTIONS: readonly Direction[] = [
   "left-to-right",
@@ -22,6 +28,7 @@ export const ORIENTATIONS: readonly Orientation[] = ["horizontal", "vertical"];
 export const SIDES: readonly Side[] = ["left", "right", "top", "bottom"];
 export const NET_STYLES: readonly NetStyle[] = ["wire", "label"];
 export const CROSSING_STYLES: readonly CrossingStyle[] = ["gap", "hop"];
+export const LAYOUT_MODES: readonly LayoutMode[] = ["flow", "bus-rail"];
 
 /**
  * A pin on an `IC` block: an optional pin number, the terminal name, and the
@@ -116,8 +123,10 @@ export interface SchematicModel {
   readonly description: string | null;
   readonly languageVersion: string;
   readonly direction: Direction;
-  /** How non-junction wire crossings are drawn (`hop` by default). */
+  /** How non-junction wire crossings are drawn (`gap` by default). */
   readonly crossings: CrossingStyle;
+  /** Layout strategy (`flow` by default). */
+  readonly layout: LayoutMode;
   readonly components: readonly ComponentInstance[];
   readonly localDefinitions: readonly LocalComponentDef[];
   readonly nets: readonly Net[];

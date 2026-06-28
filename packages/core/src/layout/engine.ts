@@ -1,4 +1,5 @@
 import type { ComponentInstance, Net, SchematicModel } from "../model/types.js";
+import { layoutBusRail } from "./bus-rail.js";
 import type { ComponentGeom } from "./geometry.js";
 import { componentGeometry } from "./geometry.js";
 import type {
@@ -15,11 +16,41 @@ const MARGIN = 36;
 const GAP_MAIN = 52;
 const RAIL_GAP = 26;
 const STUB = 18;
+/** Sideways step between the vertical drops of two terminals that share a `main`. */
+const LANE_GAP = 12;
 
 /** A point in pre-transform (main, cross) space. */
 interface MC {
   main: number;
   cross: number;
+}
+
+/** A net member's terminal, tagged with its body center so drops can fan away from it. */
+interface DropPoint extends MC {
+  centerMain: number;
+}
+
+/**
+ * The vertical run from a terminal down to its net's rail. `lane` is the
+ * sideways offset (in `main` units) applied so drops that share a `main`
+ * coordinate do not stack on a single line.
+ */
+interface Drop {
+  main: number;
+  cross: number;
+  railCross: number;
+  centerMain: number;
+  lane: number;
+}
+
+/** A multi-terminal net awaiting rail-track assignment and segment emission. */
+interface PendingNet {
+  net: Net;
+  side: "top" | "bottom";
+  railCross: number;
+  minMain: number;
+  maxMain: number;
+  drops: Drop[];
 }
 
 interface PlacedComponent {
@@ -45,6 +76,8 @@ interface RawLabel {
 }
 
 export function layout(model: SchematicModel): LayoutModel {
+  if (model.layout === "bus-rail") return layoutBusRail(model);
+
   const vertical = model.direction === "top-to-bottom" || model.direction === "bottom-to-top";
   const reversed = model.direction === "right-to-left" || model.direction === "bottom-to-top";
 
@@ -77,14 +110,37 @@ export function layout(model: SchematicModel): LayoutModel {
   const wires: RawWire[] = [];
   const labels: RawLabel[] = [];
   const railInfo = new Map<string, { railCross: number; minMain: number; maxMain: number }>();
-  let bottomNext = maxBodyCross + RAIL_GAP;
-  let topNext = minBodyCross - RAIL_GAP;
+
+  const centerByComponent = new Map(placed.map((entry) => [entry.instance.id, entry.centerMain]));
+
+  // Multi-terminal nets route through horizontal rails, built in phases:
+  //   1. pick each net's side (top/bottom) and collect its terminal drops;
+  //   2. fan drops that share a `main` into lanes so distinct nets never render
+  //      collinear (see assignDropLanes) — pins on one IC edge would otherwise
+  //      stack their vertical drops on a single line and read as one wire;
+  //   3. pack the rails into shared cross-level tracks so horizontally-disjoint
+  //      nets share a level instead of each claiming its own (see
+  //      assignRailTracks) — this is what keeps a dense schematic from stacking
+  //      a separate full-width rail per net;
+  //   4. emit segments.
+  const pendingNets: PendingNet[] = [];
+  const allDrops: Drop[] = [];
+
+  // Provisional rail levels used only while assigning drop lanes; the final
+  // tracks are packed afterward. Deeper tracks only lengthen drops away from the
+  // body, so a lane that is conflict-free here stays conflict-free at any track.
+  const topProvisional = minBodyCross - RAIL_GAP;
+  const bottomProvisional = maxBodyCross + RAIL_GAP;
 
   const sortedNets = [...model.nets].sort((a, b) => a.sourceIndex - b.sourceIndex);
   for (const net of sortedNets) {
     const points = net.members
-      .map((member) => terminalPoints.get(`${member.component}.${member.terminal}`))
-      .filter((point): point is MC => point !== undefined);
+      .map((member): DropPoint | undefined => {
+        const point = terminalPoints.get(`${member.component}.${member.terminal}`);
+        if (!point) return undefined;
+        return { ...point, centerMain: centerByComponent.get(member.component) ?? point.main };
+      })
+      .filter((point): point is DropPoint => point !== undefined);
     if (points.length === 0) continue;
 
     if (net.style === "label") {
@@ -106,16 +162,33 @@ export function layout(model: SchematicModel): LayoutModel {
     }
 
     const avg = points.reduce((sum, point) => sum + point.cross, 0) / points.length;
-    let railCross: number;
-    if (avg < 0) {
-      railCross = topNext;
-      topNext -= RAIL_GAP;
-    } else {
-      railCross = bottomNext;
-      bottomNext += RAIL_GAP;
-    }
-    const minMain = Math.min(...points.map((point) => point.main));
-    const maxMain = Math.max(...points.map((point) => point.main));
+    const side: "top" | "bottom" = avg < 0 ? "top" : "bottom";
+    const railCross = side === "top" ? topProvisional : bottomProvisional;
+    const drops: Drop[] = points.map((point) => ({
+      main: point.main,
+      cross: point.cross,
+      railCross,
+      centerMain: point.centerMain,
+      lane: 0,
+    }));
+    pendingNets.push({ net, side, railCross, minMain: 0, maxMain: 0, drops });
+    allDrops.push(...drops);
+  }
+
+  assignDropLanes(allDrops);
+
+  // With lanes fixed, record each rail's true main extent, then pack the rails
+  // into shared tracks per side so unrelated nets stop stacking up the margins.
+  for (const pending of pendingNets) {
+    const mains = pending.drops.map((drop) => drop.main + drop.lane);
+    pending.minMain = Math.min(...mains);
+    pending.maxMain = Math.max(...mains);
+  }
+  assignRailTracks(pendingNets, minBodyCross, maxBodyCross);
+
+  for (const { net, railCross, minMain, maxMain, drops } of pendingNets) {
+    for (const drop of drops) drop.railCross = railCross;
+    const laneMain = (drop: Drop) => drop.main + drop.lane;
 
     const segments: { from: MC; to: MC }[] = [];
     const junctions: MC[] = [];
@@ -125,10 +198,18 @@ export function layout(model: SchematicModel): LayoutModel {
         to: { main: maxMain, cross: railCross },
       });
     }
-    for (const point of points) {
-      segments.push({ from: point, to: { main: point.main, cross: railCross } });
-      if (point.main > minMain && point.main < maxMain) {
-        junctions.push({ main: point.main, cross: railCross });
+    for (const drop of drops) {
+      const lm = laneMain(drop);
+      // Step sideways into the assigned lane before running down to the rail.
+      if (drop.lane !== 0) {
+        segments.push({
+          from: { main: drop.main, cross: drop.cross },
+          to: { main: lm, cross: drop.cross },
+        });
+      }
+      segments.push({ from: { main: lm, cross: drop.cross }, to: { main: lm, cross: railCross } });
+      if (lm > minMain && lm < maxMain) {
+        junctions.push({ main: lm, cross: railCross });
       }
     }
     wires.push({ net: net.name, anonymous: net.anonymous, style: "wire", segments, junctions });
@@ -277,6 +358,87 @@ export function layout(model: SchematicModel): LayoutModel {
     title: model.title,
     description: model.description,
   };
+}
+
+/**
+ * Spread drops that share a `main` coordinate into separate lanes so their
+ * vertical runs never render collinear. Drops are grouped by `main`; within a
+ * group, greedy interval coloring (by the cross span each drop covers between
+ * its terminal and rail) keeps the lane count minimal and leaves
+ * non-overlapping drops in lane 0. Lanes fan away from the owning body, so the
+ * stepped runs never cut back through the component.
+ */
+function assignDropLanes(drops: Drop[]): void {
+  const byMain = new Map<number, Drop[]>();
+  for (const drop of drops) {
+    const key = Math.round(drop.main);
+    const group = byMain.get(key);
+    if (group) group.push(drop);
+    else byMain.set(key, [drop]);
+  }
+
+  for (const group of byMain.values()) {
+    if (group.length < 2) continue;
+    const spans = group
+      .map((drop) => ({
+        drop,
+        lo: Math.min(drop.cross, drop.railCross),
+        hi: Math.max(drop.cross, drop.railCross),
+      }))
+      .sort((a, b) => a.lo - b.lo || a.hi - b.hi);
+
+    // `laneEnds[i]` is the far end of the last span placed in lane `i`; a lane is
+    // reusable once its previous span clears the next span's start.
+    const laneEnds: number[] = [];
+    for (const span of spans) {
+      let lane = laneEnds.findIndex((end) => end <= span.lo);
+      if (lane === -1) {
+        lane = laneEnds.length;
+        laneEnds.push(span.hi);
+      } else {
+        laneEnds[lane] = span.hi;
+      }
+      const dir = span.drop.main < span.drop.centerMain ? -1 : 1;
+      span.drop.lane = lane * LANE_GAP * dir;
+    }
+  }
+}
+
+/**
+ * Pack rails into shared cross-level tracks per side. Two rails whose main
+ * extents are clear of each other can sit on the same track instead of each
+ * stepping further from the body; greedy interval coloring (rails sorted by
+ * start) minimises the track count, so a dense schematic no longer stacks one
+ * full-width rail per net. Track 0 is nearest the bodies; deeper tracks step out
+ * by `RAIL_GAP`. A `RAIL_GAP` gap is required between same-track rails so two
+ * nets never read as one continuous wire meeting end to end.
+ */
+function assignRailTracks(nets: PendingNet[], minBodyCross: number, maxBodyCross: number): void {
+  for (const side of ["top", "bottom"] as const) {
+    const group = nets
+      .filter((pending) => pending.side === side)
+      .sort(
+        (a, b) =>
+          a.minMain - b.minMain || a.maxMain - b.maxMain || a.net.sourceIndex - b.net.sourceIndex,
+      );
+
+    // `trackEnds[i]` is the furthest main reached by the last rail on track `i`;
+    // a track is reusable once its previous rail clears the next rail's start.
+    const trackEnds: number[] = [];
+    for (const pending of group) {
+      let track = trackEnds.findIndex((end) => pending.minMain > end + RAIL_GAP);
+      if (track === -1) {
+        track = trackEnds.length;
+        trackEnds.push(pending.maxMain);
+      } else {
+        trackEnds[track] = pending.maxMain;
+      }
+      pending.railCross =
+        side === "top"
+          ? minBodyCross - RAIL_GAP * (track + 1)
+          : maxBodyCross + RAIL_GAP * (track + 1);
+    }
+  }
 }
 
 function routeLabelNet(net: Net, points: MC[], wires: RawWire[], labels: RawLabel[]): void {

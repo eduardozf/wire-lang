@@ -144,7 +144,7 @@ Why this is good:
 - `IC` pins carry numbers and sides; connect them by name (`U1.IN`, `U1.OUT`).
 - `PowerFlag name=3V3` labels the rail without inventing a hidden global net.
 - The unused pin is documented with `no-connect` instead of being left silent.
-- Wires that cross without a junction get a hop by default (`render crossings=gap` opts out).
+- Wires that cross without a junction simply overlap by default (`render crossings=hop` draws a hop instead).
 
 ## Bad: Connecting And No-Connecting The Same Pin
 
