@@ -115,8 +115,8 @@ function edgeSide(main: number, cross: number, geom: ComponentGeom): TerminalSid
 }
 
 /**
- * Bus-rail layout: a left-to-right row of blocks (the most-connected one is the
- * hub) sits between a top supply rail and a bottom ground rail. Power pins tap
+ * Bus-rail layout: a left-to-right row of blocks (in source order) sits between
+ * a top supply rail and a bottom ground rail. Power pins tap
  * straight to their rail with a junction dot; groups of signals that run between
  * the same two blocks bundle into a single color-coded trunk with 45deg taps;
  * control inputs (buttons, switches) drop in as straight blue lines.
@@ -151,13 +151,7 @@ export function layoutBusRail(model: SchematicModel): LayoutModel {
     for (const net of pairNets.get(key)!) families.set(net.name, "bus");
   });
 
-  // ---- choose hub + order the row ----------------------------------------
-  const netCount = new Map<string, number>();
-  for (const net of model.nets) {
-    for (const id of new Set(net.members.map((member) => member.component))) {
-      netCount.set(id, (netCount.get(id) ?? 0) + 1);
-    }
-  }
+  // ---- order the row (source order) --------------------------------------
   const isControlComp = (instance: ComponentInstance) => CONTROL_SYMBOLS.has(instance.symbol);
 
   const rowComps = model.components
@@ -342,13 +336,15 @@ export function layoutBusRail(model: SchematicModel): LayoutModel {
     const points = infos.map((info) => info.point);
 
     // A net that touches a module's top/bottom pin can't run at pin height
-    // without slicing through the box, so route it as a trunk in a channel below
-    // the row with vertical drops to each pin.
+    // without slicing through the box, so route it as a trunk in a channel just
+    // below the row with vertical drops to each pin. Anchored to `rowBottom`, not
+    // `contentBottom`, so the channel stays under the row rather than dropping
+    // below the control band (whose drops back up would cross the controls).
     if (
       family !== "control" &&
       infos.some((info) => info.side === "top" || info.side === "bottom")
     ) {
-      const channelY = contentBottom + SIGNAL_CHANNEL + channelIndex * 14;
+      const channelY = rowBottom + SIGNAL_CHANNEL + channelIndex * 14;
       channelIndex++;
       const xs = points.map((point) => point.x);
       const fromX = Math.min(...xs);

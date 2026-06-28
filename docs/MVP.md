@@ -492,9 +492,9 @@ genuinely belong to the same net.
 ### Bus-rail layout
 
 `render layout=bus-rail` selects an alternative strategy tuned for block
-diagrams. Blocks are laid left-to-right in source order (the most-connected block
-is the hub) between two horizontal power rails: a supply rail across the top and
-a ground rail across the bottom. Power is detected by net name — supply names
+diagrams. Blocks are laid left-to-right in source order between two horizontal
+power rails: a supply rail across the top and a ground rail across the bottom.
+Power is detected by net name — supply names
 (`VCC`, `VDD`, `3V3`, `5V`, `+…`, …) and ground names (`GND`, `VSS`, `0V`, …) —
 and every member taps straight to its rail with a junction dot, so a rail never
 runs through the middle of the drawing. Left/right (IC) pins drop straight to a
