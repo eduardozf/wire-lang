@@ -17,4 +17,4 @@ schematic
   net GND: J1.GND, S1.GND
   net SENSOR: S1.AOUT, R1.2, J1.A0
 
-  render direction=left-to-right
+  render layout=bus-rail

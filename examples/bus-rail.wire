@@ -1,0 +1,21 @@
+schematic
+  title "Bus-rail layout demo"
+  description "A sensor and LED driver around an MCU hub, drawn with top and bottom rails, a bundled sensor bus, colored control lines, and a button in the control band."
+
+  component U1 IC pins=[1:VCC@left, 2:GND@left, 3:SCL@right, 4:SDA@right, 5:INT@right]
+  component U2 IC pins=[1:3V3@left, 2:GND@left, 3:SCL@left, 4:SDA@left, 5:IRQ@left, 6:BTN@left, 7:DRIVE@right, 8:FAULT@right]
+  component U3 IC pins=[1:VIN@left, 2:GND@left, 3:IN@left, 4:FAULT@left, 5:OUT@right]
+  component SW1 PushButton
+  component D1 LED color=green
+
+  net VCC: U1.VCC, U2.3V3, U3.VIN
+  net GND: U1.GND, U2.GND, U3.GND, SW1.2, D1.C
+  net SCL: U1.SCL, U2.SCL
+  net SDA: U1.SDA, U2.SDA
+  net INT: U1.INT, U2.IRQ
+  net DRIVE: U2.DRIVE, U3.IN
+  net FAULT: U3.FAULT, U2.FAULT
+  net BTN: SW1.1, U2.BTN
+  net LED_OUT: U3.OUT, D1.A
+
+  render layout=bus-rail

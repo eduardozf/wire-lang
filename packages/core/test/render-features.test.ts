@@ -1,5 +1,48 @@
+import type { LayoutModel, Segment } from "@wire-lang/core";
 import { compile, layout, renderSvg } from "@wire-lang/core";
 import { describe, expect, it } from "vitest";
+
+const EPS = 0.01;
+
+/** Length of the 1-D overlap of `[a0,a1]` and `[b0,b1]` (negative if disjoint). */
+function overlapLength(a0: number, a1: number, b0: number, b1: number): number {
+  return (
+    Math.min(Math.max(a0, a1), Math.max(b0, b1)) - Math.max(Math.min(a0, a1), Math.min(b0, b1))
+  );
+}
+
+/**
+ * Pairs of segments from *different* nets that render exactly collinear and
+ * overlapping — two distinct connections drawn as one line.
+ */
+function collinearOverlaps(model: LayoutModel): { a: string; b: string; length: number }[] {
+  const segs: { net: string; segment: Segment }[] = [];
+  for (const wire of model.wires) {
+    for (const segment of wire.segments) segs.push({ net: wire.net, segment });
+  }
+  const hits: { a: string; b: string; length: number }[] = [];
+  for (let i = 0; i < segs.length; i++) {
+    for (let j = i + 1; j < segs.length; j++) {
+      const a = segs[i]!;
+      const b = segs[j]!;
+      if (a.net === b.net) continue;
+      const sa = a.segment;
+      const sb = b.segment;
+      const aVert = Math.abs(sa.from.x - sa.to.x) < EPS;
+      const bVert = Math.abs(sb.from.x - sb.to.x) < EPS;
+      const aHoriz = Math.abs(sa.from.y - sa.to.y) < EPS;
+      const bHoriz = Math.abs(sb.from.y - sb.to.y) < EPS;
+      let length = 0;
+      if (aVert && bVert && Math.abs(sa.from.x - sb.from.x) < EPS) {
+        length = overlapLength(sa.from.y, sa.to.y, sb.from.y, sb.to.y);
+      } else if (aHoriz && bHoriz && Math.abs(sa.from.y - sb.from.y) < EPS) {
+        length = overlapLength(sa.from.x, sa.to.x, sb.from.x, sb.to.x);
+      }
+      if (length > EPS) hits.push({ a: a.net, b: b.net, length });
+    }
+  }
+  return hits;
+}
 
 describe("layout/render features", () => {
   it("places junction dots at interior taps of a 3-way net", () => {
@@ -13,6 +56,30 @@ describe("layout/render features", () => {
     const result = layout(compile(source).model);
     const junctions = result.wires.flatMap((wire) => wire.junctions);
     expect(junctions.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("fans overlapping drops of distinct nets into separate lanes (issue #53)", () => {
+    // Several pins on one IC edge, each on a multi-terminal net that routes to
+    // the same side, would stack their vertical drops on a single line and read
+    // as one wire. Each distinct net must keep its own lane.
+    const source = `schematic
+  component U1 IC pins=[1:A@left, 2:B@left, 3:C@left, 4:D@left]
+  component R1 Resistor value=1k
+  component R2 Resistor value=1k
+  component R3 Resistor value=1k
+  component R4 Resistor value=1k
+  net NA: U1.A, R1.1
+  net NB: U1.B, R2.1
+  net NC: U1.C, R3.1
+  net ND: U1.D, R4.1
+`;
+    const { model } = compile(source);
+    expect(collinearOverlaps(layout(model))).toEqual([]);
+    // The same source rendered top-to-bottom swaps the axes; lanes must still
+    // hold there.
+    const vertical = `${source}  render direction=top-to-bottom\n`;
+    expect(collinearOverlaps(layout(compile(vertical).model))).toEqual([]);
+    expect(renderSvg(model)).toMatchSnapshot();
   });
 
   it("renders a net as labels when style=label", () => {

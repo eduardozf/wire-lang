@@ -79,8 +79,8 @@ component choices or unsupported requested behavior.
   floating net.
 - "Mark the 3V3 rail" can use a `PowerFlag name=3V3`; it is a visual flag, not a
   hidden global net.
-- Wire hops are drawn by default where lines cross without a junction; "let
-  crossings just overlap" is `render crossings=gap`.
+- Crossings without a junction are left simply overlapping by default; "draw a
+  hop where lines cross" is `render crossings=hop`.
 
 ## Keep This Skill Current
 

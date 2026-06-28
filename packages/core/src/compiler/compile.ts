@@ -21,6 +21,7 @@ import type {
   Direction,
   Group,
   IcPin,
+  LayoutMode,
   LocalComponentDef,
   Net,
   NetStyle,
@@ -35,6 +36,7 @@ import {
   CROSSING_STYLES,
   DIRECTIONS,
   LANGUAGE_VERSION,
+  LAYOUT_MODES,
   NET_STYLES,
   ORIENTATIONS,
   SIDES,
@@ -74,8 +76,10 @@ class Compiler {
   private description: string | null = null;
   private direction: Direction = "left-to-right";
   private directionSet = false;
-  private crossings: CrossingStyle = "hop";
+  private crossings: CrossingStyle = "gap";
   private crossingsSet = false;
+  private layoutMode: LayoutMode = "flow";
+  private layoutModeSet = false;
 
   private readonly noConnects: NoConnect[] = [];
   /** `component.terminal` keys that have been marked `no-connect`. */
@@ -734,6 +738,28 @@ class Compiler {
         this.crossingsSet = true;
         return;
       }
+      if (node.hintKey === "layout") {
+        if (!LAYOUT_MODES.includes(node.hintValue as LayoutMode)) {
+          this.report(
+            "warning",
+            DiagnosticCodes.renderInvalidValue,
+            `Invalid layout "${node.hintValue}" (expected ${LAYOUT_MODES.join("/")}).`,
+            node.range,
+          );
+          return;
+        }
+        if (this.layoutModeSet) {
+          this.report(
+            "warning",
+            DiagnosticCodes.renderDuplicate,
+            "Duplicate global layout hint; using the last value.",
+            node.range,
+          );
+        }
+        this.layoutMode = node.hintValue as LayoutMode;
+        this.layoutModeSet = true;
+        return;
+      }
       if (node.hintKey !== "direction") {
         this.report(
           "warning",
@@ -953,6 +979,7 @@ class Compiler {
       languageVersion: LANGUAGE_VERSION,
       direction: this.direction,
       crossings: this.crossings,
+      layout: this.layoutMode,
       components,
       localDefinitions,
       nets,

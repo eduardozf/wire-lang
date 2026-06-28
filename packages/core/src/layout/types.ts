@@ -50,13 +50,19 @@ export interface LayoutWire {
   readonly style: "wire" | "label";
   readonly segments: readonly Segment[];
   readonly junctions: readonly Point[];
+  /** Explicit stroke color (bus-rail net families); falls back to the theme. */
+  readonly color?: string;
+  /** Explicit stroke width tier: signals are thin, rails thicker, buses thickest. */
+  readonly width?: number;
 }
 
 export interface LayoutLabel {
   readonly text: string;
   readonly point: Point;
   readonly anchor: "start" | "middle" | "end";
-  readonly kind: "annotation" | "net-label";
+  readonly kind: "annotation" | "net-label" | "rail-label" | "bus-label" | "component";
+  /** Explicit fill color; falls back to the kind's theme class. */
+  readonly color?: string;
 }
 
 export interface LayoutModel {
@@ -68,6 +74,8 @@ export interface LayoutModel {
   readonly noConnects: readonly Point[];
   /** How non-junction wire crossings are drawn. */
   readonly crossings: CrossingStyle;
+  /** When true, the renderer uses a monospace label font (bus-rail style). */
+  readonly monospace?: boolean;
   readonly title: string | null;
   readonly description: string | null;
 }

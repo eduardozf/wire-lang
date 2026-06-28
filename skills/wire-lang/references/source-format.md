@@ -92,6 +92,7 @@ Use annotations for visible diagram text. Use comments only for source notes.
 ```wire
 render direction=left-to-right
 render crossings=hop
+render layout=bus-rail
 render R1 orientation=vertical
 render Inputs side=left
 render U1 anchor=center
@@ -100,9 +101,13 @@ render net VCC style=label
 
 Render hints guide layout but do not change the circuit.
 
-`direction`, `crossings`, and net `style` are honored today. By default
-(`crossings=hop`) a small hop is drawn where wires cross without a junction;
-`crossings=gap` opts out and leaves crossings overlapping. `orientation`, `side`, and `anchor` (and `group`
+`direction`, `crossings`, `layout`, and net `style` are honored today. By default
+(`crossings=gap`) wires that cross without a junction are left simply
+overlapping; `crossings=hop` opts in to a small hop at each such crossing.
+`layout=bus-rail` redraws the schematic as a block diagram between a top supply
+rail and a bottom ground rail, color-coding nets by family and bundling grouped
+signals into bus trunks (power and buses are inferred from net names and
+connectivity — no extra syntax needed). `orientation`, `side`, and `anchor` (and `group`
 layout) are accepted and validated but not yet positioned by the bundled renderer
 — using them emits a `render.not-yet-honored` (or `group.not-yet-honored`)
 warning. They are safe to write for forward compatibility; they just have no
