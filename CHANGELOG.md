@@ -6,6 +6,7 @@ All notable changes to Wire Lang will be documented in this file.
 
 - Added bus-rail layout support for clearer shared-net routing.
 - Expanded the standard parts catalog and updated rendered documentation examples.
+- Updated npm release automation to publish from `v*` tags via trusted publishing.
 
 ## 0.1.0 - Initial MVP
 
