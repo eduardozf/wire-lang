@@ -18,11 +18,7 @@ import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const packageDirs = ["packages/core", "packages/cli", "packages/wire-lang"];
-const depFields = [
-  "dependencies",
-  "optionalDependencies",
-  "peerDependencies",
-];
+const depFields = ["dependencies", "optionalDependencies", "peerDependencies"];
 
 const manifests = packageDirs.map((dir) => {
   const path = join(root, dir, "package.json");
