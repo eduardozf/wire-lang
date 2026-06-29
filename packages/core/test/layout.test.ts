@@ -112,4 +112,42 @@ describe("layout", () => {
       JSON.stringify(layout(compile(source).model)),
     );
   });
+
+  it("honors anchor=center by shifting a body toward the rails it connects to", () => {
+    // Both nets in TWO_R route to bottom rails (the resistor terminals sit on
+    // the centerline), so anchoring R1 drops it toward those rails.
+    const plain = layout(compile(TWO_R).model);
+    const [pr1, pr2] = ["R1", "R2"].map((id) => plain.components.find((c) => c.id === id));
+    // Baseline: both bodies share the flow centerline.
+    expect(Math.abs((pr1?.center.y ?? 0) - (pr2?.center.y ?? 0))).toBeLessThan(EPS);
+
+    const anchored = layout(compile(`${TWO_R}  render R1 anchor=center\n`).model);
+    const [r1, r2] = ["R1", "R2"].map((id) => anchored.components.find((c) => c.id === id));
+    // Anchored R1 sits below the un-anchored R2; R2 is unaffected.
+    expect(r1?.center.y ?? 0).toBeGreaterThan((r2?.center.y ?? 0) + 1);
+  });
+
+  it("leaves an evenly-wired anchored body centered", () => {
+    // U1 wires one pin up and one pin down, so its average rail level is the
+    // centerline; anchoring it must not move anything.
+    const source = `schematic
+  component U1 IC pins=[1:T@top, 2:B@bottom]
+  component R1 Resistor value=1k
+  component R2 Resistor value=1k
+  net UP: U1.T, R1.1
+  net DOWN: U1.B, R2.1
+  net K: R1.2, R2.2
+  render direction=left-to-right
+`;
+    const plain = layout(compile(source).model);
+    const anchored = layout(compile(`${source}  render U1 anchor=center\n`).model);
+    expect(JSON.stringify(anchored)).toBe(JSON.stringify(plain));
+  });
+
+  it("is deterministic for an anchored schematic", () => {
+    const source = `${TWO_R}  render R1 anchor=center\n`;
+    expect(JSON.stringify(layout(compile(source).model))).toBe(
+      JSON.stringify(layout(compile(source).model)),
+    );
+  });
 });

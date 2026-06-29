@@ -184,4 +184,22 @@ describe("layout/render features", () => {
     expect(Math.abs((a?.point.x ?? 0) - (b?.point.x ?? 0))).toBeLessThan(EPS);
     expect(renderSvg(source)).toMatchSnapshot();
   });
+
+  it("centers a component between its rails with anchor=center (snapshot)", () => {
+    const source = `schematic
+  title "Anchor hint"
+  component R1 Resistor value=1k
+  component R2 Resistor value=1k
+  net N: R1.1, R2.1
+  net M: R1.2, R2.2
+  render direction=left-to-right
+  render R1 anchor=center
+`;
+    const placed = layout(compile(source).model);
+    const r1 = placed.components.find((component) => component.id === "R1");
+    const r2 = placed.components.find((component) => component.id === "R2");
+    // Anchored R1 drops toward its (bottom) rails, below the un-anchored R2.
+    expect(r1?.center.y ?? 0).toBeGreaterThan((r2?.center.y ?? 0) + 1);
+    expect(renderSvg(source)).toMatchSnapshot();
+  });
 });

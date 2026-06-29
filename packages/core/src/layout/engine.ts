@@ -58,6 +58,8 @@ interface PlacedComponent {
   geom: ComponentGeom;
   mainStart: number;
   centerMain: number;
+  /** Cross-axis shift applied by an `anchor=center` hint; 0 otherwise. */
+  crossOffset: number;
 }
 
 interface RawWire {
@@ -90,12 +92,10 @@ export function layout(model: SchematicModel): LayoutModel {
   if (reversed) ordered.reverse();
 
   // ---- placement ----------------------------------------------------------
+  // Pass 1: order components along the main axis. Cross offsets stay 0 here so
+  // the rail levels below are measured from the natural, centered row.
   const placed: PlacedComponent[] = [];
-  const terminalPoints = new Map<string, MC>();
   let cursor = 0;
-  let maxBodyCross = 0;
-  let minBodyCross = 0;
-
   for (const instance of ordered) {
     const base = componentGeometry(instance);
     const geom =
@@ -103,16 +103,53 @@ export function layout(model: SchematicModel): LayoutModel {
         ? rotateGeometry(base)
         : base;
     const mainStart = cursor;
-    for (const terminal of geom.terminals) {
-      terminalPoints.set(`${instance.id}.${terminal.name}`, {
-        main: mainStart + terminal.main,
-        cross: terminal.cross,
+    placed.push({
+      instance,
+      geom,
+      mainStart,
+      centerMain: mainStart + geom.mainSpan / 2,
+      crossOffset: 0,
+    });
+    cursor += geom.mainSpan + GAP_MAIN;
+  }
+
+  // The natural row sits on cross=0, so its rails would hug it at these levels.
+  // An `anchor=center` body recenters between the rails its nets route to, which
+  // needs both the levels and each net's side fixed before any body is shifted.
+  let baseMinCross = 0;
+  let baseMaxCross = 0;
+  for (const entry of placed) {
+    baseMaxCross = Math.max(baseMaxCross, entry.geom.crossSpan / 2);
+    baseMinCross = Math.min(baseMinCross, -entry.geom.crossSpan / 2);
+  }
+  const topLevel = baseMinCross - RAIL_GAP;
+  const bottomLevel = baseMaxCross + RAIL_GAP;
+  const netSides = computeNetSides(model, placed);
+
+  // `anchor=center`: shift a body to the average rail level of the nets it
+  // connects to, so it sits between its top and bottom rails instead of always
+  // on the centerline. A part wired only upward rises toward the top rail; an
+  // evenly-wired part stays put.
+  for (const entry of placed) {
+    if (entry.instance.anchorCenter) {
+      entry.crossOffset = anchorOffset(entry.instance, model, netSides, topLevel, bottomLevel);
+    }
+  }
+
+  // Pass 2: record terminal points with the anchor offset applied and measure
+  // the final body bounds the rails must clear.
+  const terminalPoints = new Map<string, MC>();
+  let maxBodyCross = 0;
+  let minBodyCross = 0;
+  for (const entry of placed) {
+    for (const terminal of entry.geom.terminals) {
+      terminalPoints.set(`${entry.instance.id}.${terminal.name}`, {
+        main: entry.mainStart + terminal.main,
+        cross: terminal.cross + entry.crossOffset,
       });
     }
-    maxBodyCross = Math.max(maxBodyCross, geom.crossSpan / 2);
-    minBodyCross = Math.min(minBodyCross, -geom.crossSpan / 2);
-    placed.push({ instance, geom, mainStart, centerMain: mainStart + geom.mainSpan / 2 });
-    cursor += geom.mainSpan + GAP_MAIN;
+    maxBodyCross = Math.max(maxBodyCross, entry.geom.crossSpan / 2 + entry.crossOffset);
+    minBodyCross = Math.min(minBodyCross, -entry.geom.crossSpan / 2 + entry.crossOffset);
   }
 
   // ---- routing ------------------------------------------------------------
@@ -170,8 +207,11 @@ export function layout(model: SchematicModel): LayoutModel {
       continue;
     }
 
-    const avg = points.reduce((sum, point) => sum + point.cross, 0) / points.length;
-    const side: "top" | "bottom" = avg < 0 ? "top" : "bottom";
+    // Side is frozen from the natural row (see computeNetSides) so an anchor
+    // shift cannot flip it; the fallback keeps anchor-free diagrams identical.
+    const side: "top" | "bottom" =
+      netSides.get(net.name) ??
+      (points.reduce((sum, point) => sum + point.cross, 0) / points.length < 0 ? "top" : "bottom");
     const railCross = side === "top" ? topProvisional : bottomProvisional;
     const drops: Drop[] = points.map((point) => ({
       main: point.main,
@@ -237,7 +277,7 @@ export function layout(model: SchematicModel): LayoutModel {
         text: annotation.text,
         point: {
           main: entry.centerMain,
-          cross: -entry.geom.crossSpan / 2 - 16 - labelCount * 13,
+          cross: -entry.geom.crossSpan / 2 - 16 - labelCount * 13 + entry.crossOffset,
         },
         anchor: "middle",
         kind: "annotation",
@@ -272,10 +312,10 @@ export function layout(model: SchematicModel): LayoutModel {
   // ---- normalize + transform ---------------------------------------------
   const allPoints: MC[] = [];
   for (const entry of placed) {
-    allPoints.push({ main: entry.mainStart, cross: -entry.geom.crossSpan / 2 });
+    allPoints.push({ main: entry.mainStart, cross: -entry.geom.crossSpan / 2 + entry.crossOffset });
     allPoints.push({
       main: entry.mainStart + entry.geom.mainSpan,
-      cross: entry.geom.crossSpan / 2,
+      cross: entry.geom.crossSpan / 2 + entry.crossOffset,
     });
   }
   for (const wire of wires) {
@@ -305,16 +345,22 @@ export function layout(model: SchematicModel): LayoutModel {
 
   const layoutComponents: LayoutComponent[] = placed.map((entry) => {
     const corners = [
-      tf({ main: entry.mainStart, cross: -entry.geom.crossSpan / 2 }),
-      tf({ main: entry.mainStart + entry.geom.mainSpan, cross: entry.geom.crossSpan / 2 }),
+      tf({ main: entry.mainStart, cross: -entry.geom.crossSpan / 2 + entry.crossOffset }),
+      tf({
+        main: entry.mainStart + entry.geom.mainSpan,
+        cross: entry.geom.crossSpan / 2 + entry.crossOffset,
+      }),
     ];
     const minX = Math.min(...corners.map((corner) => corner.x));
     const minY = Math.min(...corners.map((corner) => corner.y));
     const maxX = Math.max(...corners.map((corner) => corner.x));
     const maxY = Math.max(...corners.map((corner) => corner.y));
-    const center = tf({ main: entry.centerMain, cross: 0 });
+    const center = tf({ main: entry.centerMain, cross: entry.crossOffset });
     const terminals = entry.geom.terminals.map((terminal) => {
-      const point = tf({ main: entry.mainStart + terminal.main, cross: terminal.cross });
+      const point = tf({
+        main: entry.mainStart + terminal.main,
+        cross: terminal.cross + entry.crossOffset,
+      });
       // IC pins carry an explicit local-frame side; rotate it into the flow's
       // visual frame. Other symbols derive the side from the point's position.
       const side = terminal.side ? rotateSide(terminal.side, vertical) : sideOf(point, center);
@@ -464,6 +510,64 @@ function routeLabelNet(net: Net, points: MC[], wires: RawWire[], labels: RawLabe
     });
   }
   wires.push({ net: net.name, anonymous: net.anonymous, style: "label", segments, junctions: [] });
+}
+
+/**
+ * Freeze each multi-terminal wire net's rail side (top/bottom) from the natural,
+ * centered row — before any `anchor=center` body is shifted — so a shift cannot
+ * flip a side under itself. The side is the sign of the members' average cross
+ * offset, the same rule the router applies, so a diagram with no anchor hints
+ * resolves to exactly the same sides. Single-terminal and label nets own no
+ * rail and are skipped.
+ */
+function computeNetSides(
+  model: SchematicModel,
+  placed: PlacedComponent[],
+): Map<string, "top" | "bottom"> {
+  const baseCross = new Map<string, number>();
+  for (const entry of placed) {
+    for (const terminal of entry.geom.terminals) {
+      baseCross.set(`${entry.instance.id}.${terminal.name}`, terminal.cross);
+    }
+  }
+
+  const sides = new Map<string, "top" | "bottom">();
+  for (const net of model.nets) {
+    if (net.style === "label") continue;
+    const crosses = net.members
+      .map((member) => baseCross.get(`${member.component}.${member.terminal}`))
+      .filter((cross): cross is number => cross !== undefined);
+    if (crosses.length < 2) continue;
+    const avg = crosses.reduce((sum, cross) => sum + cross, 0) / crosses.length;
+    sides.set(net.name, avg < 0 ? "top" : "bottom");
+  }
+  return sides;
+}
+
+/**
+ * Where an `anchor=center` body should sit on the cross axis: the average rail
+ * level of the railed nets it connects to, one vote per connecting terminal. A
+ * part wired only to top rails returns the top level (so it rises to meet them),
+ * an evenly-wired part returns ~0 (stays centered), and a part on no railed nets
+ * returns 0.
+ */
+function anchorOffset(
+  instance: ComponentInstance,
+  model: SchematicModel,
+  netSides: Map<string, "top" | "bottom">,
+  topLevel: number,
+  bottomLevel: number,
+): number {
+  const levels: number[] = [];
+  for (const net of model.nets) {
+    const side = netSides.get(net.name);
+    if (!side) continue;
+    for (const member of net.members) {
+      if (member.component === instance.id) levels.push(side === "top" ? topLevel : bottomLevel);
+    }
+  }
+  if (levels.length === 0) return 0;
+  return levels.reduce((sum, level) => sum + level, 0) / levels.length;
 }
 
 function sideOf(point: Point, center: Point): TerminalSide {
