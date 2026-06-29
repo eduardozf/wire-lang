@@ -227,7 +227,7 @@ Supported values:
 - `crossings`: `gap`, `hop` — honored.
 - `layout`: `flow`, `bus-rail` — honored.
 - net `style`: `wire`, `label` — honored.
-- `orientation`: `horizontal`, `vertical` — accepted, not yet honored.
+- `orientation`: `horizontal`, `vertical` — honored.
 - `side`: `left`, `right`, `top`, `bottom` — accepted, not yet honored.
 - `anchor`: `center` — accepted, not yet honored.
 
@@ -242,10 +242,12 @@ hub between a top supply rail and a bottom ground rail, with grouped signals
 bundled into color-coded bus trunks. It forces `hop` crossings and a monospace
 label profile for legibility.
 
-> **Status:** `direction` and net `style` are honored by the bundled layout
-> engine. `orientation`, `side`, and `anchor` are validated and recorded on the
+> **Status:** `direction`, `orientation`, and net `style` are honored by the
+> bundled layout engine. A per-component `orientation` that runs against the
+> flow's natural axis rotates the part 90° (a vertical resistor in a
+> left-to-right flow, say). `side` and `anchor` are validated and recorded on the
 > model, but the engine does not yet position by them; using one emits a
-> `render.not-yet-honored` warning so authors are not misled. Honoring these is
+> `render.not-yet-honored` warning so authors are not misled. Honoring those is
 > post-MVP (see Roadmap).
 
 Duplicate or unresolvable render hints produce warning diagnostics. Duplicate global hints use the last value.
@@ -556,10 +558,10 @@ await run({ force: true }) // may re-render explicitly
 
 High-priority follow-ups:
 
-- honor the placement hints the compiler already records: per-component
-  `orientation`/`anchor`, and `side` for components and groups, plus
-  group-aware layout (today these emit `render.not-yet-honored` /
-  `group.not-yet-honored` warnings)
+- honor the remaining placement hints the compiler already records: per-component
+  `anchor`, and `side` for components and groups, plus group-aware layout (today
+  these emit `render.not-yet-honored` / `group.not-yet-honored` warnings).
+  Per-component `orientation` is now honored.
 - browser auto-render for `pre.wire-lang` and `code.wire-lang`
 - headless language server using a Langium grammar and the existing validators
 - VS Code extension with syntax highlighting, diagnostics, and authoring feedback
