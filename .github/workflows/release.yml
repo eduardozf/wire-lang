@@ -42,7 +42,12 @@ jobs:
         with:
           # Trusted publishing requires Node >= 22.14.0 and npm >= 11.5.1.
           node-version: 24
-          registry-url: https://registry.npmjs.org
+          # No registry-url: setting it makes setup-node write an .npmrc with
+          # `//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}` and inject a
+          # placeholder NODE_AUTH_TOKEN. npm then authenticates with that bogus
+          # token instead of doing the OIDC exchange, and the publish fails with
+          # a masked E404. npm defaults to registry.npmjs.org, which trusted
+          # publishing targets, so the registry does not need to be set here.
           package-manager-cache: false
 
       - name: Update npm for trusted publishing
