@@ -89,20 +89,20 @@ describe("compile", () => {
   net N: R1.1, R2.1
   net M: R1.2, R2.2
   render R1 side=left
-  render R1 anchor=center
 `;
     const { ok, diagnostics } = compile(source);
     expect(ok).toBe(true); // accepted, just not laid out yet
-    expect(diagnostics.filter((d) => d.code === "render.not-yet-honored")).toHaveLength(2);
+    expect(diagnostics.filter((d) => d.code === "render.not-yet-honored")).toHaveLength(1);
   });
 
-  it("honors orientation without a not-yet-honored warning", () => {
+  it("honors orientation and anchor without a not-yet-honored warning", () => {
     const source = `schematic
   component R1 Resistor value=1k
   component R2 Resistor value=1k
   net N: R1.1, R2.1
   net M: R1.2, R2.2
   render R1 orientation=vertical
+  render R1 anchor=center
 `;
     const { ok, diagnostics } = compile(source);
     expect(ok).toBe(true);

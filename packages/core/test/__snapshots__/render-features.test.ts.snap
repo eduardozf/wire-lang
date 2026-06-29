@@ -1,5 +1,25 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`layout/render features > centers a component between its rails with anchor=center (snapshot) 1`] = `
+"<svg xmlns="http://www.w3.org/2000/svg" class="wire-lang" viewBox="0 0 252 183" width="252" height="183" role="img" data-wire-lang-version="0.2.0">
+<title>Anchor hint</title>
+<desc>A schematic with 2 components.</desc>
+<style>.wire-lang { background: #ffffff; }
+.wire-wire { stroke: #1f2937; stroke-width: 1.5; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.wire-symbol { stroke: #1f2937; stroke-width: 1.5; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.wire-symbol-bg { stroke: #1f2937; stroke-width: 1.5; fill: #ffffff; }
+.wire-symbol-fill { fill: #1f2937; stroke: none; }
+.wire-junction { fill: #1f2937; }
+.wire-label { fill: #111827; font: 600 11px var(--wire-font, system-ui, sans-serif); }
+.wire-pin-label { fill: #374151; font: 9px var(--wire-font, system-ui, sans-serif); }
+.wire-net-label { fill: #2563eb; font: 600 10px var(--wire-font, system-ui, sans-serif); }
+.wire-annotation { fill: #6b7280; font: italic 10px var(--wire-font, system-ui, sans-serif); }</style>
+<rect class="wire-background" x="0" y="0" width="252" height="183" fill="#ffffff"/>
+<g class="wire-wires"><g class="wire-net" data-wire-kind="net" data-wire-style="wire" data-wire-net="N"><line class="wire-wire" x1="36" y1="121" x2="152" y2="121"/><line class="wire-wire" x1="36" y1="84" x2="36" y2="121"/><line class="wire-wire" x1="152" y1="47" x2="152" y2="121"/></g><g class="wire-net" data-wire-kind="net" data-wire-style="wire" data-wire-net="M"><line class="wire-wire" x1="100" y1="147" x2="216" y2="147"/><line class="wire-wire" x1="100" y1="84" x2="100" y2="147"/><line class="wire-wire" x1="216" y1="47" x2="216" y2="147"/></g></g>
+<g class="wire-component" data-wire-kind="component" data-wire-id="R1" data-wire-type="Resistor" data-wire-symbol="resistor" id="wire-component-R1"><path class="wire-symbol" fill="none" d="M 36 84 L 50 84 L 53 77 L 59 91 L 65 77 L 71 91 L 77 77 L 83 91 L 86 84 L 100 84"/><text class="wire-label" x="68" y="67" text-anchor="middle">R1</text><text class="wire-label" x="68" y="54" text-anchor="middle">1k</text></g><g class="wire-component" data-wire-kind="component" data-wire-id="R2" data-wire-type="Resistor" data-wire-symbol="resistor" id="wire-component-R2"><path class="wire-symbol" fill="none" d="M 152 47 L 166 47 L 169 40 L 175 54 L 181 40 L 187 54 L 193 40 L 199 54 L 202 47 L 216 47"/><text class="wire-label" x="184" y="30" text-anchor="middle">R2</text><text class="wire-label" x="184" y="17" text-anchor="middle">1k</text></g>
+</svg>"
+`;
+
 exports[`layout/render features > fans overlapping drops of distinct nets into separate lanes (issue #53) 1`] = `
 "<svg xmlns="http://www.w3.org/2000/svg" class="wire-lang" viewBox="0 0 620 302" width="620" height="302" role="img" data-wire-lang-version="0.2.0">
 <title>Wire Lang schematic</title>

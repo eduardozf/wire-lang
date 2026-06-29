@@ -881,7 +881,6 @@ class Compiler {
           return;
         }
         instance.anchorCenter = true;
-        this.notYetHonored(node);
         return;
       }
       default:
