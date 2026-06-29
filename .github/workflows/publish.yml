@@ -89,8 +89,16 @@ jobs:
           }
 
       # No NODE_AUTH_TOKEN / NPM_TOKEN: auth is via OIDC trusted publishing.
-      # `pnpm -r publish` publishes each package from its directory, skips the
-      # private root and already-published versions, and attaches provenance.
+      # npm does not understand the workspace: protocol, so pin workspace:* deps
+      # to real versions first, then publish each package from its own directory.
+      # A directory publish — not `npm publish <tarball>` — is what lets npm's
+      # OIDC token exchange engage; npm attaches provenance automatically.
       - name: Publish to npm
         if: github.event_name == 'push' || inputs.mode == 'publish'
-        run: pnpm -r publish --provenance --no-git-checks --access public --tag "${{ inputs.npm_tag || 'latest' }}"
+        run: |
+          set -euo pipefail
+          node scripts/pin-workspace-deps.mjs
+          tag="${{ inputs.npm_tag || 'latest' }}"
+          for pkg in core cli wire-lang; do
+            ( cd "packages/$pkg" && npm publish --provenance --access public --tag "$tag" )
+          done
