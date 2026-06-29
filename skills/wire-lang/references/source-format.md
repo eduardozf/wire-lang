@@ -101,14 +101,16 @@ render net VCC style=label
 
 Render hints guide layout but do not change the circuit.
 
-`direction`, `crossings`, `layout`, and net `style` are honored today. By default
-(`crossings=gap`) wires that cross without a junction are left simply
-overlapping; `crossings=hop` opts in to a small hop at each such crossing.
+`direction`, `crossings`, `layout`, `orientation`, and net `style` are honored
+today. By default (`crossings=gap`) wires that cross without a junction are left
+simply overlapping; `crossings=hop` opts in to a small hop at each such crossing.
 `layout=bus-rail` redraws the schematic as a block diagram between a top supply
 rail and a bottom ground rail, color-coding nets by family and bundling grouped
 signals into bus trunks (power and buses are inferred from net names and
-connectivity — no extra syntax needed). `orientation`, `side`, and `anchor` (and `group`
-layout) are accepted and validated but not yet positioned by the bundled renderer
-— using them emits a `render.not-yet-honored` (or `group.not-yet-honored`)
-warning. They are safe to write for forward compatibility; they just have no
-visual effect yet.
+connectivity — no extra syntax needed). A per-component `orientation` that runs
+against the flow's natural axis rotates the part 90° — e.g. `render R1
+orientation=vertical` draws a vertical resistor in a left-to-right flow. `side`
+and `anchor` (and `group` layout) are accepted and validated but not yet
+positioned by the bundled renderer — using them emits a `render.not-yet-honored`
+(or `group.not-yet-honored`) warning. They are safe to write for forward
+compatibility; they just have no visual effect yet.

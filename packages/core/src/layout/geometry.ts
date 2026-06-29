@@ -136,6 +136,48 @@ export function componentGeometry(instance: ComponentInstance): ComponentGeom {
   return { mainSpan, crossSpan: MODULE_CROSS, terminals };
 }
 
+/**
+ * Rotate a local-frame side 90° in the same sense as {@link rotateGeometry}:
+ * the `main` axis maps onto `cross`, so a leading-edge `left` pin becomes a
+ * `top` pin, and so on. Reused by the flow engine to map a component's
+ * local-frame side onto a vertical flow's swapped axes.
+ */
+export function rotateSide90(side: TerminalSide): TerminalSide {
+  switch (side) {
+    case "left":
+      return "top";
+    case "right":
+      return "bottom";
+    case "top":
+      return "left";
+    case "bottom":
+      return "right";
+  }
+}
+
+/**
+ * Rotate a component's geometry 90° about its body center. The `main` and `cross`
+ * spans swap, each terminal's main-offset becomes a cross-offset (and vice
+ * versa), and any explicit local-frame `side` rotates to match. Used to honor a
+ * per-component `orientation` hint that runs against the flow's natural axis: a
+ * resistor in a left-to-right flow is naturally horizontal, so `orientation=vertical`
+ * rotates it. Because two-terminal symbols draw between their terminal points and
+ * IC/module symbols draw from `side`, the renderer needs no further changes.
+ */
+export function rotateGeometry(geom: ComponentGeom): ComponentGeom {
+  const { mainSpan, crossSpan } = geom;
+  return {
+    mainSpan: crossSpan,
+    crossSpan: mainSpan,
+    terminals: geom.terminals.map((terminal) => ({
+      ...terminal,
+      main: crossSpan / 2 + terminal.cross,
+      cross: terminal.main - mainSpan / 2,
+      side: terminal.side ? rotateSide90(terminal.side) : terminal.side,
+    })),
+  };
+}
+
 /** Evenly place `count` items in `[lo, hi]`; a lone item sits at the midpoint. */
 function distribute(count: number, lo: number, hi: number, index: number): number {
   if (count <= 1) return (lo + hi) / 2;

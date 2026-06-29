@@ -1,7 +1,7 @@
 import type { ComponentInstance, Net, SchematicModel } from "../model/types.js";
 import { layoutBusRail } from "./bus-rail.js";
 import type { ComponentGeom } from "./geometry.js";
-import { componentGeometry } from "./geometry.js";
+import { componentGeometry, rotateGeometry, rotateSide90 } from "./geometry.js";
 import type {
   LayoutComponent,
   LayoutLabel,
@@ -81,6 +81,11 @@ export function layout(model: SchematicModel): LayoutModel {
   const vertical = model.direction === "top-to-bottom" || model.direction === "bottom-to-top";
   const reversed = model.direction === "right-to-left" || model.direction === "bottom-to-top";
 
+  // A component's body runs along the flow's `main` axis by default, so it reads
+  // as horizontal in a horizontal flow and vertical in a vertical one. An
+  // explicit `orientation` that runs against that natural axis rotates the part.
+  const flowOrientation = vertical ? "vertical" : "horizontal";
+
   const ordered = [...model.components].sort((a, b) => a.sourceIndex - b.sourceIndex);
   if (reversed) ordered.reverse();
 
@@ -92,7 +97,11 @@ export function layout(model: SchematicModel): LayoutModel {
   let minBodyCross = 0;
 
   for (const instance of ordered) {
-    const geom = componentGeometry(instance);
+    const base = componentGeometry(instance);
+    const geom =
+      instance.orientation && instance.orientation !== flowOrientation
+        ? rotateGeometry(base)
+        : base;
     const mainStart = cursor;
     for (const terminal of geom.terminals) {
       terminalPoints.set(`${instance.id}.${terminal.name}`, {
@@ -470,15 +479,5 @@ function sideOf(point: Point, center: Point): TerminalSide {
  * top/bottom become left/right. Horizontal flows keep the local side as-is.
  */
 function rotateSide(side: TerminalSide, vertical: boolean): TerminalSide {
-  if (!vertical) return side;
-  switch (side) {
-    case "left":
-      return "top";
-    case "right":
-      return "bottom";
-    case "top":
-      return "left";
-    case "bottom":
-      return "right";
-  }
+  return vertical ? rotateSide90(side) : side;
 }

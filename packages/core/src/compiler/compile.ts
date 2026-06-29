@@ -854,7 +854,6 @@ class Compiler {
           return;
         }
         instance.orientation = node.hintValue as Orientation;
-        this.notYetHonored(node);
         return;
       }
       case "side": {

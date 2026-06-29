@@ -165,4 +165,23 @@ describe("layout/render features", () => {
 `);
     expect(svg).toMatchSnapshot();
   });
+
+  it("renders a component rotated by orientation (snapshot)", () => {
+    const source = `schematic
+  title "Orientation hint"
+  component R1 Resistor value=1k
+  component R2 Resistor value=1k
+  net N: R1.1, R2.1
+  net M: R1.2, R2.2
+  render direction=left-to-right
+  render R1 orientation=vertical
+`;
+    const model = compile(source).model;
+    const placed = layout(model);
+    const r1 = placed.components.find((component) => component.id === "R1");
+    const [a, b] = r1?.terminals ?? [];
+    // The rotated resistor's terminals share an x (vertical run).
+    expect(Math.abs((a?.point.x ?? 0) - (b?.point.x ?? 0))).toBeLessThan(EPS);
+    expect(renderSvg(source)).toMatchSnapshot();
+  });
 });
