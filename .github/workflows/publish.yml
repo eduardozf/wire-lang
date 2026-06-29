@@ -61,21 +61,13 @@ jobs:
       - name: Run release checks
         run: pnpm release:check
 
-      - name: Pack release tarballs
-        run: |
-          set -euo pipefail
-          mkdir -p release-tarballs
-          pnpm --filter @wire-lang/core pack --pack-destination release-tarballs
-          pnpm --filter @wire-lang/cli pack --pack-destination release-tarballs
-          pnpm --filter wire-lang pack --pack-destination release-tarballs
-          ls -la release-tarballs
-
-      - name: Dry-run npm publish from tarballs
-        run: |
-          set -euo pipefail
-          npm publish --dry-run --access public --tag "${{ inputs.npm_tag || 'latest' }}" ./release-tarballs/wire-lang-core-*.tgz
-          npm publish --dry-run --access public --tag "${{ inputs.npm_tag || 'latest' }}" ./release-tarballs/wire-lang-cli-*.tgz
-          npm publish --dry-run --access public --tag "${{ inputs.npm_tag || 'latest' }}" ./release-tarballs/wire-lang-[0-9]*.tgz
+      # Publish with pnpm, not `npm publish <tarball>`. pnpm runs the publish
+      # from each package directory (rewriting workspace:* deps to real
+      # versions), which is what lets npm's OIDC trusted-publishing token
+      # exchange engage. Publishing a pre-packed tarball via `npm publish` skips
+      # OIDC entirely and fails with a misleading ENEEDAUTH/E404.
+      - name: Dry-run publish
+        run: pnpm -r publish --dry-run --no-git-checks --access public --tag "${{ inputs.npm_tag || 'latest' }}"
 
       - name: Require tag for real publish
         if: (github.event_name == 'push' || inputs.mode == 'publish') && !startsWith(github.ref, 'refs/tags/v')
@@ -97,11 +89,8 @@ jobs:
           }
 
       # No NODE_AUTH_TOKEN / NPM_TOKEN: auth is via OIDC trusted publishing.
-      # npm attaches provenance automatically; --provenance is kept as a belt-and-braces flag.
-      - name: Publish npm tarballs
+      # `pnpm -r publish` publishes each package from its directory, skips the
+      # private root and already-published versions, and attaches provenance.
+      - name: Publish to npm
         if: github.event_name == 'push' || inputs.mode == 'publish'
-        run: |
-          set -euo pipefail
-          npm publish --provenance --access public --tag "${{ inputs.npm_tag || 'latest' }}" ./release-tarballs/wire-lang-core-*.tgz
-          npm publish --provenance --access public --tag "${{ inputs.npm_tag || 'latest' }}" ./release-tarballs/wire-lang-cli-*.tgz
-          npm publish --provenance --access public --tag "${{ inputs.npm_tag || 'latest' }}" ./release-tarballs/wire-lang-[0-9]*.tgz
+        run: pnpm -r publish --provenance --no-git-checks --access public --tag "${{ inputs.npm_tag || 'latest' }}"
