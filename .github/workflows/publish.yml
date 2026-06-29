@@ -88,6 +88,11 @@ jobs:
             exit 1
           }
 
+      # TEMPORARY: surface why the OIDC token exchange is rejected.
+      - name: Diagnose OIDC trusted publishing
+        if: github.event_name == 'push' || inputs.mode == 'publish'
+        run: node scripts/diagnose-oidc.mjs @wire-lang/core
+
       # No NODE_AUTH_TOKEN / NPM_TOKEN: auth is via OIDC trusted publishing.
       # npm does not understand the workspace: protocol, so pin workspace:* deps
       # to real versions first, then publish each package from its own directory.
