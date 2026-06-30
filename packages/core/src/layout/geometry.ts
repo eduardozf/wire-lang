@@ -35,6 +35,11 @@ const TWO_TERM_CROSS = 22;
 const TRANSISTOR_MAIN = 54;
 const TRANSISTOR_CROSS = 44;
 
+// Potentiometer: a two-terminal resistor body whose wiper taps the midpoint on a
+// perpendicular stub. The wiper sits this far off the body centerline; the cross
+// span is symmetric around the body so the box encloses the tap on either flow.
+const POT_WIPER_REACH = 24;
+
 // Single-terminal glyphs (ground, power flag, test point, antenna) hang off a
 // short stub; the terminal exits one end toward a rail.
 const SINGLE_TERM_MAIN = 36;
@@ -59,6 +64,10 @@ const TWO_TERMINAL_SYMBOLS = new Set([
   "inductor",
   "diode",
   "led",
+  "zener-diode",
+  "schottky-diode",
+  "photodiode",
+  "rheostat",
   "spst-switch",
   "push-button",
   "battery",
@@ -107,6 +116,24 @@ export function componentGeometry(instance: ComponentInstance): ComponentGeom {
         { name: base, main: 0, cross: 0 },
         { name: collector, main: TRANSISTOR_MAIN * 0.62, cross: -TRANSISTOR_CROSS / 2 },
         { name: emitter, main: TRANSISTOR_MAIN * 0.62, cross: TRANSISTOR_CROSS / 2 },
+      ],
+    };
+  }
+
+  if (symbol === "potentiometer") {
+    // Body runs end-to-end like a resistor; the wiper taps the midpoint on a
+    // perpendicular stub. Resolve the wiper by role so the two track ends keep
+    // their declared order regardless of which terminal is the tap.
+    const wiper = roleTerminal(instance, "wiper") ?? instance.terminals[1] ?? "W";
+    const ends = instance.terminals.filter((name) => name !== wiper);
+    const [a, b] = ends.length >= 2 ? ends : instance.terminals;
+    return {
+      mainSpan: TWO_TERM_MAIN,
+      crossSpan: 2 * POT_WIPER_REACH,
+      terminals: [
+        { name: a ?? "1", main: 0, cross: 0 },
+        { name: b ?? "2", main: TWO_TERM_MAIN, cross: 0 },
+        { name: wiper, main: TWO_TERM_MAIN / 2, cross: -POT_WIPER_REACH },
       ],
     };
   }

@@ -61,7 +61,7 @@ The visual convention followed by the standard schematic symbols.
 _Avoid_: formal standards compliance claim, copied standard catalog
 
 **Symbol Terminal Role**:
-A named connection role expected by a **Schematic Symbol**, such as `anode`, `cathode`, `collector`, `base`, `emitter`, `positive`, or `negative`.
+A named connection role expected by a **Schematic Symbol**, such as `anode`, `cathode`, `collector`, `base`, `emitter`, `positive`, `negative`, `wiper`, or `reference`.
 _Avoid_: terminal name, instance ID
 
 **Symbol Terminal Mapping**:

@@ -9,8 +9,13 @@ Lang source.
 | `Capacitor` | `1`, `2` | recommended `capacitance` | `id`, `capacitance` |
 | `PolarizedCapacitor` | `+`, `-` | recommended `capacitance` | `id`, `capacitance` |
 | `Inductor` | `1`, `2` | recommended `inductance` | `id`, `inductance` |
+| `Potentiometer` | `1`, `W`, `2` | recommended `value` | `id`, `value` |
+| `Rheostat` | `1`, `2` | recommended `value` | `id`, `value` |
 | `Diode` | `A`, `C` | none | `id` |
 | `LED` | `A`, `C` | optional `color` | `id` |
+| `ZenerDiode` | `A`, `C` | none | `id` |
+| `SchottkyDiode` | `A`, `C` | none | `id` |
+| `Photodiode` | `A`, `C` | none | `id` |
 | `NPNTransistor` | `C`, `B`, `E` | none | `id` |
 | `PNPTransistor` | `C`, `B`, `E` | none | `id` |
 | `Battery` | `+`, `-` | recommended `voltage` | `id`, `voltage` |
@@ -30,10 +35,21 @@ Lang source.
 `PTC` is the resettable-fuse / polyfuse variant. `PowerFlag` draws its `name`
 (e.g. `5V`, `3V3`, `VBAT`) as a rail flag and is not a hidden global net.
 
+`Potentiometer` is a three-terminal variable resistor: the two track ends `1`
+and `2` are interchangeable and the `W` wiper taps the middle (connect it by name
+or via the `wiper` role alias, e.g. `net OUT: RV1.W, ...`). `Rheostat` is the
+two-terminal form. `ZenerDiode`, `SchottkyDiode`, and `Photodiode` reuse the
+`Diode` `A`/`C` terminals.
+
 ## Property Examples
 
 ```wire
 component R1 Resistor value=10k
+component RV1 Potentiometer value=10k
+component RH1 Rheostat value=4k7
+component D2 ZenerDiode
+component D3 SchottkyDiode
+component D4 Photodiode
 component C1 Capacitor capacitance=100nF
 component BT1 Battery voltage=5V
 component D1 LED color=red
