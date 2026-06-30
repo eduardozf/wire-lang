@@ -49,6 +49,25 @@ const DEFINITIONS: readonly ComponentTypeDef[] = [
     designatorPrefixes: ["L"],
   },
   {
+    name: "Potentiometer",
+    // Three terminals: the two track ends (`1`, `2`) and the `W`iper tap.
+    terminals: ["1", "W", "2"],
+    properties: [{ name: "value", kind: "quantity", dimension: "resistance", recommended: true }],
+    defaultLabels: ["id", "value"],
+    symbol: "potentiometer",
+    roleMappings: [{ role: "wiper", terminal: "W" }],
+    designatorPrefixes: ["R", "RV", "VR"],
+  },
+  {
+    name: "Rheostat",
+    // Two-terminal variable resistor: a resistor body with a wiper arrow.
+    terminals: ["1", "2"],
+    properties: [{ name: "value", kind: "quantity", dimension: "resistance", recommended: true }],
+    defaultLabels: ["id", "value"],
+    symbol: "rheostat",
+    designatorPrefixes: ["R", "RV", "VR", "RH"],
+  },
+  {
     name: "Diode",
     terminals: ["A", "C"],
     properties: [],
@@ -77,6 +96,42 @@ const DEFINITIONS: readonly ComponentTypeDef[] = [
       { role: "cathode", terminal: "C" },
     ],
     designatorPrefixes: ["D", "LED"],
+  },
+  {
+    name: "ZenerDiode",
+    terminals: ["A", "C"],
+    properties: [],
+    defaultLabels: ["id"],
+    symbol: "zener-diode",
+    roleMappings: [
+      { role: "anode", terminal: "A" },
+      { role: "cathode", terminal: "C" },
+    ],
+    designatorPrefixes: ["D", "ZD"],
+  },
+  {
+    name: "SchottkyDiode",
+    terminals: ["A", "C"],
+    properties: [],
+    defaultLabels: ["id"],
+    symbol: "schottky-diode",
+    roleMappings: [
+      { role: "anode", terminal: "A" },
+      { role: "cathode", terminal: "C" },
+    ],
+    designatorPrefixes: ["D", "SD"],
+  },
+  {
+    name: "Photodiode",
+    terminals: ["A", "C"],
+    properties: [],
+    defaultLabels: ["id"],
+    symbol: "photodiode",
+    roleMappings: [
+      { role: "anode", terminal: "A" },
+      { role: "cathode", terminal: "C" },
+    ],
+    designatorPrefixes: ["D", "PD"],
   },
   {
     name: "NPNTransistor",
