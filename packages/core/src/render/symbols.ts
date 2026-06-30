@@ -268,7 +268,9 @@ function drawZenerDiode(pen: Pen, length: number): string {
   const center = length / 2;
   const bar = center + DIODE_TIP;
   const h = DIODE_HEIGHT / 2;
-  // Cathode bar with both ends bent back toward the anode (the Zener "lip").
+  // Canonical Zener cathode bar: a "Z" with the top end bent back toward the
+  // anode and the bottom end bent forward toward the cathode. (A unidirectional
+  // TVS shares this standard mark; the bidirectional TVS is the two-triangle form.)
   return group(
     drawDiodeBody(pen, length, "#1f2937"),
     pen.wire({
@@ -276,7 +278,7 @@ function drawZenerDiode(pen: Pen, length: number): string {
         { along: bar - 4, across: -h },
         { along: bar, across: -h },
         { along: bar, across: h },
-        { along: bar - 4, across: h },
+        { along: bar + 4, across: h },
       ],
     }),
   );
