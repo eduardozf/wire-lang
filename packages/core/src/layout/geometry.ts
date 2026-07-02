@@ -75,6 +75,19 @@ const SINGLE_TERMINAL_SYMBOLS = new Set([
   "antenna",
 ]);
 
+/**
+ * Symbols the layout may mirror to face a wire. Only two-terminal parts qualify:
+ * their glyphs draw between the terminal points, so swapped terminals mirror the
+ * drawing for free, and a reversed diode/LED/battery is legitimate schematic
+ * practice. Modules and ICs draw from `side` and never mirror; transistors draw
+ * from role positions and are excluded for the same reason.
+ */
+export const MIRRORABLE_SYMBOLS: ReadonlySet<string> = TWO_TERMINAL_SYMBOLS;
+
+export function isTwoTerminalSymbol(symbol: string): boolean {
+  return TWO_TERMINAL_SYMBOLS.has(symbol);
+}
+
 function roleTerminal(instance: ComponentInstance, role: string): string | undefined {
   return instance.roleMappings.find((mapping) => mapping.role === role)?.terminal;
 }
@@ -174,6 +187,29 @@ export function rotateGeometry(geom: ComponentGeom): ComponentGeom {
       main: crossSpan / 2 + terminal.cross,
       cross: terminal.main - mainSpan / 2,
       side: terminal.side ? rotateSide90(terminal.side) : terminal.side,
+    })),
+  };
+}
+
+/**
+ * Mirror a component's geometry across its body's cross-axis centerline: each
+ * terminal's main-offset reflects (`main' = mainSpan - main`) and explicit
+ * left/right sides swap; spans and cross-offsets are unchanged. Applying it
+ * twice restores the original. Composes with {@link rotateGeometry}:
+ * `rotateGeometry(mirrorGeometry(g))` yields a vertical part with the declared
+ * second terminal on top, where `rotateGeometry(g)` puts the first on top.
+ * Only meaningful for {@link MIRRORABLE_SYMBOLS}; see that set for why.
+ */
+export function mirrorGeometry(geom: ComponentGeom): ComponentGeom {
+  const mirrorSide = (side: TerminalSide): TerminalSide =>
+    side === "left" ? "right" : side === "right" ? "left" : side;
+  return {
+    mainSpan: geom.mainSpan,
+    crossSpan: geom.crossSpan,
+    terminals: geom.terminals.map((terminal) => ({
+      ...terminal,
+      main: geom.mainSpan - terminal.main,
+      side: terminal.side ? mirrorSide(terminal.side) : terminal.side,
     })),
   };
 }

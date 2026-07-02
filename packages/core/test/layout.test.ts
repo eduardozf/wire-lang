@@ -1,5 +1,6 @@
 import { compile, layout } from "@wire-lang/core";
 import { describe, expect, it } from "vitest";
+import { componentGeometry, mirrorGeometry, rotateGeometry } from "../src/layout/geometry.js";
 
 const EPS = 0.01;
 
@@ -111,5 +112,59 @@ describe("layout", () => {
     expect(JSON.stringify(layout(compile(source).model))).toBe(
       JSON.stringify(layout(compile(source).model)),
     );
+  });
+});
+
+describe("mirrorGeometry", () => {
+  const instanceOf = (source: string, id: string) => {
+    const { model } = compile(source);
+    const instance = model.components.find((component) => component.id === id);
+    if (!instance) throw new Error(`no component ${id}`);
+    return instance;
+  };
+
+  const RESISTOR = instanceOf("schematic\n  component R1 Resistor value=1k\n", "R1");
+  const IC = instanceOf(
+    "schematic\n  component U1 IC pins=[1:VCC@left, 2:OUT@right, 3:GND@bottom]\n",
+    "U1",
+  );
+
+  it("reflects each terminal's main-offset and keeps spans and cross", () => {
+    const base = componentGeometry(RESISTOR);
+    const mirrored = mirrorGeometry(base);
+    expect(mirrored.mainSpan).toBe(base.mainSpan);
+    expect(mirrored.crossSpan).toBe(base.crossSpan);
+    for (const [index, terminal] of base.terminals.entries()) {
+      const twin = mirrored.terminals[index]!;
+      expect(twin.name).toBe(terminal.name);
+      expect(twin.main).toBeCloseTo(base.mainSpan - terminal.main, 6);
+      expect(twin.cross).toBeCloseTo(terminal.cross, 6);
+    }
+  });
+
+  it("swaps explicit left/right sides and keeps top/bottom", () => {
+    const mirrored = mirrorGeometry(componentGeometry(IC));
+    const sideOf = (name: string) =>
+      mirrored.terminals.find((terminal) => terminal.name === name)?.side;
+    expect(sideOf("VCC")).toBe("right");
+    expect(sideOf("OUT")).toBe("left");
+    expect(sideOf("GND")).toBe("bottom");
+  });
+
+  it("is an involution", () => {
+    const base = componentGeometry(IC);
+    expect(JSON.stringify(mirrorGeometry(mirrorGeometry(base)))).toBe(JSON.stringify(base));
+  });
+
+  it("composes with rotateGeometry to control which terminal ends up on top", () => {
+    const base = componentGeometry(RESISTOR);
+    // Rotated as-is: the declared first terminal sits on top (negative cross).
+    const rotated = rotateGeometry(base);
+    expect(rotated.terminals[0]!.cross).toBeLessThan(0);
+    expect(rotated.terminals[1]!.cross).toBeGreaterThan(0);
+    // Mirrored first: the declared second terminal takes the top instead.
+    const flipped = rotateGeometry(mirrorGeometry(base));
+    expect(flipped.terminals[0]!.cross).toBeGreaterThan(0);
+    expect(flipped.terminals[1]!.cross).toBeLessThan(0);
   });
 });

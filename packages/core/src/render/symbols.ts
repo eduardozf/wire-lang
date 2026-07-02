@@ -56,8 +56,16 @@ function makeFrame(first: Point, second: Point): { frame: Frame; length: number 
   const length = Math.hypot(dx, dy) || 1;
   const axisX = dx / length;
   const axisY = dy / length;
-  const sideX = -axisY; // unit vector across the axis (the "across" direction)
-  const sideY = axisX;
+  let sideX = -axisY; // unit vector across the axis (the "across" direction)
+  let sideY = axisX;
+  // Keep "across" pointing screen-down for horizontal axes and screen-left for
+  // vertical ones, so a mirrored part (axis reversed) draws its decorations
+  // (LED arrows, plungers, polarity marks) on the same side as an unmirrored one.
+  const horizontal = Math.abs(dx) >= Math.abs(dy);
+  if (horizontal ? sideY < 0 : sideX > 0) {
+    sideX = -sideX;
+    sideY = -sideY;
+  }
   const frame: Frame = ({ along, across }) => ({
     x: first.x + axisX * along + sideX * across,
     y: first.y + axisY * along + sideY * across,
