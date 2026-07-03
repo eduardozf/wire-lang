@@ -500,10 +500,19 @@ the bottom. Power is detected by net name — supply names
 (`VCC`, `VDD`, `3V3`, `5V`, `+…`, …) and ground names (`GND`, `VSS`, `0V`, …) —
 and every member taps straight to its rail with a junction dot, so a rail never
 runs through the middle of the drawing. Left/right (IC) pins drop straight to a
-rail; a module's top/bottom-edge pin that faces the opposite rail hooks out and
-routes around the box side rather than crossing the body. Multi-point signals
-that touch a module pin run as a trunk in a channel just below the row, dropping
-to each pin, so they never slice through a module box either.
+rail — unless the drop would slice through the component's other pins on the
+same edge, in which case it breaks out sideways first; a module's
+top/bottom-edge pin that faces the opposite rail hooks out and routes around
+the box side rather than crossing the body. Consecutive hooks on one side step
+further out, each escaping a different distance before turning, so no two
+share a path. Multi-point signals that touch a module pin run as a trunk in a
+channel just below the row, dropping to each pin, so they never slice through
+a module box either; channels pack into shared tracks — nets whose x-extents
+are clear of each other sit at one level, overlapping nets are guaranteed
+distinct levels. A signal between two facing IC pins takes a Z through the
+corridor between the boxes, staggered per corridor, instead of cornering along
+a box edge. The flow engine's "distinct nets never render collinear" invariant
+holds in bus-rail too (bus funnel leads excepted).
 
 Two-terminal parts that hang off a single row component are **peripherals** and
 do not extend the row. They are placed in a **peripheral band** below the row

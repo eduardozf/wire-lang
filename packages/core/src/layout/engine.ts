@@ -2,6 +2,7 @@ import type { ComponentInstance, Net, SchematicModel } from "../model/types.js";
 import { layoutBusRail } from "./bus-rail.js";
 import type { ComponentGeom } from "./geometry.js";
 import { componentGeometry, rotateGeometry, rotateSide90 } from "./geometry.js";
+import { assignLanes } from "./lanes.js";
 import type {
   LayoutComponent,
   LayoutLabel,
@@ -390,25 +391,16 @@ function assignDropLanes(drops: Drop[]): void {
     if (group.length < 2) continue;
     const spans = group
       .map((drop) => ({
-        drop,
+        item: drop,
         lo: Math.min(drop.cross, drop.railCross),
         hi: Math.max(drop.cross, drop.railCross),
       }))
       .sort((a, b) => a.lo - b.lo || a.hi - b.hi);
 
-    // `laneEnds[i]` is the far end of the last span placed in lane `i`; a lane is
-    // reusable once its previous span clears the next span's start.
-    const laneEnds: number[] = [];
-    for (const span of spans) {
-      let lane = laneEnds.findIndex((end) => end <= span.lo);
-      if (lane === -1) {
-        lane = laneEnds.length;
-        laneEnds.push(span.hi);
-      } else {
-        laneEnds[lane] = span.hi;
-      }
-      const dir = span.drop.main < span.drop.centerMain ? -1 : 1;
-      span.drop.lane = lane * LANE_GAP * dir;
+    const lanes = assignLanes(spans);
+    for (const [drop, lane] of lanes) {
+      const dir = drop.main < drop.centerMain ? -1 : 1;
+      drop.lane = lane * LANE_GAP * dir;
     }
   }
 }
@@ -431,17 +423,11 @@ function assignRailTracks(nets: PendingNet[], minBodyCross: number, maxBodyCross
           a.minMain - b.minMain || a.maxMain - b.maxMain || a.net.sourceIndex - b.net.sourceIndex,
       );
 
-    // `trackEnds[i]` is the furthest main reached by the last rail on track `i`;
-    // a track is reusable once its previous rail clears the next rail's start.
-    const trackEnds: number[] = [];
-    for (const pending of group) {
-      let track = trackEnds.findIndex((end) => pending.minMain > end + RAIL_GAP);
-      if (track === -1) {
-        track = trackEnds.length;
-        trackEnds.push(pending.maxMain);
-      } else {
-        trackEnds[track] = pending.maxMain;
-      }
+    const tracks = assignLanes(
+      group.map((pending) => ({ item: pending, lo: pending.minMain, hi: pending.maxMain })),
+      RAIL_GAP,
+    );
+    for (const [pending, track] of tracks) {
       pending.railCross =
         side === "top"
           ? minBodyCross - RAIL_GAP * (track + 1)

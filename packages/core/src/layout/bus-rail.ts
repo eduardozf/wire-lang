@@ -1,6 +1,7 @@
 import type { ComponentInstance, Net, SchematicModel } from "../model/types.js";
 import type { ComponentGeom } from "./geometry.js";
 import { componentGeometry, mirrorGeometry, rotateGeometry } from "./geometry.js";
+import { assignLanes } from "./lanes.js";
 import type { BridgeGroup, ChainGroup, PeripheralGroup } from "./peripherals.js";
 import { detectPeripherals, memberIds } from "./peripherals.js";
 import type {
@@ -32,6 +33,8 @@ const BESIDE_GAP = 40; // horizontal gap between an anchor's box and a beside-br
 const KNEE_NEAR = 12; // breakout distance of the first beside-bridge feed
 const KNEE_FAR = 24; // breakout distance of the second beside-bridge feed
 const LABEL_CHAR_W = 6.6; // estimated advance of the 11px component-label font
+const LANE_GAP = 12; // step between fanned-out hooks that would otherwise overlap
+const CHANNEL_MIN_GAP = 26; // clearance between same-track channel trunks
 const EPS = 0.01;
 const BUS_PAIR_SEPARATOR = "::";
 
@@ -78,38 +81,6 @@ function familyOf(net: Net, symbolOf: (component: string) => string): Family {
   if (net.members.some((member) => CONTROL_SYMBOLS.has(symbolOf(member.component))))
     return "control";
   return "signal";
-}
-
-/**
- * Tap a terminal to a power rail. Left/right pins (and edge pins facing their own
- * rail) drop straight to it. An edge pin facing the *opposite* rail (e.g. a
- * module's bottom VCC pin reaching the top rail) hooks out of the pin and routes
- * up around the box's side, so it never crosses the body.
- */
-function railTap(
-  point: Point,
-  side: TerminalSide,
-  boxLeft: number,
-  railY: number,
-  railIsTop: boolean,
-): { segments: Segment[]; junction: Point } {
-  const straight = {
-    segments: [{ from: point, to: { x: point.x, y: railY } }],
-    junction: { x: point.x, y: railY },
-  };
-  if (side === "left" || side === "right") return straight;
-  const facingDown = side === "bottom";
-  if (facingDown !== railIsTop) return straight; // edge pin already faces this rail
-  const stubY = point.y + (facingDown ? EDGE_STUB : -EDGE_STUB);
-  const sideX = boxLeft - EDGE_STUB;
-  return {
-    segments: [
-      { from: point, to: { x: point.x, y: stubY } },
-      { from: { x: point.x, y: stubY }, to: { x: sideX, y: stubY } },
-      { from: { x: sideX, y: stubY }, to: { x: sideX, y: railY } },
-    ],
-    junction: { x: sideX, y: railY },
-  };
 }
 
 /**
@@ -327,28 +298,39 @@ export function layoutBusRail(model: SchematicModel): LayoutModel {
 
   // Signal nets that must run in a channel below the row (they touch a module's
   // top/bottom pin and can't run at pin height without slicing through the
-  // box). Resolved before the band is placed so the band clears every channel;
-  // the routing loop below reads this same set to stay in lockstep.
-  const channelNets = new Set<string>();
-  for (const net of model.nets) {
+  // box). Channels pack into shared tracks — nets whose x-extents are clear of
+  // each other sit at one level, overlapping nets are guaranteed distinct
+  // levels. Resolved before the band is placed so the band clears every track;
+  // the routing loop below reads this same map to stay in lockstep.
+  const channelCandidates: { net: Net; order: number; fromX: number; toX: number }[] = [];
+  model.nets.forEach((net, order) => {
     const family = families.get(net.name);
     if (family === "supply" || family === "ground" || family === "bus" || family === "control") {
-      continue;
+      return;
     }
-    if (routedNets.has(net.name)) continue;
+    if (routedNets.has(net.name)) return;
     const infos = net.members
       .map((member) => termInfo(member.component, member.terminal))
       .filter((info): info is NonNullable<typeof info> => info !== undefined);
-    if (infos.length < 2) continue;
-    if (infos.some((info) => info.side === "top" || info.side === "bottom")) {
-      channelNets.add(net.name);
-    }
+    if (infos.length < 2) return;
+    if (!infos.some((info) => info.side === "top" || info.side === "bottom")) return;
+    const xs = infos.map((info) => info.point.x);
+    channelCandidates.push({ net, order, fromX: Math.min(...xs), toX: Math.max(...xs) });
+  });
+  channelCandidates.sort((a, b) => a.fromX - b.fromX || a.toX - b.toX || a.order - b.order);
+  const channelTracks = new Map<string, number>();
+  for (const [entry, track] of assignLanes(
+    channelCandidates.map((entry) => ({ item: entry, lo: entry.fromX, hi: entry.toX })),
+    CHANNEL_MIN_GAP,
+  )) {
+    channelTracks.set(entry.net.name, track);
   }
+  const channelTrackCount = channelTracks.size === 0 ? 0 : Math.max(...channelTracks.values()) + 1;
 
   // The peripheral band sits below the row, past every signal channel.
   const bandY =
     rowBottom +
-    Math.max(CONTROL_GAP, SIGNAL_CHANNEL + channelNets.size * CHANNEL_STEP + BAND_CLEAR);
+    Math.max(CONTROL_GAP, SIGNAL_CHANNEL + channelTrackCount * CHANNEL_STEP + BAND_CLEAR);
 
   // Legacy control blocks (whose shape detection bailed on) keep their packed
   // placement at the left of the band.
@@ -562,22 +544,106 @@ export function layoutBusRail(model: SchematicModel): LayoutModel {
   const supplyRailY = contentTop - RAIL_MARGIN;
   const groundRailY = contentBottom + RAIL_MARGIN;
 
+  // Hooked rail taps fan out per component side, counted across both rails, so
+  // no two hooks share a path.
+  const hookCounts = new Map<string, number>();
+  const nextHook = (componentId: string, dir: "left" | "right"): number => {
+    const key = `${componentId}:${dir}`;
+    const count = hookCounts.get(key) ?? 0;
+    hookCounts.set(key, count + 1);
+    return count;
+  };
+  // True when a straight vertical from `point` to `railY` would pass through
+  // another terminal of the same component (stacked side pins share one x).
+  const dropPassesTerminal = (componentId: string, point: Point, railY: number): boolean => {
+    const placed = placedById.get(componentId);
+    if (!placed) return false;
+    const lo = Math.min(point.y, railY);
+    const hi = Math.max(point.y, railY);
+    for (const terminal of placed.terminals.values()) {
+      const other = terminal.point;
+      if (Math.abs(other.x - point.x) > EPS) continue;
+      if (Math.abs(other.y - point.y) < EPS) continue; // the tap itself
+      if (other.y > lo + EPS && other.y < hi - EPS) return true;
+    }
+    return false;
+  };
+
+  interface RailTapSite {
+    componentId: string;
+    point: Point;
+    side: TerminalSide;
+    left: number;
+    right: number;
+  }
+
+  /**
+   * Tap a terminal to a power rail. Left/right pins (and edge pins facing
+   * their own rail) drop straight to it — unless the drop would slice through
+   * the component's other pins, in which case it breaks out sideways first.
+   * An edge pin facing the *opposite* rail (e.g. a module's bottom VCC pin
+   * reaching the top rail) hooks out of the pin and routes up around the box's
+   * side. Consecutive hooks on one side step further out (`LANE_GAP`) so their
+   * runs never overlap — each escapes a different distance before turning.
+   */
+  const railTap = (
+    tap: RailTapSite,
+    railY: number,
+    railIsTop: boolean,
+  ): { segments: Segment[]; junction: Point } => {
+    const { point, side } = tap;
+    const straight = {
+      segments: [{ from: point, to: { x: point.x, y: railY } }],
+      junction: { x: point.x, y: railY },
+    };
+    if (side === "left" || side === "right") {
+      if (!dropPassesTerminal(tap.componentId, point, railY)) return straight;
+      const k = nextHook(tap.componentId, side);
+      const outX =
+        side === "left"
+          ? tap.left - EDGE_STUB - k * LANE_GAP
+          : tap.right + EDGE_STUB + k * LANE_GAP;
+      return {
+        segments: [
+          { from: point, to: { x: outX, y: point.y } },
+          { from: { x: outX, y: point.y }, to: { x: outX, y: railY } },
+        ],
+        junction: { x: outX, y: railY },
+      };
+    }
+    const facingDown = side === "bottom";
+    if (facingDown !== railIsTop) return straight; // edge pin already faces this rail
+    const reach = EDGE_STUB + nextHook(tap.componentId, "left") * LANE_GAP;
+    const stubY = point.y + (facingDown ? reach : -reach);
+    const sideX = tap.left - reach;
+    return {
+      segments: [
+        { from: point, to: { x: point.x, y: stubY } },
+        { from: { x: point.x, y: stubY }, to: { x: sideX, y: stubY } },
+        { from: { x: sideX, y: stubY }, to: { x: sideX, y: railY } },
+      ],
+      junction: { x: sideX, y: railY },
+    };
+  };
+
   const buildRail = (family: "supply" | "ground", railY: number, railIsTop: boolean): void => {
     const railNets = model.nets.filter((net) => families.get(net.name) === family);
     if (railNets.length === 0) return;
-    const taps: { point: Point; side: TerminalSide; left: number; right: number }[] = [];
+    const taps: RailTapSite[] = [];
     for (const net of railNets) {
       for (const member of net.members) {
         const info = termInfo(member.component, member.terminal);
         const box = boxOf(member.component);
-        if (info && box) taps.push({ point: info.point, side: info.side, ...box });
+        if (info && box) {
+          taps.push({ componentId: member.component, point: info.point, side: info.side, ...box });
+        }
       }
     }
     if (taps.length === 0) return;
     const segments: Segment[] = [];
     const junctions: Point[] = [];
     for (const tap of taps) {
-      const t = railTap(tap.point, tap.side, tap.left, railY, railIsTop);
+      const t = railTap(tap, railY, railIsTop);
       segments.push(...t.segments);
       junctions.push(t.junction);
     }
@@ -634,7 +700,7 @@ export function layoutBusRail(model: SchematicModel): LayoutModel {
   }
 
   // Control + plain signal nets that are not power, bus, or peripheral-routed.
-  let channelIndex = 0;
+  const starMidCounts = new Map<number, number>();
   for (const net of model.nets) {
     const family = families.get(net.name);
     if (family === "supply" || family === "ground" || family === "bus") continue;
@@ -652,9 +718,9 @@ export function layoutBusRail(model: SchematicModel): LayoutModel {
     // below the row with vertical drops to each pin. Anchored to `rowBottom`, not
     // `contentBottom`, so the channel stays under the row rather than dropping
     // below the peripheral band (whose drops back up would cross the band).
-    if (channelNets.has(net.name)) {
-      const channelY = rowBottom + SIGNAL_CHANNEL + channelIndex * CHANNEL_STEP;
-      channelIndex++;
+    const channelTrack = channelTracks.get(net.name);
+    if (channelTrack !== undefined) {
+      const channelY = rowBottom + SIGNAL_CHANNEL + channelTrack * CHANNEL_STEP;
       const xs = points.map((point) => point.x);
       const fromX = Math.min(...xs);
       const toX = Math.max(...xs);
@@ -680,21 +746,42 @@ export function layoutBusRail(model: SchematicModel): LayoutModel {
       continue;
     }
 
-    // Star from the first member to each other with a single sharp corner.
-    // Control lines rise vertically out of the control, then turn into the pin;
-    // plain signals turn the other way (horizontal first).
-    const hub = points[0]!;
+    // Star from the first member to each other. Two facing side pins take a Z
+    // through the corridor between the boxes — staggered per corridor so
+    // parallel nets keep distinct verticals — because a corner at either pin's
+    // x would run along a box edge, through its other pins. Control lines rise
+    // vertically out of the control, then turn into the pin; remaining shapes
+    // keep a single corner (horizontal first).
+    const hubInfo = infos[0]!;
+    const hub = hubInfo.point;
     const segments: Segment[] = [];
-    for (let i = 1; i < points.length; i++) {
-      const end = points[i]!;
-      if (Math.abs(hub.y - end.y) < 0.01 || Math.abs(hub.x - end.x) < 0.01) {
+    for (let i = 1; i < infos.length; i++) {
+      const endInfo = infos[i]!;
+      const end = endInfo.point;
+      if (Math.abs(hub.y - end.y) < EPS || Math.abs(hub.x - end.x) < EPS) {
         segments.push({ from: hub, to: end });
-      } else {
-        const corner: Point =
-          family === "control" ? { x: hub.x, y: end.y } : { x: end.x, y: hub.y };
-        segments.push({ from: hub, to: corner });
-        segments.push({ from: corner, to: end });
+        continue;
       }
+      const towardSide = (side: TerminalSide, fromX: number, toX: number): boolean =>
+        side === "right" ? toX > fromX : side === "left" && toX < fromX;
+      const baseMid = (hub.x + end.x) / 2;
+      if (
+        family !== "control" &&
+        towardSide(hubInfo.side, hub.x, baseMid) &&
+        towardSide(endInfo.side, end.x, baseMid)
+      ) {
+        const corridor = Math.round(baseMid);
+        const k = starMidCounts.get(corridor) ?? 0;
+        starMidCounts.set(corridor, k + 1);
+        const midX = baseMid + k * LANE_GAP;
+        segments.push({ from: hub, to: { x: midX, y: hub.y } });
+        segments.push({ from: { x: midX, y: hub.y }, to: { x: midX, y: end.y } });
+        segments.push({ from: { x: midX, y: end.y }, to: end });
+        continue;
+      }
+      const corner: Point = family === "control" ? { x: hub.x, y: end.y } : { x: end.x, y: hub.y };
+      segments.push({ from: hub, to: corner });
+      segments.push({ from: corner, to: end });
     }
     wires.push({
       net: net.name,
