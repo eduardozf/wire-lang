@@ -35,3 +35,6 @@ Use this when a user asks Wire Lang to express something outside the MVP.
 - If the user asks for an unsupported component, use a local `define component`
   module when the terminals are known.
 - If the user asks for a custom visual symbol, use `symbol module` in the MVP.
+- If the user asks for a Markdown-rendered diagram, say Markdown `wire` fences
+  do not auto-render in the MVP; author `.wire`, run `wire render`, then link or
+  embed the generated SVG.

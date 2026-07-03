@@ -1,0 +1,4 @@
+interface:
+  display_name: "Wire Lang"
+  short_description: "Author .wire schematics and SVG output"
+  default_prompt: "Use $wire-lang to write and validate a .wire schematic, then render it to SVG."
