@@ -146,6 +146,43 @@ describe("auto-flip (flow)", () => {
   });
 });
 
+describe("module pin pitch", () => {
+  it("widens gaps so long pin names never overlap", () => {
+    const { model } = compile(`schematic
+  define component MCU
+    terminal GND
+    terminal GPIO15
+    terminal GPIO16
+    terminal GPIO17
+    symbol module
+  end
+  component U1 MCU
+`);
+    const geom = componentGeometry(model.components[0]!);
+    const CHAR_W = 5.6;
+    const PAD = 6;
+    const mains = geom.terminals.map((terminal) => terminal.main);
+    const names = geom.terminals.map((terminal) => terminal.name);
+    for (let i = 1; i < mains.length; i++) {
+      const needed = ((names[i - 1]!.length + names[i]!.length) / 2) * CHAR_W + PAD;
+      expect(mains[i]! - mains[i - 1]!).toBeGreaterThanOrEqual(needed - 0.01);
+    }
+  });
+
+  it("keeps short-named modules at the classic pitch", () => {
+    const { model } = compile(`schematic
+  define component M
+    terminal A
+    terminal B
+    symbol module
+  end
+  component U1 M
+`);
+    const geom = componentGeometry(model.components[0]!);
+    expect(geom.terminals[1]!.main - geom.terminals[0]!.main).toBeCloseTo(34, 5);
+  });
+});
+
 describe("mirrorGeometry", () => {
   const instanceOf = (source: string, id: string) => {
     const { model } = compile(source);

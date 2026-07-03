@@ -491,6 +491,11 @@ route to the same side, their drops are fanned into separate lanes so each
 connection reads as its own line. Collinear segments merge only when they
 genuinely belong to the same net.
 
+Module and IC pin pitch along top/bottom edges is label-width-aware: the gap
+between two adjacent pins widens past the base pitch when their names (e.g.
+`GPIO15`) need the room, so pin labels never overlap. Short names keep the
+classic pitch exactly.
+
 Two-terminal parts auto-mirror when that strictly shortens the flow-axis run
 to their wire partners — a part fed from its far side would otherwise have
 wires wrap across its body. Ties keep the declared terminal order, so
@@ -504,7 +509,8 @@ mirror.
 diagrams. Row blocks are laid left-to-right in source order between two
 horizontal power rails: a supply rail across the top and a ground rail across
 the bottom. Power is detected by net name — supply names
-(`VCC`, `VDD`, `3V3`, `5V`, `+…`, …) and ground names (`GND`, `VSS`, `0V`, …) —
+(`VCC`, `VDD`, `3V3`, `5V`, `+…`, dev-board spellings like `V3V3`/`V5V`, …)
+and ground names (`GND`, `VSS`, `0V`, …) —
 and every member taps straight to its rail with a junction dot, so a rail never
 runs through the middle of the drawing. Left/right (IC) pins drop straight to a
 rail — unless the drop would slice through the component's other pins on the
@@ -553,9 +559,13 @@ Signals are color-coded by family: supply (red), ground (dark), control inputs
 from buttons/switches (blue), and bundled signal groups (a cycling palette).
 When two blocks are joined by three or more signal nets, those nets are
 auto-bundled into a single thick **bus trunk**, labeled with the trunk name; each
-net leaves its pin horizontally and converges to one shared entry point per side,
-so the taps form a tidy funnel. Pairs with fewer shared nets stay as individual
-lines. Buttons and switches are ordinary peripherals (their nets stay blue);
+net leaves its pin and converges to one shared entry point per side, so the
+taps form a tidy funnel. On an IC side the leads leave horizontally at pin
+height; on a flat (module-pin) side they drop vertically instead, and the
+trunk runs in a packed channel below the row — a pin-row trunk would lie over
+foreign pins and other buses. Flat-bus trunks share the channel track packing
+with signal channels, so overlapping runs always take distinct levels. Pairs
+with fewer shared nets stay as individual lines. Buttons and switches are ordinary peripherals (their nets stay blue);
 one whose shape detection bails keeps the packed placement at the left of the
 band.
 Stroke weight encodes the role: thin signals, thicker rails, thickest trunks.

@@ -138,15 +138,8 @@ describe("bus-rail peripherals", () => {
     expect(ground.junctions.length).toBe(4);
   });
 
-  it("never renders two distinct non-bus nets collinear", () => {
-    // Bus leads out of bottom-edge module pins still share the pin-row height
-    // (their funnel is drawn per-link); the lane-stagger work covers those, so
-    // this invariant holds for everything except bus-bundled wires.
-    const busNets = new Set(["BCLK", "LRC", "DIN", "U1-A1 bus"]);
-    const hits = collinearOverlaps(build(KIT)).filter(
-      (hit) => !busNets.has(hit.a) && !busNets.has(hit.b),
-    );
-    expect(hits).toEqual([]);
+  it("never renders two distinct nets collinear", () => {
+    expect(collinearOverlaps(build(KIT))).toEqual([]);
   });
 
   it("is deterministic", () => {

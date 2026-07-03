@@ -44,6 +44,17 @@ const MODULE_PIN_MAIN = 34;
 const MODULE_MIN_MAIN = 64;
 const MODULE_CROSS = 44;
 
+// Pin-name labels render horizontally along module/IC top and bottom edges, so
+// the pitch between adjacent pins must fit both names or long ones (GPIO15)
+// overlap. 5.6 ≈ one 9px monospace advance; layout has no text measurement.
+const PIN_LABEL_CHAR_W = 5.6;
+const PIN_LABEL_PAD = 6;
+
+/** Pitch between two adjacent horizontal-label pins that fits both names. */
+function labelPitch(a: string, b: string, minPitch: number): number {
+  return Math.max(minPitch, ((a.length + b.length) / 2) * PIN_LABEL_CHAR_W + PIN_LABEL_PAD);
+}
+
 // IC block: pins stick out of a box on their declared side.
 const IC_PIN_PITCH = 22; // spacing between adjacent pins on one side
 /** Stub length reserved outside the IC box on every side; the renderer insets by this. */
@@ -137,13 +148,22 @@ export function componentGeometry(instance: ComponentInstance): ComponentGeom {
   }
 
   // Module (Header, local modules) and any fallback: terminals spread along the
-  // bottom edge in declared order, preserving module pin order.
-  const pins = instance.terminals;
-  const count = Math.max(pins.length, 1);
-  const mainSpan = Math.max(MODULE_MIN_MAIN, count * MODULE_PIN_MAIN);
+  // bottom edge in declared order, preserving module pin order. Each gap widens
+  // past the base pitch when the two adjacent names need the room.
+  const pins = instance.terminals.length > 0 ? instance.terminals : ["1"];
+  const positions: number[] = [];
+  let main = labelPitch(pins[0]!, pins[0]!, MODULE_PIN_MAIN) / 2;
+  for (const [index, name] of pins.entries()) {
+    if (index > 0) main += labelPitch(pins[index - 1]!, name, MODULE_PIN_MAIN);
+    positions.push(main);
+  }
+  const natural =
+    main + labelPitch(pins[pins.length - 1]!, pins[pins.length - 1]!, MODULE_PIN_MAIN) / 2;
+  const mainSpan = Math.max(MODULE_MIN_MAIN, natural);
+  const shift = (mainSpan - natural) / 2;
   const terminals: TerminalGeom[] = pins.map((name, index) => ({
     name,
-    main: ((index + 0.5) * mainSpan) / count,
+    main: positions[index]! + shift,
     cross: MODULE_CROSS / 2,
   }));
   return { mainSpan, crossSpan: MODULE_CROSS, terminals };
@@ -240,14 +260,22 @@ function icGeometry(instance: ComponentInstance): ComponentGeom {
   for (const pin of pins) bySide[pin.side].push({ name: pin.name, number: pin.number });
 
   const vertCount = Math.max(bySide.left.length, bySide.right.length);
-  const horizCount = Math.max(bySide.top.length, bySide.bottom.length);
   const leftRight = bySide.left.length > 0 && bySide.right.length > 0;
   const topBottom = bySide.top.length > 0 && bySide.bottom.length > 0;
+  // Top/bottom pins label horizontally, so their pitch is label-width-aware.
+  const edgeRun = (edge: { name: string }[]): number => {
+    let run = 0;
+    for (let i = 1; i < edge.length; i++) {
+      run += labelPitch(edge[i - 1]!.name, edge[i]!.name, IC_PIN_PITCH);
+    }
+    return run;
+  };
   // Pins on both opposite edges need room for two name labels between them.
   const boxMain = Math.max(
     IC_MIN_BOX,
     leftRight ? IC_OPPOSITE_MIN : 0,
-    horizCount > 0 ? 2 * IC_PAD + (horizCount - 1) * IC_PIN_PITCH : 0,
+    bySide.top.length > 0 ? 2 * IC_PAD + edgeRun(bySide.top) : 0,
+    bySide.bottom.length > 0 ? 2 * IC_PAD + edgeRun(bySide.bottom) : 0,
   );
   const boxCross = Math.max(
     IC_MIN_BOX,
@@ -281,21 +309,34 @@ function icGeometry(instance: ComponentInstance): ComponentGeom {
       cross: distribute(bySide.right.length, crossLo, crossHi, i),
     });
   });
+  // Horizontal-edge pins spread label-aware steps across the edge, stretched
+  // to fill it (uniform names degrade to an even spread).
+  const horizontalMains = (edge: { name: string }[]): number[] => {
+    if (edge.length <= 1) return edge.map(() => (mainLo + mainHi) / 2);
+    const steps = [0];
+    for (let i = 1; i < edge.length; i++) {
+      steps.push(steps[i - 1]! + labelPitch(edge[i - 1]!.name, edge[i]!.name, IC_PIN_PITCH));
+    }
+    const run = steps[steps.length - 1]!;
+    return steps.map((step) => mainLo + (step * (mainHi - mainLo)) / run);
+  };
+  const topMains = horizontalMains(bySide.top);
   bySide.top.forEach((pin, i) => {
     terminals.push({
       name: pin.name,
       number: pin.number,
       side: "top",
-      main: distribute(bySide.top.length, mainLo, mainHi, i),
+      main: topMains[i]!,
       cross: -crossSpan / 2,
     });
   });
+  const bottomMains = horizontalMains(bySide.bottom);
   bySide.bottom.forEach((pin, i) => {
     terminals.push({
       name: pin.name,
       number: pin.number,
       side: "bottom",
-      main: distribute(bySide.bottom.length, mainLo, mainHi, i),
+      main: bottomMains[i]!,
       cross: crossSpan / 2,
     });
   });

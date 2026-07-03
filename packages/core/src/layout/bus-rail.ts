@@ -51,7 +51,9 @@ const BUS_PALETTE = ["#15803d", "#b45309", "#7c3aed", "#0e7490", "#be185d"];
 // ---- stroke-width tiers ----------------------------------------------------
 const WIDTH = { signal: 1.4, tap: 1.8, rail: 3, bus: 4.5 } as const;
 
-const SUPPLY_RE = /^(\+.*|vcc|vdd|vbus|vbat|vsys|vin|vpp|v\+|3v3|5v|1v8|2v5|3\.3v?|v33|pwr)$/i;
+// `v\d+v\d*` covers dev-board rail spellings like V5V and V3V3.
+const SUPPLY_RE =
+  /^(\+.*|vcc|vdd|vbus|vbat|vsys|vin|vpp|v\+|3v3|5v|1v8|2v5|3\.3v?|v33|v\d+v\d*|pwr)$/i;
 const GROUND_RE = /^(-|gnd|vss|agnd|dgnd|pgnd|0v|ground|earth)$/i;
 const CONTROL_SYMBOLS = new Set(["push-button", "spst-switch"]);
 
@@ -72,6 +74,11 @@ interface Bus {
   color: string;
   /** Each net in the trunk, with its endpoint on the left and right component. */
   links: { net: Net; left: Point; right: Point }[];
+  /** A side is flat when every pin sits on a top/bottom edge at pin-row height. */
+  leftFlat: boolean;
+  rightFlat: boolean;
+  /** Forced trunk level; set when any side is flat (the trunk runs in a channel). */
+  trunkY?: number;
 }
 
 /** Classify a net's family from its name and members. Buses are resolved separately. */
@@ -296,13 +303,62 @@ export function layoutBusRail(model: SchematicModel): LayoutModel {
       : undefined;
   };
 
+  // Resolve each bus's links and whether each of its two sides is "flat" —
+  // fed from top/bottom-edge module pins that all share the pin-row height. A
+  // flat side cannot host the classic horizontal funnel (its leads would run
+  // along the pin row, over foreign pins and other buses), so flat buses drop
+  // their trunk into a channel below the row instead.
+  interface BusPlan {
+    key: string;
+    name: string;
+    color: string;
+    links: Bus["links"];
+    leftFlat: boolean;
+    rightFlat: boolean;
+  }
+  const busPlans: BusPlan[] = [];
+  for (const key of busKeys) {
+    const nets = pairNets.get(key)!;
+    const color = busColorByKey.get(key)!;
+    const [idA, idB] = key.split(BUS_PAIR_SEPARATOR) as [string, string];
+    const a = placedById.get(idA);
+    const b = placedById.get(idB);
+    if (!a || !b) continue;
+    const leftComp = a.center.x <= b.center.x ? a : b;
+    const rightComp = leftComp === a ? b : a;
+
+    const links: Bus["links"] = [];
+    const flat = { left: true, right: true };
+    for (const net of nets) {
+      const lMember = net.members.find((member) => member.component === leftComp.instance.id);
+      const rMember = net.members.find((member) => member.component === rightComp.instance.id);
+      const lInfo = lMember && termInfo(lMember.component, lMember.terminal);
+      const rInfo = rMember && termInfo(rMember.component, rMember.terminal);
+      if (!lInfo || !rInfo) continue;
+      links.push({ net, left: lInfo.point, right: rInfo.point });
+      if (lInfo.side !== "top" && lInfo.side !== "bottom") flat.left = false;
+      if (rInfo.side !== "top" && rInfo.side !== "bottom") flat.right = false;
+    }
+    if (links.length < 2) continue;
+    busPlans.push({
+      key,
+      name: shortBusName(leftComp.instance, rightComp.instance),
+      color,
+      links,
+      leftFlat: flat.left,
+      rightFlat: flat.right,
+    });
+  }
+
   // Signal nets that must run in a channel below the row (they touch a module's
   // top/bottom pin and can't run at pin height without slicing through the
-  // box). Channels pack into shared tracks — nets whose x-extents are clear of
-  // each other sit at one level, overlapping nets are guaranteed distinct
-  // levels. Resolved before the band is placed so the band clears every track;
-  // the routing loop below reads this same map to stay in lockstep.
-  const channelCandidates: { net: Net; order: number; fromX: number; toX: number }[] = [];
+  // box), plus flat-bus trunks. Channels pack into shared tracks — runs whose
+  // x-extents are clear of each other sit at one level, overlapping runs are
+  // guaranteed distinct levels. Resolved before the band is placed so the band
+  // clears every track; the routing loop below reads this same map to stay in
+  // lockstep.
+  type ChannelItem = { kind: "net"; net: Net } | { kind: "bus"; key: string };
+  const channelCandidates: { item: ChannelItem; order: number; fromX: number; toX: number }[] = [];
   model.nets.forEach((net, order) => {
     const family = families.get(net.name);
     if (family === "supply" || family === "ground" || family === "bus" || family === "control") {
@@ -315,17 +371,35 @@ export function layoutBusRail(model: SchematicModel): LayoutModel {
     if (infos.length < 2) return;
     if (!infos.some((info) => info.side === "top" || info.side === "bottom")) return;
     const xs = infos.map((info) => info.point.x);
-    channelCandidates.push({ net, order, fromX: Math.min(...xs), toX: Math.max(...xs) });
+    channelCandidates.push({
+      item: { kind: "net", net },
+      order,
+      fromX: Math.min(...xs),
+      toX: Math.max(...xs),
+    });
+  });
+  busPlans.forEach((plan, index) => {
+    if (!plan.leftFlat && !plan.rightFlat) return;
+    const xs = plan.links.flatMap((link) => [link.left.x, link.right.x]);
+    channelCandidates.push({
+      item: { kind: "bus", key: plan.key },
+      order: model.nets.length + index,
+      fromX: Math.min(...xs),
+      toX: Math.max(...xs),
+    });
   });
   channelCandidates.sort((a, b) => a.fromX - b.fromX || a.toX - b.toX || a.order - b.order);
   const channelTracks = new Map<string, number>();
+  const busTrunkTracks = new Map<string, number>();
+  let channelTrackCount = 0;
   for (const [entry, track] of assignLanes(
     channelCandidates.map((entry) => ({ item: entry, lo: entry.fromX, hi: entry.toX })),
     CHANNEL_MIN_GAP,
   )) {
-    channelTracks.set(entry.net.name, track);
+    if (entry.item.kind === "net") channelTracks.set(entry.item.net.name, track);
+    else busTrunkTracks.set(entry.item.key, track);
+    channelTrackCount = Math.max(channelTrackCount, track + 1);
   }
-  const channelTrackCount = channelTracks.size === 0 ? 0 : Math.max(...channelTracks.values()) + 1;
 
   // The peripheral band sits below the row, past every signal channel.
   const bandY =
@@ -672,28 +746,19 @@ export function layoutBusRail(model: SchematicModel): LayoutModel {
   buildRail("supply", supplyRailY, true);
   buildRail("ground", groundRailY, false);
 
-  // Buses: bundle each detected pair into a single trunk with 45deg taps.
-  for (const key of busKeys) {
-    const nets = pairNets.get(key)!;
-    const color = busColorByKey.get(key)!;
-    const [idA, idB] = key.split(BUS_PAIR_SEPARATOR) as [string, string];
-    const a = placedById.get(idA);
-    const b = placedById.get(idB);
-    if (!a || !b) continue;
-    const leftComp = a.center.x <= b.center.x ? a : b;
-    const rightComp = leftComp === a ? b : a;
-
-    const links: Bus["links"] = [];
-    for (const net of nets) {
-      const lMember = net.members.find((member) => member.component === leftComp.instance.id);
-      const rMember = net.members.find((member) => member.component === rightComp.instance.id);
-      const left = lMember && termPoint(lMember.component, lMember.terminal);
-      const right = rMember && termPoint(rMember.component, rMember.terminal);
-      if (left && right) links.push({ net, left, right });
-    }
-    if (links.length < 2) continue;
+  // Buses: bundle each detected pair into a single trunk with 45deg taps. A
+  // flat bus runs its trunk in a packed channel below the row.
+  for (const plan of busPlans) {
+    const track = busTrunkTracks.get(plan.key);
     emitBus(
-      { name: shortBusName(leftComp.instance, rightComp.instance), color, links },
+      {
+        name: plan.name,
+        color: plan.color,
+        links: plan.links,
+        leftFlat: plan.leftFlat,
+        rightFlat: plan.rightFlat,
+        trunkY: track === undefined ? undefined : rowBottom + SIGNAL_CHANNEL + track * CHANNEL_STEP,
+      },
       wires,
       labels,
     );
@@ -853,21 +918,26 @@ export function layoutBusRail(model: SchematicModel): LayoutModel {
 }
 
 /**
- * Lay a single bus trunk. Each pin exits horizontally to a common knee line,
- * then runs a straight spoke to one shared entry point per side — so every
- * signal joins the trunk at the same point, forming a tidy funnel rather than a
- * spread-out chevron. Spokes share an endpoint and start at distinct heights on
+ * Lay a single bus trunk. On an IC side, each pin exits horizontally to a
+ * common knee line, then runs a straight spoke to one shared entry point — so
+ * every signal joins the trunk at the same point, forming a tidy funnel rather
+ * than a spread-out chevron. On a flat (module-pin) side the leads instead
+ * drop vertically to a knee level above the trunk's channel, then spoke to the
+ * shared entry point. Spokes share an endpoint and start at distinct spots on
  * the knee line, so they fan out without crossing each other or the leads.
  */
 function emitBus(bus: Bus, wires: LayoutWire[], labels: LayoutLabel[]): void {
   const lefts = bus.links.map((link) => link.left);
   const rights = bus.links.map((link) => link.right);
   const trunkY =
+    bus.trunkY ??
     [...lefts, ...rights].reduce((sum, point) => sum + point.y, 0) / (lefts.length + rights.length);
+  const kneeY = trunkY - BUS_LEAD;
 
   // Knee lines: a uniform horizontal lead past the busiest pin on each side.
-  const leftKneeX = Math.max(...lefts.map((point) => point.x)) + BUS_LEAD;
-  const rightKneeX = Math.min(...rights.map((point) => point.x)) - BUS_LEAD;
+  // A flat side has no horizontal lead; its apex sits just past its last pin.
+  const leftKneeX = Math.max(...lefts.map((point) => point.x)) + (bus.leftFlat ? 0 : BUS_LEAD);
+  const rightKneeX = Math.min(...rights.map((point) => point.x)) - (bus.rightFlat ? 0 : BUS_LEAD);
   // Single shared entry point per side, a fixed reach in from the knee line.
   // Using a fixed reach (rather than one derived from the pin spread) keeps the
   // trunk from collapsing when a block's bus pins are spread far apart.
@@ -880,16 +950,29 @@ function emitBus(bus: Bus, wires: LayoutWire[], labels: LayoutLabel[]): void {
   }
 
   for (const link of bus.links) {
+    const leadIn: Segment[] = bus.leftFlat
+      ? [
+          { from: link.left, to: { x: link.left.x, y: kneeY } }, // vertical lead
+          { from: { x: link.left.x, y: kneeY }, to: { x: apexLeftX, y: trunkY } }, // spoke in
+        ]
+      : [
+          { from: link.left, to: { x: leftKneeX, y: link.left.y } }, // horizontal lead
+          { from: { x: leftKneeX, y: link.left.y }, to: { x: apexLeftX, y: trunkY } }, // spoke in
+        ];
+    const leadOut: Segment[] = bus.rightFlat
+      ? [
+          { from: { x: apexRightX, y: trunkY }, to: { x: link.right.x, y: kneeY } }, // spoke out
+          { from: { x: link.right.x, y: kneeY }, to: link.right }, // vertical lead
+        ]
+      : [
+          { from: { x: apexRightX, y: trunkY }, to: { x: rightKneeX, y: link.right.y } }, // spoke out
+          { from: { x: rightKneeX, y: link.right.y }, to: link.right }, // horizontal lead
+        ];
     wires.push({
       net: link.net.name,
       anonymous: false,
       style: "wire",
-      segments: [
-        { from: link.left, to: { x: leftKneeX, y: link.left.y } }, // horizontal lead
-        { from: { x: leftKneeX, y: link.left.y }, to: { x: apexLeftX, y: trunkY } }, // spoke in
-        { from: { x: apexRightX, y: trunkY }, to: { x: rightKneeX, y: link.right.y } }, // spoke out
-        { from: { x: rightKneeX, y: link.right.y }, to: link.right }, // horizontal lead
-      ],
+      segments: [...leadIn, ...leadOut],
       junctions: [],
       color: bus.color,
       width: WIDTH.tap,
