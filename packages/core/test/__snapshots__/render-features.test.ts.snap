@@ -1,7 +1,7 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
 exports[`layout/render features > fans overlapping drops of distinct nets into separate lanes (issue #53) 1`] = `
-"<svg xmlns="http://www.w3.org/2000/svg" class="wire-lang" viewBox="0 0 620 302" width="620" height="302" role="img" data-wire-lang-version="0.2.0">
+"<svg xmlns="http://www.w3.org/2000/svg" class="wire-lang" viewBox="0 0 620 302" width="620" height="302" role="img" data-wire-lang-version="0.3.0">
 <title>Wire Lang schematic</title>
 <desc>A schematic with 5 components.</desc>
 <style>.wire-lang { background: #ffffff; }
@@ -21,7 +21,7 @@ exports[`layout/render features > fans overlapping drops of distinct nets into s
 `;
 
 exports[`layout/render features > produces stable SVG output (snapshot) 1`] = `
-"<svg xmlns="http://www.w3.org/2000/svg" class="wire-lang" viewBox="0 0 368 188" width="368" height="188" role="img" data-wire-lang-version="0.2.0">
+"<svg xmlns="http://www.w3.org/2000/svg" class="wire-lang" viewBox="0 0 368 188" width="368" height="188" role="img" data-wire-lang-version="0.3.0">
 <title>LED current limiting circuit</title>
 <desc>A 5V battery drives a red LED through a 220 ohm resistor.</desc>
 <style>.wire-lang { background: #ffffff; }
@@ -42,7 +42,7 @@ exports[`layout/render features > produces stable SVG output (snapshot) 1`] = `
 `;
 
 exports[`layout/render features > renders a component rotated by orientation (snapshot) 1`] = `
-"<svg xmlns="http://www.w3.org/2000/svg" class="wire-lang" viewBox="0 0 210 188" width="210" height="188" role="img" data-wire-lang-version="0.2.0">
+"<svg xmlns="http://www.w3.org/2000/svg" class="wire-lang" viewBox="0 0 210 188" width="210" height="188" role="img" data-wire-lang-version="0.3.0">
 <title>Orientation hint</title>
 <desc>A schematic with 2 components.</desc>
 <style>.wire-lang { background: #ffffff; }
@@ -62,7 +62,7 @@ exports[`layout/render features > renders a component rotated by orientation (sn
 `;
 
 exports[`layout/render features > renders the complex symbol set (transistor, ground, header, switch, inductor, polarized cap) 1`] = `
-"<svg xmlns="http://www.w3.org/2000/svg" class="wire-lang" viewBox="0 0 798 220" width="798" height="220" role="img" data-wire-lang-version="0.2.0">
+"<svg xmlns="http://www.w3.org/2000/svg" class="wire-lang" viewBox="0 0 798 220" width="798" height="220" role="img" data-wire-lang-version="0.3.0">
 <title>Symbol coverage</title>
 <desc>A schematic with 7 components.</desc>
 <style>.wire-lang { background: #ffffff; }

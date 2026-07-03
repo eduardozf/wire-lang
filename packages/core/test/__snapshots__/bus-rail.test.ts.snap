@@ -1,7 +1,7 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
 exports[`layout: bus-rail > produces stable SVG output (snapshot) 1`] = `
-"<svg xmlns="http://www.w3.org/2000/svg" class="wire-lang" viewBox="0 0 702 526" width="702" height="526" role="img" data-wire-lang-version="0.2.0">
+"<svg xmlns="http://www.w3.org/2000/svg" class="wire-lang" viewBox="0 0 702 526" width="702" height="526" role="img" data-wire-lang-version="0.3.0">
 <title>Wire Lang schematic</title>
 <desc>A schematic with 4 components.</desc>
 <style>.wire-lang { background: #ffffff; }
