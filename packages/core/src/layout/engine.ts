@@ -1,7 +1,13 @@
 import type { ComponentInstance, Net, SchematicModel } from "../model/types.js";
 import { layoutBusRail } from "./bus-rail.js";
 import type { ComponentGeom } from "./geometry.js";
-import { componentGeometry, rotateGeometry, rotateSide90 } from "./geometry.js";
+import {
+  componentGeometry,
+  MIRRORABLE_SYMBOLS,
+  mirrorGeometry,
+  rotateGeometry,
+  rotateSide90,
+} from "./geometry.js";
 import { assignLanes } from "./lanes.js";
 import type {
   LayoutComponent,
@@ -91,6 +97,8 @@ export function layout(model: SchematicModel): LayoutModel {
   if (reversed) ordered.reverse();
 
   // ---- placement ----------------------------------------------------------
+  // Pass 1 fixes every span and start position; mirroring never changes spans,
+  // so flips can be decided afterward against the final positions.
   const placed: PlacedComponent[] = [];
   const terminalPoints = new Map<string, MC>();
   let cursor = 0;
@@ -104,16 +112,52 @@ export function layout(model: SchematicModel): LayoutModel {
         ? rotateGeometry(base)
         : base;
     const mainStart = cursor;
-    for (const terminal of geom.terminals) {
-      terminalPoints.set(`${instance.id}.${terminal.name}`, {
-        main: mainStart + terminal.main,
-        cross: terminal.cross,
-      });
-    }
     maxBodyCross = Math.max(maxBodyCross, geom.crossSpan / 2);
     minBodyCross = Math.min(minBodyCross, -geom.crossSpan / 2);
     placed.push({ instance, geom, mainStart, centerMain: mainStart + geom.mainSpan / 2 });
     cursor += geom.mainSpan + GAP_MAIN;
+  }
+
+  // Pass 2: auto-flip. Mirror a two-terminal part when that strictly shortens
+  // the main-axis run to its wire partners (a part fed from its "wrong" side
+  // would otherwise have wires wrap around it); ties stay unflipped. Decisions
+  // run in placement order using earlier decisions, so output is deterministic.
+  const placedById = new Map(placed.map((entry) => [entry.instance.id, entry]));
+  const partnerMain = (component: string, terminal: string): number | undefined => {
+    const entry = placedById.get(component);
+    const term = entry?.geom.terminals.find((candidate) => candidate.name === terminal);
+    return entry && term ? entry.mainStart + term.main : undefined;
+  };
+  for (const entry of placed) {
+    if (!MIRRORABLE_SYMBOLS.has(entry.instance.symbol)) continue;
+    const cost = (geom: ComponentGeom): number => {
+      let total = 0;
+      for (const net of model.nets) {
+        for (const member of net.members) {
+          if (member.component !== entry.instance.id) continue;
+          const term = geom.terminals.find((candidate) => candidate.name === member.terminal);
+          if (!term) continue;
+          const own = entry.mainStart + term.main;
+          for (const partner of net.members) {
+            if (partner.component === entry.instance.id) continue;
+            const other = partnerMain(partner.component, partner.terminal);
+            if (other !== undefined) total += Math.abs(own - other);
+          }
+        }
+      }
+      return total;
+    };
+    const mirrored = mirrorGeometry(entry.geom);
+    if (cost(mirrored) < cost(entry.geom)) entry.geom = mirrored;
+  }
+
+  for (const entry of placed) {
+    for (const terminal of entry.geom.terminals) {
+      terminalPoints.set(`${entry.instance.id}.${terminal.name}`, {
+        main: entry.mainStart + terminal.main,
+        cross: terminal.cross,
+      });
+    }
   }
 
   // ---- routing ------------------------------------------------------------

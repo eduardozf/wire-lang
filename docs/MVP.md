@@ -491,6 +491,13 @@ route to the same side, their drops are fanned into separate lanes so each
 connection reads as its own line. Collinear segments merge only when they
 genuinely belong to the same net.
 
+Two-terminal parts auto-mirror when that strictly shortens the flow-axis run
+to their wire partners — a part fed from its far side would otherwise have
+wires wrap across its body. Ties keep the declared terminal order, so
+symmetric circuits render exactly as before; positions and spans never change,
+only which end faces which neighbor. Modules, ICs, and transistors never
+mirror.
+
 ### Bus-rail layout
 
 `render layout=bus-rail` selects an alternative strategy tuned for block

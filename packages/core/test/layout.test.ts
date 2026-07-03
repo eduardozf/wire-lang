@@ -115,6 +115,37 @@ describe("layout", () => {
   });
 });
 
+describe("auto-flip (flow)", () => {
+  it("mirrors a part fed from its far side so wires stop wrapping around it", () => {
+    // D1's anode partner (R2) sits to its right and its cathode partner (R1)
+    // to its left; unflipped, both wires would wrap across the LED's body.
+    const result = layout(
+      compile(`schematic
+  component R1 Resistor value=1k
+  component D1 LED color=red
+  component R2 Resistor value=1k
+  net X: R1.2, D1.C
+  net Y: D1.A, R2.1
+  render direction=left-to-right
+`).model,
+    );
+    const d1 = result.components.find((component) => component.id === "D1");
+    const anode = d1?.terminals.find((terminal) => terminal.name === "A");
+    const cathode = d1?.terminals.find((terminal) => terminal.name === "C");
+    expect(anode!.point.x).toBeGreaterThan(cathode!.point.x);
+  });
+
+  it("keeps a tie unflipped (declared orientation wins)", () => {
+    // In the battery/LED loop every part's cost is symmetric; nothing flips,
+    // so the anode keeps its declared left position.
+    const result = layout(compile(LED).model);
+    const d1 = result.components.find((component) => component.id === "D1");
+    const anode = d1?.terminals.find((terminal) => terminal.name === "A");
+    const cathode = d1?.terminals.find((terminal) => terminal.name === "C");
+    expect(anode!.point.x).toBeLessThan(cathode!.point.x);
+  });
+});
+
 describe("mirrorGeometry", () => {
   const instanceOf = (source: string, id: string) => {
     const { model } = compile(source);
