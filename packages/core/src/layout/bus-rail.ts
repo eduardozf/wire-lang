@@ -1,6 +1,8 @@
 import type { ComponentInstance, Net, SchematicModel } from "../model/types.js";
 import type { ComponentGeom } from "./geometry.js";
-import { componentGeometry } from "./geometry.js";
+import { componentGeometry, mirrorGeometry, rotateGeometry } from "./geometry.js";
+import type { BridgeGroup, ChainGroup, PeripheralGroup } from "./peripherals.js";
+import { detectPeripherals, memberIds } from "./peripherals.js";
 import type {
   LayoutComponent,
   LayoutLabel,
@@ -16,11 +18,21 @@ const MARGIN = 44;
 const COL_GAP = 150; // horizontal gap between component columns (room for trunks)
 const RAIL_MARGIN = 64; // distance from content to each power rail
 const RAIL_PAD = 28; // rail overhang past the outermost tap
-const CONTROL_GAP = 70; // vertical gap between the main row and the control band
+const CONTROL_GAP = 70; // minimum vertical gap between the main row and the peripheral band
 const BUS_LEAD = 18; // horizontal lead from a pin before its tap into a bus
 const BUS_APEX_REACH = 24; // horizontal distance from the knee line to the shared entry point
 const EDGE_STUB = 10; // stub out of a top/bottom (module) pin before it turns toward a rail
 const SIGNAL_CHANNEL = 26; // first signal channel offset below the component row
+const CHANNEL_STEP = 14; // vertical spacing between adjacent signal channels
+const BAND_CLEAR = 16; // clearance between the last signal channel and the band
+const CHAIN_GAP = 12; // vertical gap between consecutive parts of one chain
+const BAND_GAP = 16; // minimum horizontal clearance between band items
+const JOG = 12; // vertical clearance a displaced band item's feed jogs at
+const BESIDE_GAP = 40; // horizontal gap between an anchor's box and a beside-bridge part
+const KNEE_NEAR = 12; // breakout distance of the first beside-bridge feed
+const KNEE_FAR = 24; // breakout distance of the second beside-bridge feed
+const LABEL_CHAR_W = 6.6; // estimated advance of the 11px component-label font
+const EPS = 0.01;
 const BUS_PAIR_SEPARATOR = "::";
 
 // ---- net-family palette ----------------------------------------------------
@@ -151,20 +163,83 @@ export function layoutBusRail(model: SchematicModel): LayoutModel {
     for (const net of pairNets.get(key)!) families.set(net.name, "bus");
   });
 
+  // ---- detect peripherals -------------------------------------------------
+  const familyLookup = (name: string): Family => families.get(name) ?? "signal";
+  const instanceOf = (id: string) => model.components.find((component) => component.id === id);
+
+  // Local-frame terminal side, known before placement, for picking each
+  // peripheral group's placement recipe.
+  const geomCache = new Map<string, ComponentGeom>();
+  const geomOf = (id: string): ComponentGeom | undefined => {
+    const cached = geomCache.get(id);
+    if (cached) return cached;
+    const instance = instanceOf(id);
+    if (!instance) return undefined;
+    const geom = componentGeometry(instance);
+    geomCache.set(id, geom);
+    return geom;
+  };
+  const sideOfTerminal = (componentId: string, terminal: string): TerminalSide | undefined => {
+    const geom = geomOf(componentId);
+    const term = geom?.terminals.find((candidate) => candidate.name === terminal);
+    if (!geom || !term) return undefined;
+    return term.side ?? edgeSide(term.main, term.cross, geom);
+  };
+
+  // A group hanging below a top-edge anchor pin would cross the anchor's body,
+  // so those keep their main-row placement. Bridges fed from one left/right
+  // edge sit beside the anchor; everything else hangs in the band below it.
+  type Recipe =
+    | { kind: "chain"; group: ChainGroup }
+    | { kind: "bridge-below"; group: BridgeGroup }
+    | { kind: "bridge-beside"; group: BridgeGroup; side: "left" | "right" };
+  const recipes: Recipe[] = [];
+  for (const group of detectPeripherals(model, familyLookup)) {
+    if (group.kind === "chain") {
+      const side = sideOfTerminal(group.anchorId, group.anchorTerminal);
+      if (side && side !== "top") recipes.push({ kind: "chain", group });
+      continue;
+    }
+    const sides = group.links.map((link) => sideOfTerminal(group.anchorId, link.anchorTerminal));
+    if (sides.some((side) => side === undefined || side === "top")) continue;
+    if (sides[0] === sides[1] && (sides[0] === "left" || sides[0] === "right")) {
+      recipes.push({ kind: "bridge-beside", group, side: sides[0] });
+    } else {
+      recipes.push({ kind: "bridge-below", group });
+    }
+  }
+  const peripheralIds = new Set(recipes.flatMap((recipe) => memberIds(recipe.group)));
+
+  // Nets a peripheral recipe routes itself; the generic loops skip them. Rail
+  // nets stay out so chain tails tap the rails like any other member.
+  const routedNets = new Set<string>();
+  for (const recipe of recipes) {
+    if (recipe.kind === "chain") {
+      for (const element of recipe.group.elements) routedNets.add(element.upstreamNet.name);
+    } else {
+      for (const link of recipe.group.links) routedNets.add(link.net.name);
+    }
+  }
+
   // ---- order the row (source order) --------------------------------------
   const isControlComp = (instance: ComponentInstance) => CONTROL_SYMBOLS.has(instance.symbol);
 
   const rowComps = model.components
-    .filter((instance) => !isControlComp(instance))
+    .filter((instance) => !peripheralIds.has(instance.id) && !isControlComp(instance))
     .sort((a, b) => a.sourceIndex - b.sourceIndex);
   const controlComps = model.components
-    .filter(isControlComp)
+    .filter((instance) => !peripheralIds.has(instance.id) && isControlComp(instance))
     .sort((a, b) => a.sourceIndex - b.sourceIndex);
 
   // ---- place the main row (centers aligned on y = 0) ---------------------
   const placedById = new Map<string, Placed>();
-  const place = (instance: ComponentInstance, centerX: number, centerY: number): Placed => {
-    const geom = componentGeometry(instance);
+  const place = (
+    instance: ComponentInstance,
+    centerX: number,
+    centerY: number,
+    geomOverride?: ComponentGeom,
+  ): Placed => {
+    const geom = geomOverride ?? componentGeometry(instance);
     const left = centerX - geom.mainSpan / 2;
     const top = centerY - geom.crossSpan / 2;
     const center: Point = { x: centerX, y: centerY };
@@ -205,25 +280,32 @@ export function layoutBusRail(model: SchematicModel): LayoutModel {
     return placed;
   };
 
+  // Widest label of an instance, for keeping band items and their side labels
+  // clear of each other.
+  const labelSpan = (instance: ComponentInstance): number =>
+    Math.max(0, ...instance.labels.map((label) => label.length)) * LABEL_CHAR_W;
+
+  // Beside-bridges occupy the gap to the right of their anchor; widen that
+  // column so bus funnels and neighbors stay clear.
+  const besideExtra = new Map<string, number>();
+  for (const recipe of recipes) {
+    if (recipe.kind !== "bridge-beside") continue;
+    const part = componentGeometry(recipe.group.element);
+    const extra = BESIDE_GAP + part.crossSpan + labelSpan(recipe.group.element);
+    besideExtra.set(recipe.group.anchorId, (besideExtra.get(recipe.group.anchorId) ?? 0) + extra);
+  }
+
   let cursorX = 0;
   for (const instance of rowComps) {
     const geom = componentGeometry(instance);
     place(instance, cursorX + geom.mainSpan / 2, 0);
-    cursorX += geom.mainSpan + COL_GAP;
+    cursorX += geom.mainSpan + COL_GAP + (besideExtra.get(instance.id) ?? 0);
   }
 
-  // Control blocks sit in a band below the row, spread under the left half.
   const rowBottom = Math.max(
     ...[...placedById.values()].map((p) => p.center.y + p.crossSpan / 2),
     0,
   );
-  const controlY = rowBottom + CONTROL_GAP;
-  let controlX = 0;
-  for (const instance of controlComps) {
-    const geom = componentGeometry(instance);
-    place(instance, controlX + geom.mainSpan / 2, controlY + geom.crossSpan / 2);
-    controlX += geom.mainSpan + COL_GAP;
-  }
 
   // ---- build wires --------------------------------------------------------
   const wires: LayoutWire[] = [];
@@ -242,6 +324,235 @@ export function layoutBusRail(model: SchematicModel): LayoutModel {
         }
       : undefined;
   };
+
+  // Signal nets that must run in a channel below the row (they touch a module's
+  // top/bottom pin and can't run at pin height without slicing through the
+  // box). Resolved before the band is placed so the band clears every channel;
+  // the routing loop below reads this same set to stay in lockstep.
+  const channelNets = new Set<string>();
+  for (const net of model.nets) {
+    const family = families.get(net.name);
+    if (family === "supply" || family === "ground" || family === "bus" || family === "control") {
+      continue;
+    }
+    if (routedNets.has(net.name)) continue;
+    const infos = net.members
+      .map((member) => termInfo(member.component, member.terminal))
+      .filter((info): info is NonNullable<typeof info> => info !== undefined);
+    if (infos.length < 2) continue;
+    if (infos.some((info) => info.side === "top" || info.side === "bottom")) {
+      channelNets.add(net.name);
+    }
+  }
+
+  // The peripheral band sits below the row, past every signal channel.
+  const bandY =
+    rowBottom +
+    Math.max(CONTROL_GAP, SIGNAL_CHANNEL + channelNets.size * CHANNEL_STEP + BAND_CLEAR);
+
+  // Legacy control blocks (whose shape detection bailed on) keep their packed
+  // placement at the left of the band.
+  let controlX = 0;
+  let bandCursor = Number.NEGATIVE_INFINITY;
+  for (const instance of controlComps) {
+    const geom = componentGeometry(instance);
+    place(instance, controlX + geom.mainSpan / 2, bandY + geom.crossSpan / 2);
+    bandCursor = Math.max(bandCursor, controlX + geom.mainSpan);
+    controlX += geom.mainSpan + COL_GAP;
+  }
+
+  // ---- place peripherals and route their nets -----------------------------
+  const pushPeripheralWire = (net: Net, segments: Segment[]): void => {
+    const kept = segments.filter(
+      (segment) =>
+        Math.abs(segment.from.x - segment.to.x) > EPS ||
+        Math.abs(segment.from.y - segment.to.y) > EPS,
+    );
+    if (kept.length === 0) return;
+    wires.push({
+      net: net.name,
+      anonymous: net.anonymous,
+      style: "wire",
+      segments: kept,
+      junctions: [],
+      color: familyLookup(net.name) === "control" ? COLOR.control : COLOR.signal,
+      width: WIDTH.signal,
+    });
+  };
+
+  // A peripheral part stands vertically with its upstream terminal on top;
+  // mirroring before rotating is what flips a part so its polarity faces the
+  // wire that feeds it (LED anode toward the resistor, speaker + toward OUTP).
+  const verticalPartGeom = (instance: ComponentInstance, upstreamTerminal: string) => {
+    const base = componentGeometry(instance);
+    const upstreamFirst = base.terminals[0]!.name === upstreamTerminal;
+    return rotateGeometry(upstreamFirst ? base : mirrorGeometry(base));
+  };
+
+  const placeChain = (group: ChainGroup, chainX: number, jogY: number | null): void => {
+    const anchor = termInfo(group.anchorId, group.anchorTerminal);
+    if (!anchor) return;
+    let topY = bandY;
+    let prevPoint = anchor.point;
+    let first = true;
+    for (const element of group.elements) {
+      const geomV = verticalPartGeom(element.instance, element.upstreamTerminal);
+      place(element.instance, chainX, topY + geomV.crossSpan / 2, geomV);
+      const top = termPoint(element.instance.id, element.upstreamTerminal)!;
+      let segments: Segment[];
+      if (first && (anchor.side === "left" || anchor.side === "right")) {
+        // A side pin breaks out horizontally first; dropping at the pin's own
+        // x would run along the box edge, collinear with other side-pin drops.
+        segments = [
+          { from: prevPoint, to: { x: top.x, y: prevPoint.y } },
+          { from: { x: top.x, y: prevPoint.y }, to: top },
+        ];
+      } else if (first && jogY !== null) {
+        segments = [
+          { from: prevPoint, to: { x: prevPoint.x, y: jogY } },
+          { from: { x: prevPoint.x, y: jogY }, to: { x: top.x, y: jogY } },
+          { from: { x: top.x, y: jogY }, to: top },
+        ];
+      } else {
+        segments = [{ from: prevPoint, to: top }];
+      }
+      pushPeripheralWire(element.upstreamNet, segments);
+      prevPoint = termPoint(element.instance.id, element.downstreamTerminal)!;
+      topY += geomV.crossSpan + CHAIN_GAP;
+      first = false;
+    }
+  };
+
+  const placeBridgeBelow = (group: BridgeGroup, partX: number, jogY: number | null): void => {
+    const [linkA, linkB] = group.links;
+    const pinA = termPoint(group.anchorId, linkA.anchorTerminal);
+    const pinB = termPoint(group.anchorId, linkB.anchorTerminal);
+    if (!pinA || !pinB) return;
+    const topLink = pinA.x <= pinB.x ? linkA : linkB;
+    const botLink = topLink === linkA ? linkB : linkA;
+    const topPin = topLink === linkA ? pinA : pinB;
+    const botPin = topLink === linkA ? pinB : pinA;
+    const geomV = verticalPartGeom(group.element, topLink.elementTerminal);
+    place(group.element, partX, bandY + geomV.crossSpan / 2, geomV);
+    const topTerm = termPoint(group.element.id, topLink.elementTerminal)!;
+    const botTerm = termPoint(group.element.id, botLink.elementTerminal)!;
+    pushPeripheralWire(
+      topLink.net,
+      jogY !== null
+        ? [
+            { from: topPin, to: { x: topPin.x, y: jogY } },
+            { from: { x: topPin.x, y: jogY }, to: { x: topTerm.x, y: jogY } },
+            { from: { x: topTerm.x, y: jogY }, to: topTerm },
+          ]
+        : [{ from: topPin, to: topTerm }],
+    );
+    // The second feed drops beside the part and hooks into its far terminal.
+    pushPeripheralWire(botLink.net, [
+      { from: botPin, to: { x: botPin.x, y: botTerm.y } },
+      { from: { x: botPin.x, y: botTerm.y }, to: botTerm },
+    ]);
+  };
+
+  const besideCount = new Map<string, number>();
+  const placeBridgeBeside = (group: BridgeGroup, side: "left" | "right"): void => {
+    const [linkA, linkB] = group.links;
+    const pinA = termPoint(group.anchorId, linkA.anchorTerminal);
+    const pinB = termPoint(group.anchorId, linkB.anchorTerminal);
+    const box = boxOf(group.anchorId);
+    if (!pinA || !pinB || !box) return;
+    const upLink = pinA.y <= pinB.y ? linkA : linkB;
+    const dnLink = upLink === linkA ? linkB : linkA;
+    const upPin = upLink === linkA ? pinA : pinB;
+    const dnPin = upLink === linkA ? pinB : pinA;
+    const geomV = verticalPartGeom(group.element, upLink.elementTerminal);
+    const dir = side === "right" ? 1 : -1;
+    const edge = side === "right" ? box.right : box.left;
+    const index = besideCount.get(group.anchorId) ?? 0;
+    besideCount.set(group.anchorId, index + 1);
+    const partX =
+      edge + dir * (BESIDE_GAP + index * (BESIDE_GAP + geomV.mainSpan + labelSpan(group.element)));
+    const cy = (upPin.y + dnPin.y) / 2;
+    place(group.element, partX, cy, geomV);
+    const topTerm = termPoint(group.element.id, upLink.elementTerminal)!;
+    const botTerm = termPoint(group.element.id, dnLink.elementTerminal)!;
+    // Each feed breaks out a different distance before turning, so the two
+    // wires never overlap.
+    const kneeNear = edge + dir * KNEE_NEAR;
+    const kneeFar = edge + dir * KNEE_FAR;
+    pushPeripheralWire(upLink.net, [
+      { from: upPin, to: { x: kneeNear, y: upPin.y } },
+      { from: { x: kneeNear, y: upPin.y }, to: { x: kneeNear, y: topTerm.y } },
+      { from: { x: kneeNear, y: topTerm.y }, to: topTerm },
+    ]);
+    pushPeripheralWire(dnLink.net, [
+      { from: dnPin, to: { x: kneeFar, y: dnPin.y } },
+      { from: { x: kneeFar, y: dnPin.y }, to: { x: kneeFar, y: botTerm.y } },
+      { from: { x: kneeFar, y: botTerm.y }, to: botTerm },
+    ]);
+  };
+
+  // Band items (chains and below-bridges) go under their anchor pin; a
+  // left-to-right sweep shifts an item right when it would collide with the
+  // previous one, and its feed then jogs sideways above the band.
+  interface BandPlan {
+    recipe: Recipe;
+    desiredX: number;
+    leftExtent: number;
+    rightExtent: number;
+    order: number;
+  }
+  const plans: BandPlan[] = [];
+  for (const recipe of recipes) {
+    if (recipe.kind === "bridge-beside") {
+      placeBridgeBeside(recipe.group, recipe.side);
+      continue;
+    }
+    if (recipe.kind === "chain") {
+      const group = recipe.group;
+      const anchor = termInfo(group.anchorId, group.anchorTerminal);
+      if (!anchor) continue;
+      // A side-pin chain hangs clear of the box edge, where other side pins
+      // drop to the rails.
+      const sideOut = anchor.side === "left" ? -KNEE_FAR : anchor.side === "right" ? KNEE_FAR : 0;
+      const widths = group.elements.map(
+        (element) => verticalPartGeom(element.instance, element.upstreamTerminal).mainSpan,
+      );
+      const halfW = Math.max(...widths) / 2;
+      const widestLabel = Math.max(...group.elements.map((element) => labelSpan(element.instance)));
+      plans.push({
+        recipe,
+        desiredX: anchor.point.x + sideOut,
+        leftExtent: halfW,
+        rightExtent: halfW + widestLabel,
+        order: Math.min(...group.elements.map((element) => element.instance.sourceIndex)),
+      });
+      continue;
+    }
+    const group = recipe.group;
+    const pinA = termPoint(group.anchorId, group.links[0].anchorTerminal);
+    const pinB = termPoint(group.anchorId, group.links[1].anchorTerminal);
+    if (!pinA || !pinB) continue;
+    const geomV = verticalPartGeom(group.element, group.links[0].elementTerminal);
+    const halfW = geomV.mainSpan / 2;
+    plans.push({
+      recipe,
+      desiredX: Math.min(pinA.x, pinB.x),
+      leftExtent: halfW,
+      rightExtent: Math.max(Math.abs(pinA.x - pinB.x), halfW + labelSpan(group.element)),
+      order: group.element.sourceIndex,
+    });
+  }
+  plans.sort((a, b) => a.desiredX - b.desiredX || a.order - b.order);
+  let jogCount = 0;
+  for (const plan of plans) {
+    const x = Math.max(plan.desiredX, bandCursor + BAND_GAP + plan.leftExtent);
+    const shifted = x - plan.desiredX > EPS;
+    const jogY = shifted ? bandY - JOG - jogCount * 6 : null;
+    if (shifted) jogCount += 1;
+    if (plan.recipe.kind === "chain") placeChain(plan.recipe.group, x, jogY);
+    else if (plan.recipe.kind === "bridge-below") placeBridgeBelow(plan.recipe.group, x, jogY);
+    bandCursor = x + plan.rightExtent;
+  }
 
   // Power rails: gather every supply/ground tap, then run one rail across them.
   const contentTop = Math.min(...[...placedById.values()].map((p) => p.center.y - p.crossSpan / 2));
@@ -322,11 +633,12 @@ export function layoutBusRail(model: SchematicModel): LayoutModel {
     );
   }
 
-  // Control + plain signal nets that are not power or bus.
+  // Control + plain signal nets that are not power, bus, or peripheral-routed.
   let channelIndex = 0;
   for (const net of model.nets) {
     const family = families.get(net.name);
     if (family === "supply" || family === "ground" || family === "bus") continue;
+    if (routedNets.has(net.name)) continue;
     const infos = net.members
       .map((member) => termInfo(member.component, member.terminal))
       .filter((info): info is NonNullable<typeof info> => info !== undefined);
@@ -339,12 +651,9 @@ export function layoutBusRail(model: SchematicModel): LayoutModel {
     // without slicing through the box, so route it as a trunk in a channel just
     // below the row with vertical drops to each pin. Anchored to `rowBottom`, not
     // `contentBottom`, so the channel stays under the row rather than dropping
-    // below the control band (whose drops back up would cross the controls).
-    if (
-      family !== "control" &&
-      infos.some((info) => info.side === "top" || info.side === "bottom")
-    ) {
-      const channelY = rowBottom + SIGNAL_CHANNEL + channelIndex * 14;
+    // below the peripheral band (whose drops back up would cross the band).
+    if (channelNets.has(net.name)) {
+      const channelY = rowBottom + SIGNAL_CHANNEL + channelIndex * CHANNEL_STEP;
       channelIndex++;
       const xs = points.map((point) => point.x);
       const fromX = Math.min(...xs);

@@ -730,10 +730,30 @@ function drawTwoTerminal(component: LayoutComponent): string | null {
 }
 
 function drawLabels(component: LayoutComponent): string {
+  const labels = component.labels.filter((label) => label !== "");
+  if (labels.length === 0) return "";
   const parts: string[] = [];
+  // A vertical two-terminal part has wires entering top and bottom, so labels
+  // above would sit in the wire's path; put them beside the body instead.
+  const [first, second] = component.terminals;
+  const vertical =
+    component.terminals.length === 2 &&
+    first &&
+    second &&
+    Math.abs(second.point.y - first.point.y) > Math.abs(second.point.x - first.point.x);
+  if (vertical) {
+    const x = component.position.x + component.size.width + 6;
+    let y = component.center.y + 4 - ((labels.length - 1) * 13) / 2;
+    for (const label of labels) {
+      parts.push(
+        `<text class="wire-label" x="${fmt(x)}" y="${fmt(y)}" text-anchor="start">${escapeText(label)}</text>`,
+      );
+      y += 13;
+    }
+    return parts.join("");
+  }
   let y = component.position.y - 6;
-  for (const label of component.labels) {
-    if (label === "") continue;
+  for (const label of labels) {
     parts.push(
       `<text class="wire-label" x="${fmt(component.center.x)}" y="${fmt(y)}" text-anchor="middle">${escapeText(label)}</text>`,
     );

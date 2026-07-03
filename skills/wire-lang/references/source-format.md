@@ -107,7 +107,11 @@ simply overlapping; `crossings=hop` opts in to a small hop at each such crossing
 `layout=bus-rail` redraws the schematic as a block diagram between a top supply
 rail and a bottom ground rail, color-coding nets by family and bundling grouped
 signals into bus trunks (power and buses are inferred from net names and
-connectivity — no extra syntax needed). A per-component `orientation` that runs
+connectivity — no extra syntax needed). Two-terminal parts that hang off one
+block — LED chains, buttons, a speaker across an amp's outputs — are placed
+automatically under or beside the pin that feeds them, flipped so their
+polarity faces the wire; declaring them anywhere in the source gives the same
+drawing. A per-component `orientation` that runs
 against the flow's natural axis rotates the part 90° — e.g. `render R1
 orientation=vertical` draws a vertical resistor in a left-to-right flow. `side`
 and `anchor` (and `group` layout) are accepted and validated but not yet
