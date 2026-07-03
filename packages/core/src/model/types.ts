@@ -143,4 +143,4 @@ export interface CompileResult {
   readonly ok: boolean;
 }
 
-export const LANGUAGE_VERSION = "0.2.0";
+export const LANGUAGE_VERSION = "0.3.0";
