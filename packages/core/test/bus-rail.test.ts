@@ -1,5 +1,6 @@
 import { compile, layout, renderSvg } from "@wire-lang/core";
 import { describe, expect, it } from "vitest";
+import { collinearOverlaps } from "./helpers/geometry.js";
 
 const SOURCE = `schematic
   component U1 IC pins=[1:VCC@left, 2:GND@left, 3:SCL@right, 4:SDA@right, 5:INT@right]
@@ -101,5 +102,92 @@ describe("layout: bus-rail", () => {
 
   it("produces stable SVG output (snapshot)", () => {
     expect(renderSvg(compile(SOURCE).model)).toMatchSnapshot();
+  });
+});
+
+describe("layout: bus-rail lanes", () => {
+  const build = (source: string) => {
+    const result = compile(source);
+    expect(result.diagnostics).toEqual([]);
+    return layout(result.model);
+  };
+
+  it("packs channels: overlapping nets get distinct levels, disjoint nets share one", () => {
+    const model = build(`schematic
+  define component M4
+    terminal A
+    terminal B
+    terminal C
+    terminal D
+    symbol module
+  end
+  component U1 M4
+  component U2 M4
+  net P: U1.A, U2.A
+  net Q: U1.B, U2.B
+  net R: U1.C, U1.D
+  net S: U2.C, U2.D
+  render layout=bus-rail
+`);
+    const trunkY = (net: string) => {
+      const wire = model.wires.find((candidate) => candidate.net === net)!;
+      return wire.segments[0]!.from.y;
+    };
+    // P, Q, and R pairwise overlap in x, so they take three distinct levels.
+    const levels = [trunkY("P"), trunkY("Q"), trunkY("R")];
+    expect(new Set(levels.map((y) => Math.round(y))).size).toBe(3);
+    // S is clear of P (P ends at U2's first pin), so it reuses a level instead
+    // of opening a fourth.
+    const all = new Set([...levels, trunkY("S")].map((y) => Math.round(y)));
+    expect(all.size).toBe(3);
+  });
+
+  it("staggers rail hooks so two hooked pins never share a path", () => {
+    const model = build(`schematic
+  define component PWR
+    terminal VCC
+    terminal V5
+    terminal GND
+    symbol module
+  end
+  component U1 PWR
+  component U2 PWR
+  net VCC: U1.VCC, U2.VCC
+  net 5V: U1.V5, U2.V5
+  net GND: U1.GND, U2.GND
+  render layout=bus-rail
+`);
+    const supply = model.wires.find((wire) => wire.net.includes("VCC"))!;
+    // Both supply pins of each module hook around to the top rail; every
+    // junction lands at its own x.
+    const xs = supply.junctions.map((point) => Math.round(point.x));
+    expect(new Set(xs).size).toBe(xs.length);
+    expect(collinearOverlaps(model)).toEqual([]);
+  });
+
+  it("hooks a side-pin rail drop out of the box when it would slice through pins below", () => {
+    const model = build(`schematic
+  component U1 IC pins=[1:SDA@right, 2:SCL@right, 3:GND@left]
+  component U2 IC pins=[1:GND@left, 2:SDA@left, 3:SCL@left]
+  net SDA: U1.SDA, U2.SDA
+  net SCL: U1.SCL, U2.SCL
+  net GND: U1.GND, U2.GND
+  render layout=bus-rail
+`);
+    const u2 = model.components.find((component) => component.id === "U2")!;
+    const ground = model.wires.find((wire) => wire.net.includes("GND"))!;
+    // U2's GND pin sits above its SDA/SCL pins on the same edge, so its drop
+    // breaks out left of the box instead of running through them.
+    expect(ground.junctions.some((point) => point.x < u2.position.x - 1)).toBe(true);
+    // The two corridor nets keep distinct verticals and nothing overlaps.
+    const midX = (net: string) => {
+      const wire = model.wires.find((candidate) => candidate.net === net)!;
+      const vertical = wire.segments.find(
+        (segment) => Math.abs(segment.from.x - segment.to.x) < 0.01,
+      )!;
+      return vertical.from.x;
+    };
+    expect(Math.abs(midX("SDA") - midX("SCL"))).toBeGreaterThan(1);
+    expect(collinearOverlaps(model)).toEqual([]);
   });
 });

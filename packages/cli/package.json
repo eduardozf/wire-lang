@@ -1,6 +1,6 @@
 {
   "name": "@wire-lang/cli",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "type": "module",
   "description": "Wire Lang developer CLI: check, render, and watch .wire files.",
   "keywords": ["wire-lang", "schematic", "electronics", "circuit", "svg", "cli"],

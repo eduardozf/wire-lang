@@ -5,15 +5,17 @@
  */
 
 /**
- * Count the connected subschematics in an undirected graph. `nodeIds` are the
+ * Partition an undirected graph into its connected groups. `nodeIds` are the
  * components; each entry of `edges` is a net whose members are all mutually
- * connected (a hyper-edge). Returns the number of disjoint groups among
- * `nodeIds`. Edge endpoints outside `nodeIds` are tolerated.
+ * connected (a hyper-edge). Returns the disjoint groups among `nodeIds`, each
+ * group in `nodeIds` order and the groups ordered by their first member. Edge
+ * endpoints outside `nodeIds` are tolerated (they join groups but are not
+ * reported).
  */
-export function countConnectedSubschematics(
+export function connectedGroups(
   nodeIds: readonly string[],
   edges: readonly (readonly string[])[],
-): number {
+): string[][] {
   const parent = new Map<string, string>();
   const ensure = (id: string): void => {
     if (!parent.has(id)) parent.set(id, id);
@@ -45,5 +47,20 @@ export function countConnectedSubschematics(
     }
   }
 
-  return new Set(nodeIds.map(find)).size;
+  const byRoot = new Map<string, string[]>();
+  for (const id of nodeIds) {
+    const root = find(id);
+    const group = byRoot.get(root);
+    if (group) group.push(id);
+    else byRoot.set(root, [id]);
+  }
+  return [...byRoot.values()];
+}
+
+/** Count the connected subschematics among `nodeIds`. See {@link connectedGroups}. */
+export function countConnectedSubschematics(
+  nodeIds: readonly string[],
+  edges: readonly (readonly string[])[],
+): number {
+  return connectedGroups(nodeIds, edges).length;
 }
