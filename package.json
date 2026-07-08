@@ -35,7 +35,7 @@
     "@types/node": "^26.1.0",
     "prettier": "3.9.4",
     "rimraf": "^6.0.1",
-    "skills": "1.5.14",
+    "skills": "1.5.15",
     "tsup": "^8.5.1",
     "typescript": "^6.0.3",
     "vite": "^8.1.3",
