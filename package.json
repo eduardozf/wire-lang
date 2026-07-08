@@ -32,7 +32,7 @@
   "devDependencies": {
     "@biomejs/biome": "^2.5.1",
     "@resvg/resvg-js": "^2.6.2",
-    "@types/node": "^26.0.1",
+    "@types/node": "^26.1.1",
     "prettier": "3.9.4",
     "rimraf": "^6.0.1",
     "skills": "1.5.14",
