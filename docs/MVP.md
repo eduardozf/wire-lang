@@ -500,32 +500,87 @@ route to the same side, their drops are fanned into separate lanes so each
 connection reads as its own line. Collinear segments merge only when they
 genuinely belong to the same net.
 
+Module and IC pin pitch along top/bottom edges is label-width-aware: the gap
+between two adjacent pins widens past the base pitch when their names (e.g.
+`GPIO15`) need the room, so pin labels never overlap. Short names keep the
+classic pitch exactly.
+
+Two-terminal parts auto-mirror when that strictly shortens the flow-axis run
+to their wire partners — a part fed from its far side would otherwise have
+wires wrap across its body. Ties keep the declared terminal order, so
+symmetric circuits render exactly as before; positions and spans never change,
+only which end faces which neighbor. Modules, ICs, and transistors never
+mirror.
+
 ### Bus-rail layout
 
 `render layout=bus-rail` selects an alternative strategy tuned for block
-diagrams. Blocks are laid left-to-right in source order between two horizontal
-power rails: a supply rail across the top and a ground rail across the bottom.
-Power is detected by net name — supply names
-(`VCC`, `VDD`, `3V3`, `5V`, `+…`, …) and ground names (`GND`, `VSS`, `0V`, …) —
+diagrams. Row blocks are laid left-to-right in source order between two
+horizontal power rails: a supply rail across the top and a ground rail across
+the bottom. Power is detected by net name — supply names
+(`VCC`, `VDD`, `3V3`, `5V`, `+…`, dev-board spellings like `V3V3`/`V5V`, …)
+and ground names (`GND`, `VSS`, `0V`, …) —
 and every member taps straight to its rail with a junction dot, so a rail never
 runs through the middle of the drawing. Left/right (IC) pins drop straight to a
-rail; a module's top/bottom-edge pin that faces the opposite rail hooks out and
-routes around the box side rather than crossing the body. Multi-point signals
-that touch a module pin run as a trunk in a channel just below the row, dropping
-to each pin, so they never slice through a module box either.
+rail — unless the drop would slice through the component's other pins on the
+same edge, in which case it breaks out sideways first; a module's
+top/bottom-edge pin that faces the opposite rail hooks out and routes around
+the box side rather than crossing the body. Consecutive hooks on one side step
+further out, each escaping a different distance before turning, so no two
+share a path. Multi-point signals that touch a module pin run as a trunk in a
+channel just below the row, dropping to each pin, so they never slice through
+a module box either; channels pack into shared tracks — nets whose x-extents
+are clear of each other sit at one level, overlapping nets are guaranteed
+distinct levels. A signal between two facing IC pins takes a Z through the
+corridor between the boxes, staggered per corridor, instead of cornering along
+a box edge. The flow engine's "distinct nets never render collinear" invariant
+holds in bus-rail too (bus funnel leads excepted).
+
+Two-terminal parts that hang off a single row component are **peripherals** and
+do not extend the row. They are placed in a **peripheral band** below the row
+(past every signal channel), anchored to the pin that feeds them:
+
+- A **peripheral chain** — one anchor pin feeding a series of two-terminal
+  parts ending at ground or open (a GPIO → resistor → LED chain, a button to
+  ground) — stands vertically under its anchor pin, parts stacked in chain
+  order. A chain fed from a left/right (IC) pin breaks out horizontally first
+  and hangs beside the box edge, clear of the other side-pin drops.
+- A **bridge peripheral** — one part fed from two pins of the same anchor (a
+  speaker across an amp's OUTP/OUTN) — hangs under the first pin when fed from
+  bottom-edge pins, or stands beside the anchor when fed from one left/right
+  edge, with each feed breaking out a different distance so the two wires never
+  overlap.
+- Chain and bridge parts are **auto-mirrored** so their declared polarity faces
+  the wire that feeds them: an LED's anode faces its resistor, a speaker's `+`
+  faces the pin that drives it. Mirroring is a geometry-level flip of the two
+  terminals; module and IC blocks never mirror.
+- Band items sort by anchor-pin x (source order breaks ties); an item that
+  would collide with its neighbor shifts right and its feed wire jogs sideways
+  above the band. Placement stays fully deterministic.
+- Unsupported shapes — several distinct anchors, branching nets, supply-family
+  tails (pull-ups) — keep their main-row placement, so detection can only
+  improve a drawing.
+
+Within the layout priority list, source order governs the *row*; peripherals
+anchor by connectivity, with source order as the tie-breaker.
 
 Signals are color-coded by family: supply (red), ground (dark), control inputs
 from buttons/switches (blue), and bundled signal groups (a cycling palette).
 When two blocks are joined by three or more signal nets, those nets are
 auto-bundled into a single thick **bus trunk**, labeled with the trunk name; each
-net leaves its pin horizontally and converges to one shared entry point per side,
-so the taps form a tidy funnel. Pairs with fewer shared nets stay as individual
-lines. Control nets route into the control band below the row as sharp
-right-angle (orthogonal) lines, not diagonals.
+net leaves its pin and converges to one shared entry point per side, so the
+taps form a tidy funnel. On an IC side the leads leave horizontally at pin
+height; on a flat (module-pin) side they drop vertically instead, and the
+trunk runs in a packed channel below the row — a pin-row trunk would lie over
+foreign pins and other buses. Flat-bus trunks share the channel track packing
+with signal channels, so overlapping runs always take distinct levels. Pairs
+with fewer shared nets stay as individual lines. Buttons and switches are ordinary peripherals (their nets stay blue);
+one whose shape detection bails keeps the packed placement at the left of the
+band.
 Stroke weight encodes the role: thin signals, thicker rails, thickest trunks.
 This mode forces `hop` crossings and a monospace label profile. No new syntax is
-required beyond the hint — families and buses are inferred from net names and
-connectivity.
+required beyond the hint — families, buses, and peripherals are inferred from
+net names and connectivity.
 
 ## SVG Renderer
 

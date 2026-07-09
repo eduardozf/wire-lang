@@ -380,6 +380,22 @@ _Avoid_: power rail, single net, junction
 A color class a **Net** is grouped into for legibility — supply (red), ground (dark), control (blue), and bundled signal groups (a cycling palette). Inferred from net names and member components, applied consistently across the drawing.
 _Avoid_: net style, group
 
+**Peripheral Band** (bus-rail layout):
+The zone below the row (past every signal channel) where peripherals hang, each anchored under or beside the pin that feeds it instead of extending the row. Items sort by anchor-pin x; a colliding item shifts right and its feed jogs. Replaces the earlier control band; buttons and switches are ordinary peripherals.
+_Avoid_: control band, second row
+
+**Peripheral Chain** (bus-rail layout):
+A series of two-terminal parts fed from one anchor pin and ending at ground or open — a GPIO → resistor → LED chain, a button to ground. Stands vertically under its anchor pin in chain order, each part auto-mirrored so its polarity faces the feed.
+_Avoid_: group, subcircuit
+
+**Bridge Peripheral** (bus-rail layout):
+A single two-terminal part fed from two pins of the same anchor — a speaker across an amp's OUTP/OUTN. Hangs under the first pin (bottom-edge feeds) or beside the anchor (left/right-edge feeds), mirrored so the matching terminal faces each feed.
+_Avoid_: chain, two-anchor series
+
+**Mirror (auto-flip)**:
+A geometry-level flip of a two-terminal part's terminals so its declared polarity faces the wire that feeds it (LED anode toward the resistor, speaker `+` toward the driving pin). Glyphs draw between terminal points, so a mirrored part renders correctly with no renderer special-casing; module and IC blocks never mirror.
+_Avoid_: rotation, orientation hint
+
 **Pin Number**:
 The optional numeric (or alphanumeric) designator of an `IC` pin, declared in `pins=[number:name@side]` and rendered alongside the pin name.
 _Avoid_: terminal name, instance ID

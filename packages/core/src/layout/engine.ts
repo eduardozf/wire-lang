@@ -1,7 +1,14 @@
 import type { ComponentInstance, Net, SchematicModel } from "../model/types.js";
 import { layoutBusRail } from "./bus-rail.js";
 import type { ComponentGeom } from "./geometry.js";
-import { componentGeometry, rotateGeometry, rotateSide90 } from "./geometry.js";
+import {
+  componentGeometry,
+  MIRRORABLE_SYMBOLS,
+  mirrorGeometry,
+  rotateGeometry,
+  rotateSide90,
+} from "./geometry.js";
+import { assignLanes } from "./lanes.js";
 import type {
   LayoutComponent,
   LayoutLabel,
@@ -90,6 +97,8 @@ export function layout(model: SchematicModel): LayoutModel {
   if (reversed) ordered.reverse();
 
   // ---- placement ----------------------------------------------------------
+  // Pass 1 fixes every span and start position; mirroring never changes spans,
+  // so flips can be decided afterward against the final positions.
   const placed: PlacedComponent[] = [];
   const terminalPoints = new Map<string, MC>();
   let cursor = 0;
@@ -103,16 +112,52 @@ export function layout(model: SchematicModel): LayoutModel {
         ? rotateGeometry(base)
         : base;
     const mainStart = cursor;
-    for (const terminal of geom.terminals) {
-      terminalPoints.set(`${instance.id}.${terminal.name}`, {
-        main: mainStart + terminal.main,
-        cross: terminal.cross,
-      });
-    }
     maxBodyCross = Math.max(maxBodyCross, geom.crossSpan / 2);
     minBodyCross = Math.min(minBodyCross, -geom.crossSpan / 2);
     placed.push({ instance, geom, mainStart, centerMain: mainStart + geom.mainSpan / 2 });
     cursor += geom.mainSpan + GAP_MAIN;
+  }
+
+  // Pass 2: auto-flip. Mirror a two-terminal part when that strictly shortens
+  // the main-axis run to its wire partners (a part fed from its "wrong" side
+  // would otherwise have wires wrap around it); ties stay unflipped. Decisions
+  // run in placement order using earlier decisions, so output is deterministic.
+  const placedById = new Map(placed.map((entry) => [entry.instance.id, entry]));
+  const partnerMain = (component: string, terminal: string): number | undefined => {
+    const entry = placedById.get(component);
+    const term = entry?.geom.terminals.find((candidate) => candidate.name === terminal);
+    return entry && term ? entry.mainStart + term.main : undefined;
+  };
+  for (const entry of placed) {
+    if (!MIRRORABLE_SYMBOLS.has(entry.instance.symbol)) continue;
+    const cost = (geom: ComponentGeom): number => {
+      let total = 0;
+      for (const net of model.nets) {
+        for (const member of net.members) {
+          if (member.component !== entry.instance.id) continue;
+          const term = geom.terminals.find((candidate) => candidate.name === member.terminal);
+          if (!term) continue;
+          const own = entry.mainStart + term.main;
+          for (const partner of net.members) {
+            if (partner.component === entry.instance.id) continue;
+            const other = partnerMain(partner.component, partner.terminal);
+            if (other !== undefined) total += Math.abs(own - other);
+          }
+        }
+      }
+      return total;
+    };
+    const mirrored = mirrorGeometry(entry.geom);
+    if (cost(mirrored) < cost(entry.geom)) entry.geom = mirrored;
+  }
+
+  for (const entry of placed) {
+    for (const terminal of entry.geom.terminals) {
+      terminalPoints.set(`${entry.instance.id}.${terminal.name}`, {
+        main: entry.mainStart + terminal.main,
+        cross: terminal.cross,
+      });
+    }
   }
 
   // ---- routing ------------------------------------------------------------
@@ -390,25 +435,16 @@ function assignDropLanes(drops: Drop[]): void {
     if (group.length < 2) continue;
     const spans = group
       .map((drop) => ({
-        drop,
+        item: drop,
         lo: Math.min(drop.cross, drop.railCross),
         hi: Math.max(drop.cross, drop.railCross),
       }))
       .sort((a, b) => a.lo - b.lo || a.hi - b.hi);
 
-    // `laneEnds[i]` is the far end of the last span placed in lane `i`; a lane is
-    // reusable once its previous span clears the next span's start.
-    const laneEnds: number[] = [];
-    for (const span of spans) {
-      let lane = laneEnds.findIndex((end) => end <= span.lo);
-      if (lane === -1) {
-        lane = laneEnds.length;
-        laneEnds.push(span.hi);
-      } else {
-        laneEnds[lane] = span.hi;
-      }
-      const dir = span.drop.main < span.drop.centerMain ? -1 : 1;
-      span.drop.lane = lane * LANE_GAP * dir;
+    const lanes = assignLanes(spans);
+    for (const [drop, lane] of lanes) {
+      const dir = drop.main < drop.centerMain ? -1 : 1;
+      drop.lane = lane * LANE_GAP * dir;
     }
   }
 }
@@ -431,17 +467,11 @@ function assignRailTracks(nets: PendingNet[], minBodyCross: number, maxBodyCross
           a.minMain - b.minMain || a.maxMain - b.maxMain || a.net.sourceIndex - b.net.sourceIndex,
       );
 
-    // `trackEnds[i]` is the furthest main reached by the last rail on track `i`;
-    // a track is reusable once its previous rail clears the next rail's start.
-    const trackEnds: number[] = [];
-    for (const pending of group) {
-      let track = trackEnds.findIndex((end) => pending.minMain > end + RAIL_GAP);
-      if (track === -1) {
-        track = trackEnds.length;
-        trackEnds.push(pending.maxMain);
-      } else {
-        trackEnds[track] = pending.maxMain;
-      }
+    const tracks = assignLanes(
+      group.map((pending) => ({ item: pending, lo: pending.minMain, hi: pending.maxMain })),
+      RAIL_GAP,
+    );
+    for (const [pending, track] of tracks) {
       pending.railCross =
         side === "top"
           ? minBodyCross - RAIL_GAP * (track + 1)

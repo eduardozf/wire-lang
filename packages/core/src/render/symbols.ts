@@ -56,8 +56,16 @@ function makeFrame(first: Point, second: Point): { frame: Frame; length: number 
   const length = Math.hypot(dx, dy) || 1;
   const axisX = dx / length;
   const axisY = dy / length;
-  const sideX = -axisY; // unit vector across the axis (the "across" direction)
-  const sideY = axisX;
+  let sideX = -axisY; // unit vector across the axis (the "across" direction)
+  let sideY = axisX;
+  // Keep "across" pointing screen-down for horizontal axes and screen-left for
+  // vertical ones, so a mirrored part (axis reversed) draws its decorations
+  // (LED arrows, plungers, polarity marks) on the same side as an unmirrored one.
+  const horizontal = Math.abs(dx) >= Math.abs(dy);
+  if (horizontal ? sideY < 0 : sideX > 0) {
+    sideX = -sideX;
+    sideY = -sideY;
+  }
   const frame: Frame = ({ along, across }) => ({
     x: first.x + axisX * along + sideX * across,
     y: first.y + axisY * along + sideY * across,
@@ -822,10 +830,30 @@ function drawTwoTerminal(component: LayoutComponent): string | null {
 }
 
 function drawLabels(component: LayoutComponent): string {
+  const labels = component.labels.filter((label) => label !== "");
+  if (labels.length === 0) return "";
   const parts: string[] = [];
+  // A vertical two-terminal part has wires entering top and bottom, so labels
+  // above would sit in the wire's path; put them beside the body instead.
+  const [first, second] = component.terminals;
+  const vertical =
+    component.terminals.length === 2 &&
+    first &&
+    second &&
+    Math.abs(second.point.y - first.point.y) > Math.abs(second.point.x - first.point.x);
+  if (vertical) {
+    const x = component.position.x + component.size.width + 6;
+    let y = component.center.y + 4 - ((labels.length - 1) * 13) / 2;
+    for (const label of labels) {
+      parts.push(
+        `<text class="wire-label" x="${fmt(x)}" y="${fmt(y)}" text-anchor="start">${escapeText(label)}</text>`,
+      );
+      y += 13;
+    }
+    return parts.join("");
+  }
   let y = component.position.y - 6;
-  for (const label of component.labels) {
-    if (label === "") continue;
+  for (const label of labels) {
     parts.push(
       `<text class="wire-label" x="${fmt(component.center.x)}" y="${fmt(y)}" text-anchor="middle">${escapeText(label)}</text>`,
     );
