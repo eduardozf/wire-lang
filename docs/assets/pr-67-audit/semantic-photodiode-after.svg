@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" class="wire-lang" viewBox="0 0 312 128" width="312" height="128" role="img" data-wire-lang-version="0.3.0">
+<title>Semantic photodiode terminals</title>
+<desc>The mapped anode P must point toward the mapped cathode K.</desc>
+<style>.wire-lang { background: #ffffff; }
+.wire-wire { stroke: #1f2937; stroke-width: 1.5; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.wire-symbol { stroke: #1f2937; stroke-width: 1.5; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.wire-symbol-bg { stroke: #1f2937; stroke-width: 1.5; fill: #ffffff; }
+.wire-symbol-fill { fill: #1f2937; stroke: none; }
+.wire-junction { fill: #1f2937; }
+.wire-label { fill: #111827; font: 600 11px var(--wire-font, system-ui, sans-serif); }
+.wire-pin-label { fill: #374151; font: 9px var(--wire-font, system-ui, sans-serif); }
+.wire-net-label { fill: #2563eb; font: 600 10px var(--wire-font, system-ui, sans-serif); }
+.wire-annotation { fill: #6b7280; font: italic 10px var(--wire-font, system-ui, sans-serif); }</style>
+<rect class="wire-background" x="0" y="0" width="312" height="128" fill="#ffffff"/>
+<g class="wire-wires"><g class="wire-net" data-wire-kind="net" data-wire-style="wire" data-wire-net="CATHODE"><line class="wire-wire" x1="54" y1="36" x2="124" y2="36"/><line class="wire-wire" x1="54" y1="62" x2="54" y2="36"/><line class="wire-wire" x1="124" y1="77" x2="124" y2="36"/></g><g class="wire-net" data-wire-kind="net" data-wire-style="wire" data-wire-net="ANODE"><line class="wire-wire" x1="188" y1="36" x2="258" y2="36"/><line class="wire-wire" x1="188" y1="77" x2="188" y2="36"/><line class="wire-wire" x1="258" y1="62" x2="258" y2="36"/></g></g>
+<g class="wire-component" data-wire-kind="component" data-wire-id="TP1" data-wire-type="TestPoint" data-wire-symbol="test-point" id="wire-component-TP1"><path class="wire-symbol" fill="none" d="M 54 62 L 54 71"/><circle class="wire-symbol-bg" cx="54" cy="74.75" r="5"/><text class="wire-label" x="54" y="56" text-anchor="middle">TP1</text><text class="wire-label" x="54" y="43" text-anchor="middle">CATHODE</text></g><g class="wire-component" data-wire-kind="component" data-wire-id="D1" data-wire-type="ReversedPhoto" data-wire-symbol="photodiode" id="wire-component-D1"><path class="wire-symbol" fill="none" d="M 188 77 L 163 77"/><path class="wire-symbol" fill="none" d="M 149 77 L 124 77"/><polygon class="wire-symbol-fill" points="163,69 163,85 149,77" fill="#1f2937"/><line class="wire-symbol" x1="149" y1="69" x2="149" y2="85"/><path class="wire-symbol" fill="none" d="M 152 61 L 154.06 64.09"/><polygon class="wire-symbol-fill" points="156,67 155.89,62.87 152.23,65.31"/><path class="wire-symbol" fill="none" d="M 148 63 L 150.06 66.09"/><polygon class="wire-symbol-fill" points="152,69 151.89,64.87 148.23,67.31"/><text class="wire-label" x="156" y="60" text-anchor="middle">D1</text></g><g class="wire-component" data-wire-kind="component" data-wire-id="TP2" data-wire-type="TestPoint" data-wire-symbol="test-point" id="wire-component-TP2"><path class="wire-symbol" fill="none" d="M 258 62 L 258 71"/><circle class="wire-symbol-bg" cx="258" cy="74.75" r="5"/><text class="wire-label" x="258" y="56" text-anchor="middle">TP2</text><text class="wire-label" x="258" y="43" text-anchor="middle">ANODE</text></g>
+</svg>
