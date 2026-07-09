@@ -2,6 +2,11 @@
 
 All notable changes to Wire Lang will be documented in this file.
 
+## Unreleased
+
+- Added `@wire-lang/markdown` with remark, rehype, and MDX plugins that render
+  `wire` fenced code blocks as inline SVG.
+
 ## 0.2.0
 
 - Added bus-rail layout support for clearer shared-net routing.

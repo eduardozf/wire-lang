@@ -416,6 +416,11 @@ _Avoid_: ASCII-only source
 A fenced code block tagged as `wire` for documentation systems that integrate Wire Lang.
 _Avoid_: DOM source block, wire file
 
+**Markdown Integration**:
+The build-time `@wire-lang/markdown` plugins that replace a **Markdown Fence**
+with standalone inline SVG through remark, rehype, or MDX.
+_Avoid_: browser auto-render, raw HTML passthrough, Mermaid plugin
+
 **VS Code Extension**:
 A future editor integration for Wire Lang syntax highlighting, diagnostics, and authoring feedback.
 _Avoid_: MVP core library, SVG renderer
@@ -876,7 +881,9 @@ Terminals are user-defined through recommended `pins: ic-pin-list` written as `p
 - Standard symbols use an IEC-style **Symbol Style Profile** where practical, but the project does not claim formal standards compliance in the MVP.
 - The default file extension for a **Wire File** is `.wire`.
 - **Wire Files** are UTF-8; Unicode is allowed in values, labels, and annotations.
-- The recommended **Markdown Fence** tag is `wire`, but direct Markdown integration is outside the core MVP.
+- The recommended **Markdown Fence** tag is `wire`. Direct integration is
+  outside the core MVP and is implemented by the build-time
+  `@wire-lang/markdown` **Markdown Integration** package.
 - Syntax highlighting and editor extensions are outside the MVP; a **Headless Language Server** and **VS Code Extension** are high-priority post-MVP follow-ups.
 - A **Wire File** contains exactly one **Source Document** in the MVP.
 - The MVP supports `//` **Line Comments** and does not need block comments.

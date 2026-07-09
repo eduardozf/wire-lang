@@ -27,7 +27,8 @@ The main product reference is Mermaid: a text-first documentation workflow where
 - No polished end-user CLI beyond minimal check, render, and watch commands.
 - No preview server command in the MVP.
 - No browser auto-render in the MVP.
-- No headless language server, Markdown processor, or VS Code extension in the MVP.
+- No headless language server, Markdown processor, or VS Code extension in the
+  MVP. Markdown integration is provided separately as a post-MVP package.
 - No formal IEC 60617, IEEE 315, or other standards compliance claim.
 
 ## Source Format
@@ -362,6 +363,11 @@ Initial MVP packages:
 - `@wire-lang/core`: parser, validators, compiler, schematic model, layout model, and SVG renderer
 - `@wire-lang/cli`: `wire check`, `wire render`, and `wire watch`
 
+Implemented post-MVP packages:
+
+- `@wire-lang/markdown`: remark, rehype, and MDX build-time plugins for the
+  `wire` fenced code tag
+
 Post-MVP packages:
 
 - `@wire-lang/browser`
@@ -609,6 +615,20 @@ await run() // does not duplicate output
 await run({ force: true }) // may re-render explicitly
 ```
 
+## Post-MVP Markdown and MDX Integration
+
+`@wire-lang/markdown` provides `remarkWire` and `rehypeWire`. Both recognize the
+`wire` fenced code tag, render its source with `@wire-lang/core`, and replace the
+source block with a structured inline `<svg>` element. `rehypeWire` also works as
+an MDX rehype plugin.
+
+The supported default is build-time rendering: invalid source fails the document
+build with a diagnostic mapped into the Markdown file, and the generated page
+does not ship the Wire compiler or renderer to the browser. The same processor
+can run at request time on a server. Client-side runtime replacement is not part
+of this package; applications may call `renderSvg` directly, while automatic DOM
+discovery remains the planned `@wire-lang/browser` responsibility.
+
 ## Post-MVP Roadmap
 
 High-priority follow-ups:
@@ -620,7 +640,6 @@ High-priority follow-ups:
 - browser auto-render for `pre.wire-lang` and `code.wire-lang`
 - headless language server using a Langium grammar and the existing validators
 - VS Code extension with syntax highlighting, diagnostics, and authoring feedback
-- Markdown/MDX integrations using the `wire` fenced code tag
 - custom component libraries passed through the JavaScript API
 
 Later extensions:
@@ -653,3 +672,4 @@ Later extensions:
 - [ADR 0015](./adr/0015-no-preview-server-in-mvp.md) records the MVP preview decision.
 - [ADR 0016](./adr/0016-browser-auto-render-post-mvp.md) records the browser auto-render scope decision.
 - [ADR 0017](./adr/0017-esm-only-node-20.md) records the runtime and module-format decision.
+- [ADR 0019](./adr/0019-build-time-markdown-integration.md) records the build-time Markdown/MDX integration decision.

@@ -3,6 +3,7 @@
   "references": [
     { "path": "./packages/core" },
     { "path": "./packages/cli" },
+    { "path": "./packages/markdown" },
     { "path": "./packages/wire-lang" }
   ]
 }
