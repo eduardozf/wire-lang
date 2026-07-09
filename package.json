@@ -22,7 +22,7 @@
     "docs:format": "prettier --write \".github/**/*.yml\" \".github/*.md\" \"README.md\" \"CHANGELOG.md\" \"docs/EXAMPLES.md\" \"docs/brand/README.md\" \"packages/*/README.md\"",
     "skill:check": "skills add ./skills/wire-lang --list",
     "skill:publish": "skills add eduardozf/wire-lang --skill wire-lang --agent codex --global --copy --yes",
-    "pack:dry-run": "pnpm --filter @wire-lang/core pack --dry-run && pnpm --filter @wire-lang/cli pack --dry-run && pnpm --filter wire-lang pack --dry-run",
+    "pack:dry-run": "pnpm --filter @wire-lang/core pack --dry-run && pnpm --filter @wire-lang/cli pack --dry-run && pnpm --filter @wire-lang/markdown pack --dry-run && pnpm --filter wire-lang pack --dry-run",
     "package:smoke": "node scripts/package-smoke-test.mjs",
     "release:check": "pnpm lint && pnpm docs:check && pnpm typecheck && pnpm test && pnpm build && pnpm audit --prod && pnpm pack:dry-run && pnpm package:smoke",
     "examples:update": "node scripts/update-examples.mjs",

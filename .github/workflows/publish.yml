@@ -99,6 +99,6 @@ jobs:
           set -euo pipefail
           node scripts/pin-workspace-deps.mjs
           tag="${{ inputs.npm_tag || 'latest' }}"
-          for pkg in core cli wire-lang; do
+          for pkg in core cli markdown wire-lang; do
             ( cd "packages/$pkg" && npm publish --provenance --access public --tag "$tag" )
           done

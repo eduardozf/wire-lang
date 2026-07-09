@@ -68,6 +68,27 @@ import { renderSvg } from "wire-lang";
 const svg = renderSvg(source);
 ```
 
+Render the same source directly from a Markdown or MDX fence with the build-time
+plugins in `@wire-lang/markdown`:
+
+````markdown
+```wire
+schematic
+  component R1 Resistor value=220ohm
+  component D1 LED color=red
+  connect R1.1, D1.A
+```
+````
+
+```bash
+npm install @wire-lang/markdown
+```
+
+Use `remarkWire` in a remark pipeline or `rehypeWire` in a rehype/MDX pipeline.
+Both replace the fence with standalone inline SVG while the document is built;
+see the [`@wire-lang/markdown` guide](./packages/markdown) for complete setup and
+runtime tradeoffs.
+
 ## How it compares
 
 Think **[Mermaid Charts](https://github.com/mermaid-js/mermaid), but for electronic schematics**: text goes in, documentation-
@@ -171,11 +192,12 @@ symbol art; it does not claim formal IEC/IEEE compliance. See
 
 ### Packages & development
 
-| Package                              | Role                                                       |
-| ------------------------------------ | ---------------------------------------------------------- |
-| [`wire-lang`](./packages/wire-lang)  | User-facing aggregate package and the `wire` binary        |
-| [`@wire-lang/core`](./packages/core) | Parser, compiler, schematic model, layout engine, renderer |
-| [`@wire-lang/cli`](./packages/cli)   | `wire check`, `wire render`, `wire watch`                  |
+| Package                                      | Role                                                       |
+| -------------------------------------------- | ---------------------------------------------------------- |
+| [`wire-lang`](./packages/wire-lang)          | User-facing aggregate package and the `wire` binary        |
+| [`@wire-lang/core`](./packages/core)         | Parser, compiler, schematic model, layout engine, renderer |
+| [`@wire-lang/cli`](./packages/cli)           | `wire check`, `wire render`, `wire watch`                  |
+| [`@wire-lang/markdown`](./packages/markdown) | Remark, rehype, and MDX build-time integration             |
 
 ```bash
 pnpm install

@@ -1,0 +1,74 @@
+{
+  "name": "@wire-lang/markdown",
+  "version": "0.3.0",
+  "type": "module",
+  "description": "Remark, rehype, and MDX plugins for rendering wire code fences as inline SVG.",
+  "keywords": [
+    "wire-lang",
+    "schematic",
+    "markdown",
+    "mdx",
+    "remark-plugin",
+    "rehype-plugin",
+    "svg"
+  ],
+  "license": "MIT",
+  "author": "Ferraz <eduardozf1@gmail.com>",
+  "homepage": "https://github.com/eduardozf/wire-lang#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/eduardozf/wire-lang.git",
+    "directory": "packages/markdown"
+  },
+  "bugs": {
+    "url": "https://github.com/eduardozf/wire-lang/issues"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./remark": {
+      "types": "./dist/remark.d.ts",
+      "import": "./dist/remark.js"
+    },
+    "./rehype": {
+      "types": "./dist/rehype.d.ts",
+      "import": "./dist/rehype.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist/**/*.d.ts",
+    "dist/**/*.d.ts.map",
+    "dist/**/*.js",
+    "dist/**/*.js.map",
+    "LICENSE",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@types/hast": "^3.0.5",
+    "@types/mdast": "^4.0.4",
+    "@types/unist": "^3.0.3",
+    "@wire-lang/core": "workspace:*",
+    "hast-util-from-html": "^2.0.3",
+    "unified": "^11.0.5",
+    "vfile": "^6.0.3"
+  },
+  "devDependencies": {
+    "@mdx-js/mdx": "^3.1.1",
+    "rehype-stringify": "^10.0.1",
+    "remark-parse": "^11.0.0",
+    "remark-rehype": "^11.1.2"
+  },
+  "scripts": {
+    "build:js": "tsup"
+  }
+}
