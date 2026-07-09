@@ -38,6 +38,11 @@ The default export at `@wire-lang/markdown/remark` is the same plugin:
 import remarkWire from "@wire-lang/markdown/remark";
 ```
 
+`remarkWire` is for pipelines that continue into HTML. A pipeline that
+serializes back to Markdown with `remark-stringify` cannot serialize the
+replaced diagram node; keep the fence intact there and render later with
+`rehypeWire` instead.
+
 ## Rehype and MDX
 
 `rehypeWire` replaces the standard `pre > code.language-wire` HAST produced by

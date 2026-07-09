@@ -1,3 +1,4 @@
+import type { Diagnostic, SourceRange } from "@wire-lang/core";
 import { renderSvg, WireLangError } from "@wire-lang/core";
 import type { Element, Nodes } from "hast";
 import { fromHtml } from "hast-util-from-html";
@@ -17,38 +18,44 @@ function stripGeneratedPositions(node: Nodes): void {
   }
 }
 
+function primaryDiagnostic(error: WireLangError): Diagnostic | undefined {
+  return (
+    error.diagnostics.find((candidate) => candidate.severity === "error") ?? error.diagnostics[0]
+  );
+}
+
 function diagnosticPosition(
   fence: PositionedFence,
-  error: WireLangError,
+  range: SourceRange | null | undefined,
 ): Position | null | undefined {
-  const diagnostic =
-    error.diagnostics.find((candidate) => candidate.severity === "error") ?? error.diagnostics[0];
-  const range = diagnostic?.range;
   const fenceStart = fence.position?.start;
 
   if (!range || !fenceStart) {
     return fence.position;
   }
 
+  // The fence content starts one line below the opening fence marker and, when
+  // the fence sits inside a list or blockquote, shares the marker's
+  // indentation, which Markdown strips from the Wire source.
+  const columnOffset = fenceStart.column - 1;
   return {
     start: {
       line: fenceStart.line + range.start.line,
-      column: range.start.column,
+      column: columnOffset + range.start.column,
     },
     end: {
       line: fenceStart.line + range.end.line,
-      column: range.end.column,
+      column: columnOffset + range.end.column,
     },
   };
 }
 
 function failDocumentBuild(error: WireLangError, fence: PositionedFence, file: VFile): never {
-  const diagnostic =
-    error.diagnostics.find((candidate) => candidate.severity === "error") ?? error.diagnostics[0];
+  const diagnostic = primaryDiagnostic(error);
 
   file.fail(diagnostic?.message ?? error.message, {
     cause: error,
-    place: diagnosticPosition(fence, error),
+    place: diagnosticPosition(fence, diagnostic?.range),
     ruleId: diagnostic?.code ?? "render",
     source: "wire-lang",
   });

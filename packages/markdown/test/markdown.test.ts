@@ -62,6 +62,30 @@ schematic
 `),
     ).rejects.toMatchObject({
       line: 5,
+      column: 16,
+      ruleId: "component.unknown-type",
+      source: "wire-lang",
+    });
+  });
+
+  it("offsets diagnostic columns by the fence indentation", async () => {
+    const processor = unified()
+      .use(remarkParse)
+      .use(remarkWire)
+      .use(remarkRehype)
+      .use(rehypeStringify);
+
+    await expect(
+      processor.process(`- Broken
+
+  \`\`\`wire
+  schematic
+    component X1 Flux
+  \`\`\`
+`),
+    ).rejects.toMatchObject({
+      line: 5,
+      column: 18,
       ruleId: "component.unknown-type",
       source: "wire-lang",
     });
@@ -83,10 +107,33 @@ describe("rehypeWire", () => {
     expect(html).not.toContain("language-wire");
   });
 
+  it("fails the document build at the Wire diagnostic's Markdown location", async () => {
+    const processor = unified()
+      .use(remarkParse)
+      .use(remarkRehype)
+      .use(rehypeWire)
+      .use(rehypeStringify);
+
+    await expect(
+      processor.process(`# Broken
+
+\`\`\`wire
+schematic
+  component X1 Flux
+\`\`\`
+`),
+    ).rejects.toMatchObject({
+      line: 5,
+      column: 16,
+      ruleId: "component.unknown-type",
+      source: "wire-lang",
+    });
+  });
+
   it("works as an MDX rehype plugin", async () => {
     const compiled = await compile(MARKDOWN, { rehypePlugins: [rehypeWire] });
 
-    expect(String(compiled)).toContain('"data-wire-lang-version": "0.3.0"');
+    expect(String(compiled)).toMatch(/"data-wire-lang-version": "\d+\.\d+\.\d+"/u);
     expect(String(compiled)).not.toContain("language-wire");
   });
 });
