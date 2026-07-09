@@ -274,8 +274,13 @@ The MVP ships a small standard component library.
 | `Capacitor` | `1`, `2` | recommended `capacitance: capacitance` | `id`, `capacitance` | `capacitor` |
 | `PolarizedCapacitor` | `+`, `-` | recommended `capacitance: capacitance` | `id`, `capacitance` | `polarized-capacitor` |
 | `Inductor` | `1`, `2` | recommended `inductance: inductance` | `id`, `inductance` | `inductor` |
+| `Potentiometer` | `1`, `W`, `2` | recommended `value: resistance` | `id`, `value` | `potentiometer` |
+| `Rheostat` | `1`, `2` | recommended `value: resistance` | `id`, `value` | `rheostat` |
 | `Diode` | `A`, `C` | none | `id` | `diode` |
 | `LED` | `A`, `C` | optional `color: enum(red, green, blue, yellow, white, amber)` | `id` | `led` |
+| `ZenerDiode` | `A`, `C` | none | `id` | `zener-diode` |
+| `SchottkyDiode` | `A`, `C` | none | `id` | `schottky-diode` |
+| `Photodiode` | `A`, `C` | none | `id` | `photodiode` |
 | `NPNTransistor` | `C`, `B`, `E` | none | `id` | `npn-transistor` |
 | `PNPTransistor` | `C`, `B`, `E` | none | `id` | `pnp-transistor` |
 | `Battery` | `+`, `-` | recommended `voltage: voltage` | `id`, `voltage` | `battery` |
@@ -292,14 +297,18 @@ The MVP ships a small standard component library.
 | `PowerFlag` | `1` | recommended `name: string` | none | `power-flag` |
 | `IC` | from `pins=[...]` | recommended `pins: ic-pin-list` | `id` | `ic` |
 
-Designator prefixes: `FerriteBead` → `FB`/`L`, `TVSDiode` → `D`/`TVS`, `Speaker` →
-`LS`/`SP`, `Antenna` → `ANT`/`E`, `TestPoint` → `TP`, `PTC` → `F`/`RT`,
-`PowerFlag` → `PWR`/`PR`/`PF`, `IC` → `U`/`IC`.
+Designator prefixes: `Potentiometer` → `R`/`RV`/`VR`, `Rheostat` →
+`R`/`RV`/`VR`/`RH`, `ZenerDiode` → `D`/`ZD`, `SchottkyDiode` → `D`/`SD`,
+`Photodiode` → `D`/`PD`, `FerriteBead` → `FB`/`L`, `TVSDiode` → `D`/`TVS`,
+`Speaker` → `LS`/`SP`, `Antenna` → `ANT`/`E`, `TestPoint` → `TP`, `PTC` →
+`F`/`RT`, `PowerFlag` → `PWR`/`PR`/`PF`, `IC` → `U`/`IC`.
 
-`TVSDiode` maps `anode`→`A` and `cathode`→`C`; `Speaker` maps `positive`→`+` and
-`negative`→`-`. `PowerFlag` draws its `name` (e.g. `VBAT`, `5V`, `3V3`, `VCC`)
-inside the flag glyph; it is a visual rail flag only and does not create a hidden
-global net.
+`Potentiometer` maps `wiper`→`W` (the two track ends `1`/`2` are
+interchangeable); `ZenerDiode`, `SchottkyDiode`, and `Photodiode` map `anode`→`A`
+and `cathode`→`C` like `Diode`. `TVSDiode` maps `anode`→`A` and `cathode`→`C`;
+`Speaker` maps `positive`→`+` and `negative`→`-`. `PowerFlag` draws its `name`
+(e.g. `VBAT`, `5V`, `3V3`, `VCC`) inside the flag glyph; it is a visual rail flag
+only and does not create a hidden global net.
 
 MOSFETs and complex board modules such as Arduino boards are outside the MVP.
 

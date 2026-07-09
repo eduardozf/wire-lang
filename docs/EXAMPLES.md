@@ -48,3 +48,15 @@ Source: [examples/kitchen-sink.wire](../examples/kitchen-sink.wire)
 Source: [examples/bus-rail.wire](../examples/bus-rail.wire)
 
 ![Bus-rail layout demo](./assets/bus-rail.svg)
+
+## Potentiometer Voltage Divider
+
+Source: [examples/pot-divider.wire](../examples/pot-divider.wire)
+
+![Potentiometer voltage divider](./assets/pot-divider.svg)
+
+## Diode Variants
+
+Source: [examples/diode-variants.wire](../examples/diode-variants.wire)
+
+![Diode variants](./assets/diode-variants.svg)
