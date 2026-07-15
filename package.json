@@ -33,7 +33,7 @@
     "@biomejs/biome": "^2.5.3",
     "@resvg/resvg-js": "^2.6.2",
     "@types/node": "^26.1.0",
-    "prettier": "3.9.4",
+    "prettier": "3.9.5",
     "rimraf": "^6.0.1",
     "skills": "1.5.15",
     "tsup": "^8.5.1",
