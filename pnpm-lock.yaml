@@ -27,8 +27,8 @@ importers:
         specifier: ^6.0.1
         version: 6.1.3
       skills:
-        specifier: 1.5.19
-        version: 1.5.19
+        specifier: 1.5.20
+        version: 1.5.20
       tsup:
         specifier: ^8.5.1
         version: 8.5.1(postcss@8.5.22)(typescript@7.0.2)(yaml@2.9.0)
@@ -1092,8 +1092,8 @@ packages:
   siginfo@2.0.0:
     resolution: {integrity: sha512-ybx0WO1/8bSBLEWXZvEd7gMW3Sn3JFlW3TvX1nREbDLRNQNaeNN8WK0meBwPdAaOI7TtRRRJn/Es1zhrrCHu7g==}
 
-  skills@1.5.19:
-    resolution: {integrity: sha512-SR05cbNk+R17GfaCFv94Hlq5EXDpUCbG0ZL9+EYi5UEHzUPAAl+kls2LxCT+67wAWlOAanUwzZekIVQvpCmp5w==}
+  skills@1.5.20:
+    resolution: {integrity: sha512-lPl5KzMfTW+qwHFwc8t6R+wAqmdmSHw1+HWbGdJ/FZYbWLdB34bAZNFWiencM5DVoRaKAgXArmfTWMlNAbl9Gg==}
     engines: {node: '>=22.20.0'}
     hasBin: true
 
@@ -2011,7 +2011,7 @@ snapshots:
 
   siginfo@2.0.0: {}
 
-  skills@1.5.19:
+  skills@1.5.20:
     dependencies:
       yaml: 2.9.0
 
