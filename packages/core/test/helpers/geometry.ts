@@ -1,4 +1,4 @@
-import type { LayoutModel, Segment } from "@wire-lang/core";
+import type { LayoutModel, SchematicModel, Segment } from "@wire-lang/core";
 
 const EPS = 0.01;
 
@@ -37,6 +37,42 @@ export function collinearOverlaps(model: LayoutModel): { a: string; b: string; l
         length = overlapLength(sa.from.x, sa.to.x, sb.from.x, sb.to.x);
       }
       if (length > EPS) hits.push({ a: a.net, b: b.net, length });
+    }
+  }
+  return hits;
+}
+
+/** Wires that pass through a terminal belonging to another net. */
+export function foreignTerminalHits(model: LayoutModel, schematic: SchematicModel): string[] {
+  const terminalNet = new Map<string, string>();
+  for (const net of schematic.nets) {
+    for (const member of net.members) {
+      terminalNet.set(`${member.component}.${member.terminal}`, net.name);
+    }
+  }
+
+  const pointOnSegment = (point: { x: number; y: number }, segment: Segment): boolean => {
+    const minX = Math.min(segment.from.x, segment.to.x) - EPS;
+    const maxX = Math.max(segment.from.x, segment.to.x) + EPS;
+    const minY = Math.min(segment.from.y, segment.to.y) - EPS;
+    const maxY = Math.max(segment.from.y, segment.to.y) + EPS;
+    if (point.x < minX || point.x > maxX || point.y < minY || point.y > maxY) return false;
+    return (
+      Math.abs(segment.from.x - segment.to.x) < EPS || Math.abs(segment.from.y - segment.to.y) < EPS
+    );
+  };
+
+  const hits: string[] = [];
+  for (const component of model.components) {
+    for (const terminal of component.terminals) {
+      const terminalName = `${component.id}.${terminal.name}`;
+      const ownNet = terminalNet.get(terminalName);
+      for (const wire of model.wires) {
+        if (wire.net === ownNet) continue;
+        if (wire.segments.some((segment) => pointOnSegment(terminal.point, segment))) {
+          hits.push(`${wire.net}->${terminalName}`);
+        }
+      }
     }
   }
   return hits;
