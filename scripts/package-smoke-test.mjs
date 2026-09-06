@@ -21,10 +21,16 @@ async function run(command, args, options = {}) {
 }
 
 async function packAll(packDir) {
+  await run(runner, ["--filter", "@wire-lang/browser", "pack", "--pack-destination", packDir], {
+    cwd: repoRoot,
+  });
   await run(runner, ["--filter", "@wire-lang/core", "pack", "--pack-destination", packDir], {
     cwd: repoRoot,
   });
   await run(runner, ["--filter", "@wire-lang/cli", "pack", "--pack-destination", packDir], {
+    cwd: repoRoot,
+  });
+  await run(runner, ["--filter", "@wire-lang/markdown", "pack", "--pack-destination", packDir], {
     cwd: repoRoot,
   });
   await run(runner, ["--filter", "wire-lang", "pack", "--pack-destination", packDir], {
@@ -62,6 +68,8 @@ async function main() {
         "--no-fund",
         tarball(packDir, `wire-lang-core-${version}.tgz`),
         tarball(packDir, `wire-lang-cli-${version}.tgz`),
+        tarball(packDir, `wire-lang-markdown-${version}.tgz`),
+        tarball(packDir, `wire-lang-browser-${version}.tgz`),
         tarball(packDir, `wire-lang-${version}.tgz`),
       ],
       { cwd: consumerDir },
@@ -94,12 +102,64 @@ if (!svg.startsWith("<svg") || !svg.includes(${JSON.stringify(`data-wire-lang-ve
 
     await run("node", ["api-smoke.mjs"], { cwd: consumerDir });
     await writeFile(
+      join(consumerDir, "markdown-smoke.mjs"),
+      `import { rehypeWire, remarkWire } from "@wire-lang/markdown";
+import { unified } from "unified";
+import wire, { render, initialize } from "@wire-lang/browser";
+
+if (typeof wire.run !== "function") throw new Error("browser run export missing");
+if ((await initialize({ startOnLoad: false })).rendered !== 0) throw new Error("manual init rendered");
+await wire.run().then(() => { throw new Error("run without a DOM must fail"); }, () => {});
+
+const source = ${JSON.stringify(source)};
+if (!(await render(source)).startsWith("<svg")) throw new Error("browser render failed");
+const browserTree = { type: "root", children: [{ type: "code", lang: "wire", value: source }] };
+await unified().use(remarkWire).run(browserTree);
+if (browserTree.children[0].type !== "code") throw new Error("default must preserve source");
+const remarkTree = {
+  type: "root",
+  children: [{ type: "code", lang: "wire", value: source }],
+};
+await unified().use(remarkWire, { mode: "static" }).run(remarkTree);
+if (remarkTree.children[0].type !== "wireDiagram" || remarkTree.children[0].data?.hName !== "svg") {
+  throw new Error("remarkWire did not replace the wire fence with inline SVG data");
+}
+
+const rehypeTree = {
+  type: "root",
+  children: [{
+    type: "element",
+    tagName: "pre",
+    properties: {},
+    children: [{
+      type: "element",
+      tagName: "code",
+      properties: { className: ["language-wire"] },
+      children: [{ type: "text", value: source + "\\n" }],
+    }],
+  }],
+};
+await unified().use(rehypeWire, { mode: "static" }).run(rehypeTree);
+if (rehypeTree.children[0].tagName !== "svg") {
+  throw new Error("rehypeWire did not replace the wire code block with inline SVG");
+}
+`,
+    );
+    await run("node", ["markdown-smoke.mjs"], { cwd: consumerDir });
+    await writeFile(
       join(consumerDir, "types-smoke.ts"),
-      `import { DiagnosticCodes, renderSvg, type CompileResult } from "wire-lang";
+      `import { rehypeWire, remarkWire } from "@wire-lang/markdown";
+import wire, { type RunOptions, type RunResult } from "@wire-lang/browser";
+const options: RunOptions = { force: true };
+const run: Promise<RunResult> = wire.run(options);
+void run;
+import { DiagnosticCodes, renderSvg, type CompileResult } from "wire-lang";
 
 const svg: string = renderSvg("schematic\\n  component R1 Resistor value=1k\\n  net N: R1.1, R1.2\\n");
 const code: string = DiagnosticCodes.componentUnknownType;
 const result: CompileResult | null = null;
+void rehypeWire;
+void remarkWire;
 void svg;
 void code;
 void result;

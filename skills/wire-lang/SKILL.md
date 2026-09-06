@@ -56,9 +56,10 @@ npx -p wire-lang wire render path/to/circuit.wire --out path/to/circuit.svg
 - Use `wire watch <file>.wire --out <file>.svg` while iterating.
 - Add `--json` to `wire check`, `wire render`, or `wire watch` when
   machine-readable diagnostics are useful.
-- Markdown does not auto-render fenced `wire` blocks in the MVP. The intended
-  documentation workflow is: author `.wire` -> run `wire render` -> link or
-  embed the generated `.svg`.
+- For Markdown or MDX, default to `@wire-lang/browser` and initialize it after
+  HTML is ready. For ahead-of-time rendering, use `@wire-lang/markdown` with
+  `{ mode: "static" }`. See `references/markdown.md` for setup. On hosts without
+  either integration, run `wire render` and embed the generated `.svg`.
 - Do not claim that source was checked or rendered unless the command actually
   ran. If the CLI is unavailable, say the source is not tool-validated and give
   the exact command to run.
