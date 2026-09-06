@@ -21,7 +21,8 @@ Use this when a user asks Wire Lang to express something outside the MVP.
 - Custom symbol drawing language.
 - Canvas rendering.
 - Browser auto-render.
-- Markdown processing.
+- Markdown processing in core. The separate `@wire-lang/markdown` package
+  supports build-time Markdown and MDX rendering.
 - Headless language server.
 - VS Code extension.
 - Complex standard-library board modules such as Arduino or ESP32.
@@ -35,6 +36,6 @@ Use this when a user asks Wire Lang to express something outside the MVP.
 - If the user asks for an unsupported component, use a local `define component`
   module when the terminals are known.
 - If the user asks for a custom visual symbol, use `symbol module` in the MVP.
-- If the user asks for a Markdown-rendered diagram, say Markdown `wire` fences
-  do not auto-render in the MVP; author `.wire`, run `wire render`, then link or
-  embed the generated SVG.
+- If the user asks for a Markdown-rendered diagram, use `@wire-lang/markdown`
+  with fenced `wire` blocks. See `markdown.md` for setup. If they cannot configure
+  the Markdown processor, run `wire render` and embed the generated SVG.

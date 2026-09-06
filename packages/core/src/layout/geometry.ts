@@ -60,8 +60,14 @@ const IC_PIN_PITCH = 22; // spacing between adjacent pins on one side
 /** Stub length reserved outside the IC box on every side; the renderer insets by this. */
 export const IC_STUB = 14;
 const IC_MIN_BOX = 44; // minimum inner box dimension
-const IC_OPPOSITE_MIN = 76; // min box dimension when both opposite edges carry pins (room for two name labels)
+const IC_OPPOSITE_MIN = 76; // min box dimension when opposite edges both carry pins
 const IC_PAD = 16; // gap from a box corner to the first pin on that side
+const IC_SIDE_LABEL_INSET = 6; // matches the left/right label inset in the SVG renderer
+// Resvg's system-font fallback is wider than the estimate used for labels on
+// horizontal IC edges. Keep this independent so those existing layouts do not
+// expand, and leave a visible gap after rasterization and output scaling.
+const IC_SIDE_LABEL_CHAR_W = 6.5;
+const IC_OPPOSING_LABEL_GAP = 12;
 
 const TWO_TERMINAL_SYMBOLS = new Set([
   "resistor",
@@ -270,10 +276,17 @@ function icGeometry(instance: ComponentInstance): ComponentGeom {
     }
     return run;
   };
+  const longestLabelWidth = (edge: { name: string }[]): number =>
+    Math.max(0, ...edge.map((pin) => pin.name.length * IC_SIDE_LABEL_CHAR_W));
+  const opposingSideLabelWidth =
+    longestLabelWidth(bySide.left) +
+    longestLabelWidth(bySide.right) +
+    2 * IC_SIDE_LABEL_INSET +
+    IC_OPPOSING_LABEL_GAP;
   // Pins on both opposite edges need room for two name labels between them.
   const boxMain = Math.max(
     IC_MIN_BOX,
-    leftRight ? IC_OPPOSITE_MIN : 0,
+    leftRight ? Math.max(IC_OPPOSITE_MIN, opposingSideLabelWidth) : 0,
     bySide.top.length > 0 ? 2 * IC_PAD + edgeRun(bySide.top) : 0,
     bySide.bottom.length > 0 ? 2 * IC_PAD + edgeRun(bySide.bottom) : 0,
   );

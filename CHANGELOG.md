@@ -7,6 +7,13 @@ All notable changes to Wire Lang will be documented in this file.
 - Added `@wire-lang/markdown` with remark, rehype, and MDX plugins that render
   `wire` fenced code blocks as inline SVG.
 
+## 0.3.1
+
+- Fixed dense connections between facing IC pin banks so each net uses a clear,
+  deterministic route without overlapping another net or crossing unrelated terminals.
+- Reserved enough IC body width for opposing pin labels.
+- Updated development dependencies and pinned GitHub Actions.
+
 ## 0.2.0
 
 - Added bus-rail layout support for clearer shared-net routing.

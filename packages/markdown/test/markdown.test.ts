@@ -137,3 +137,33 @@ schematic
     expect(String(compiled)).not.toContain("language-wire");
   });
 });
+
+for (const plugin of [remarkWire, rehypeWire]) {
+  describe(`${plugin.name} source columns`, () => {
+    it.each([
+      ["uneven fence indentation", "   ```wire\n schematic\n  component X1 Flux\n   ```", 3, 16],
+      ["list", "- Broken\n\n  ```wire\n  schematic\n    component X1 Flux\n  ```", 5, 18],
+      ["uneven blockquote markers", "> ```wire\n> schematic\n>  component X1 Flux\n> ```", 3, 17],
+      [
+        "nested list and quote",
+        "- Broken\n\n  > ```wire\n  > schematic\n  >   component X1 Flux\n  > ```",
+        5,
+        20,
+      ],
+      ["CRLF", "   ```wire\r\n schematic\r\n  component X1 Flux\r\n   ```", 3, 16],
+    ])("maps both range endpoints for %s", async (_name, markdown, line, column) => {
+      const processor = unified().use(remarkParse);
+      if (plugin === remarkWire) processor.use(remarkWire).use(remarkRehype);
+      else processor.use(remarkRehype).use(rehypeWire);
+      processor.use(rehypeStringify);
+
+      await expect(processor.process(markdown)).rejects.toMatchObject({
+        line,
+        column,
+        place: { start: { line, column }, end: { line, column: column + 4 } },
+        ruleId: "component.unknown-type",
+        source: "wire-lang",
+      });
+    });
+  });
+}
