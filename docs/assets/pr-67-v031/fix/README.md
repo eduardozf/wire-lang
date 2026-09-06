@@ -1,0 +1,154 @@
+# PR #67: overlap fix and 0.3.1 investigation
+
+## Follow-up fix
+
+The PR now places potentiometer labels on the side opposite the wiper using
+final terminal coordinates, and extends the wiper arrow to the resistor track
+midpoint. Both changes follow orientation and direction hints. The gallery
+examples omit the redundant `Wiper output` and `Zener clamp` annotations that
+intersected wires. General annotation collision avoidance remains unchanged.
+
+The new `issue-67.test.ts` checks label rectangles against actual net segments,
+checks that labels stay inside the canvas, and verifies that the rendered arrow
+tip lies on a rendered resistor segment. Before the fix, 12 of its 16 cases failed.
+All 16 now pass across four directions and two orientations. All 170 project
+tests pass, as do typecheck and lint. The existing Diode control is unchanged.
+
+The comparisons below under “Original investigation” are historical evidence
+that merging 0.3.1 alone did not fix these problems. Current fix images live in
+`docs/assets/pr-67-v031/fix/` on `demo/pr-67-v031-assets`.
+
+### Potentiometer divider
+
+Same source on pre-fix PR `b4578b2` and the fixed renderer.
+
+| Before fix                                                                                                                                | After fix                                                                                                                               |
+| ----------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| ![Before](https://raw.githubusercontent.com/eduardozf/wire-lang/demo/pr-67-v031-assets/docs/assets/pr-67-v031/fix/pot-divider-before.png) | ![After](https://raw.githubusercontent.com/eduardozf/wire-lang/demo/pr-67-v031-assets/docs/assets/pr-67-v031/fix/pot-divider-after.png) |
+
+### Vertical potentiometer
+
+Same source on pre-fix PR `b4578b2` and the fixed renderer.
+
+| Before fix                                                                                                                                 | After fix                                                                                                                                |
+| ------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| ![Before](https://raw.githubusercontent.com/eduardozf/wire-lang/demo/pr-67-v031-assets/docs/assets/pr-67-v031/fix/pot-vertical-before.png) | ![After](https://raw.githubusercontent.com/eduardozf/wire-lang/demo/pr-67-v031-assets/docs/assets/pr-67-v031/fix/pot-vertical-after.png) |
+
+### Component catalog
+
+Same source on pre-fix PR `b4578b2` and the fixed renderer.
+
+| Before fix                                                                                                                            | After fix                                                                                                                           |
+| ------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| ![Before](https://raw.githubusercontent.com/eduardozf/wire-lang/demo/pr-67-v031-assets/docs/assets/pr-67-v031/fix/catalog-before.png) | ![After](https://raw.githubusercontent.com/eduardozf/wire-lang/demo/pr-67-v031-assets/docs/assets/pr-67-v031/fix/catalog-after.png) |
+
+## Original investigation
+
+Release 0.3.1 does not fix the visible collisions in PR #67's new components.
+The four component PNGs are byte-identical before and after merging the release.
+Their SVGs differ only in `data-wire-lang-version`.
+
+## Revisions and method
+
+- Before: original PR head `60b044d`.
+- After: that head merged with release 0.3.1, `94896ab`, in commit `5a8b5c5`.
+- Existing Diode control: release/main `94896ab` on the left, merged PR on the right.
+- Every image uses the same source on both sides, rendered by the bundled
+  `scripts/wire-to-png.mjs` with Resvg at 1200 px and the same system fonts.
+- New types cannot compile on release/main alone, so their before images use the
+  original PR head. The existing Diode control SVG is byte-identical on main and the PR.
+- Images, SVGs, and exact source fixtures live on `demo/pr-67-v031-assets`, under
+  `docs/assets/pr-67-v031/`, outside the feature branch.
+
+## Findings
+
+| Fixture                | Result after 0.3.1                                                                                                                       |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Potentiometer divider  | `RV1` and `10k` intersect the wiper connection; the annotation intersects a return wire. The wiper arrow still stops short of the track. |
+| Vertical potentiometer | `RV1` and `10k` intersect the upper terminal connection. The wiper arrow still stops short of the track.                                 |
+| Diode variants         | The `Zener clamp` annotation intersects a wire.                                                                                          |
+| Catalog snapshot       | Potentiometer labels intersect its wiper connection. The photodiode points left both before and after the merge.                         |
+
+The existing `collinearOverlaps` and `foreignTerminalHits` geometry helpers return
+empty arrays for all four fixtures after the merge. These checks detect distinct
+nets sharing a segment and wires passing through unrelated terminals. They do
+not detect text collisions or the gap between the wiper arrow and resistor track.
+Perpendicular wire crossings without a junction are not electrical connections.
+
+Release 0.3.1 adds routing for facing IC pin banks and reserves width for opposing
+IC pin labels. These fixtures do not exercise that IC routing fix. This result
+is limited to the rendered cases; it is not a claim that all routing is collision-free.
+
+The earlier audit comment describes proposed fixes that are not present in the
+original PR head. Merging 0.3.1 does not apply those fixes.
+
+## Merge and validation
+
+Git merged release/main without textual conflicts. The catalog snapshot was stale:
+it recorded version 0.2.0 and an old photodiode orientation. Actual renders from
+`60b044d` already have the current orientation, confirmed by the unchanged PNG.
+The snapshot was refreshed to match actual output after the merge.
+
+All 125 tests, typecheck, lint, docs formatting, and the full build passed for the
+0.3.1 merge. All four component sources passed the bundled CLI with no diagnostics.
+The seven issue #109 tests continue to cover the IC routing fix.
+
+Main advanced to `1abd724` during the investigation. That Markdown integration
+was also merged without textual conflicts. The final combined branch passes
+all 154 tests, typecheck, lint, docs formatting, and the full build. Its four
+component SVGs match the 0.3.1-merge renders exactly.
+
+## Reproduce
+
+Build each revision, then run the same fixture through its bundled renderer:
+
+```sh
+pnpm install --frozen-lockfile
+pnpm --filter @wire-lang/core build:js
+node scripts/wire-to-png.mjs /path/to/fixture.wire /tmp/output.png 1200
+```
+
+Compare PNGs with `cmp before.png after.png`. For the four new-component fixtures,
+normalize only `data-wire-lang-version` before comparing SVGs.
+
+## Render comparisons
+
+### Potentiometer divider
+
+[Source](https://raw.githubusercontent.com/eduardozf/wire-lang/demo/pr-67-v031-assets/docs/assets/pr-67-v031/pot-divider.wire)
+
+| Original PR                                                                                                                           | PR with 0.3.1                                                                                                                       |
+| ------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| ![Before](https://raw.githubusercontent.com/eduardozf/wire-lang/demo/pr-67-v031-assets/docs/assets/pr-67-v031/pot-divider-before.png) | ![After](https://raw.githubusercontent.com/eduardozf/wire-lang/demo/pr-67-v031-assets/docs/assets/pr-67-v031/pot-divider-after.png) |
+
+### Vertical potentiometer
+
+[Source](https://raw.githubusercontent.com/eduardozf/wire-lang/demo/pr-67-v031-assets/docs/assets/pr-67-v031/pot-vertical.wire)
+
+| Original PR                                                                                                                            | PR with 0.3.1                                                                                                                        |
+| -------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| ![Before](https://raw.githubusercontent.com/eduardozf/wire-lang/demo/pr-67-v031-assets/docs/assets/pr-67-v031/pot-vertical-before.png) | ![After](https://raw.githubusercontent.com/eduardozf/wire-lang/demo/pr-67-v031-assets/docs/assets/pr-67-v031/pot-vertical-after.png) |
+
+### Diode variants
+
+[Source](https://raw.githubusercontent.com/eduardozf/wire-lang/demo/pr-67-v031-assets/docs/assets/pr-67-v031/diode-variants.wire)
+
+| Original PR                                                                                                                              | PR with 0.3.1                                                                                                                          |
+| ---------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| ![Before](https://raw.githubusercontent.com/eduardozf/wire-lang/demo/pr-67-v031-assets/docs/assets/pr-67-v031/diode-variants-before.png) | ![After](https://raw.githubusercontent.com/eduardozf/wire-lang/demo/pr-67-v031-assets/docs/assets/pr-67-v031/diode-variants-after.png) |
+
+### All new components
+
+[Source](https://raw.githubusercontent.com/eduardozf/wire-lang/demo/pr-67-v031-assets/docs/assets/pr-67-v031/catalog.wire)
+
+| Original PR                                                                                                                       | PR with 0.3.1                                                                                                                   |
+| --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| ![Before](https://raw.githubusercontent.com/eduardozf/wire-lang/demo/pr-67-v031-assets/docs/assets/pr-67-v031/catalog-before.png) | ![After](https://raw.githubusercontent.com/eduardozf/wire-lang/demo/pr-67-v031-assets/docs/assets/pr-67-v031/catalog-after.png) |
+
+### Existing Diode control
+
+[Source](https://raw.githubusercontent.com/eduardozf/wire-lang/demo/pr-67-v031-assets/docs/assets/pr-67-v031/diode-control.wire)
+
+| Main 0.3.1                                                                                                                              | PR with 0.3.1                                                                                                                         |
+| --------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| ![Before](https://raw.githubusercontent.com/eduardozf/wire-lang/demo/pr-67-v031-assets/docs/assets/pr-67-v031/diode-control-before.png) | ![After](https://raw.githubusercontent.com/eduardozf/wire-lang/demo/pr-67-v031-assets/docs/assets/pr-67-v031/diode-control-after.png) |

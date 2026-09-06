@@ -1,0 +1,12 @@
+schematic
+  title "Variable resistors and diode variants"
+  component RV1 Potentiometer value=10k
+  component RH1 Rheostat value=4k7
+  component D1 ZenerDiode
+  component D2 SchottkyDiode
+  component D3 Photodiode
+  net A: RV1.1, RH1.1, D3.C
+  net W: RV1.W, D1.A
+  net B: RV1.2, D1.C
+  net C: RH1.2, D2.A
+  net D: D2.C, D3.A
