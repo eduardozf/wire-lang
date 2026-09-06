@@ -2,7 +2,9 @@
 
 ## Status
 
-Accepted.
+Superseded in part by [ADR 0020](./0020-browser-default-static-opt-in.md).
+Structured SVG and static diagnostic mapping are retained; browser rendering
+is now the default and static mode is explicit.
 
 ## Context
 

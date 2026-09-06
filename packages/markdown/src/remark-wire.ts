@@ -3,6 +3,7 @@ import type { Code, Parents, Root } from "mdast";
 import type { Plugin } from "unified";
 import type { Literal, Position } from "unist";
 import type { VFile } from "vfile";
+import type { WireOptions } from "./options.js";
 import { renderWireElement } from "./render-wire.js";
 
 interface WireDiagramData {
@@ -54,9 +55,9 @@ function transformChildren(parent: Parents, file: VFile): void {
   }
 }
 
-/** Render Markdown code fences tagged `wire` to inline SVG HAST nodes. */
-export const remarkWire: Plugin<[], Root> = function remarkWire() {
+/** Keep wire fences for the browser, or render inline SVG in static mode. */
+export const remarkWire: Plugin<[WireOptions?], Root> = function remarkWire(options = {}) {
   return (tree, file) => {
-    transformChildren(tree, file);
+    if (options.mode === "static") transformChildren(tree, file);
   };
 };

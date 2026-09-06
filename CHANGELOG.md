@@ -4,8 +4,10 @@ All notable changes to Wire Lang will be documented in this file.
 
 ## Unreleased
 
-- Added `@wire-lang/markdown` with remark, rehype, and MDX plugins that render
-  `wire` fenced code blocks as inline SVG.
+- Added `@wire-lang/browser` for asynchronous rendering after HTML loads, with
+  source preservation, repeatable discovery, and per-block errors.
+- Added `@wire-lang/markdown` with remark, rehype, and MDX plugins that preserve
+  `wire` fences by default and render inline SVG with `{ mode: "static" }`.
 
 ## 0.3.1
 

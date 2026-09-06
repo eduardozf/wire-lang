@@ -68,8 +68,7 @@ import { renderSvg } from "wire-lang";
 const svg = renderSvg(source);
 ```
 
-Render the same source directly from a Markdown or MDX fence with the build-time
-plugins in `@wire-lang/markdown`:
+Write the same source inside a Markdown or MDX fence:
 
 ````markdown
 ```wire
@@ -81,13 +80,25 @@ schematic
 ````
 
 ```bash
-npm install @wire-lang/markdown
+npm install @wire-lang/browser
 ```
 
-Use `remarkWire` in a remark pipeline or `rehypeWire` in a rehype/MDX pipeline.
-Both replace the fence with standalone inline SVG while the document is built;
-see the [`@wire-lang/markdown` guide](./packages/markdown) for complete setup and
-runtime tradeoffs.
+Initialize the renderer in your site's browser entry point:
+
+```js
+import wire from "@wire-lang/browser";
+
+const { errors } = await wire.initialize();
+for (const { error } of errors) console.error(error);
+```
+
+The default workflow renders diagrams asynchronously after HTML is ready.
+Your Markdown processor must preserve `pre > code.language-wire` blocks. See
+the [browser guide](./packages/browser) for setup and client navigation.
+
+For ahead-of-time rendering with no browser runtime, use `remarkWire` or
+`rehypeWire` from `@wire-lang/markdown` with `{ mode: "static" }`. See the
+[Markdown/MDX guide](./packages/markdown) for complete build configuration.
 
 ## How it compares
 
@@ -192,12 +203,13 @@ symbol art; it does not claim formal IEC/IEEE compliance. See
 
 ### Packages & development
 
-| Package                                      | Role                                                       |
-| -------------------------------------------- | ---------------------------------------------------------- |
-| [`wire-lang`](./packages/wire-lang)          | User-facing aggregate package and the `wire` binary        |
-| [`@wire-lang/core`](./packages/core)         | Parser, compiler, schematic model, layout engine, renderer |
-| [`@wire-lang/cli`](./packages/cli)           | `wire check`, `wire render`, `wire watch`                  |
-| [`@wire-lang/markdown`](./packages/markdown) | Remark, rehype, and MDX build-time integration             |
+| Package                                      | Role                                                        |
+| -------------------------------------------- | ----------------------------------------------------------- |
+| [`wire-lang`](./packages/wire-lang)          | User-facing aggregate package and the `wire` binary         |
+| [`@wire-lang/core`](./packages/core)         | Parser, compiler, schematic model, layout engine, renderer  |
+| [`@wire-lang/cli`](./packages/cli)           | `wire check`, `wire render`, `wire watch`                   |
+| [`@wire-lang/browser`](./packages/browser)   | Asynchronous rendering after HTML loads                     |
+| [`@wire-lang/markdown`](./packages/markdown) | Markdown and MDX integration with optional static rendering |
 
 ```bash
 pnpm install

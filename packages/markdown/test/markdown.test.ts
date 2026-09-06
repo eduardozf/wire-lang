@@ -21,7 +21,7 @@ describe("remarkWire", () => {
   it("renders wire fences as inline SVG without enabling raw HTML", async () => {
     const file = await unified()
       .use(remarkParse)
-      .use(remarkWire)
+      .use(remarkWire, { mode: "static" })
       .use(remarkRehype)
       .use(rehypeStringify)
       .process(MARKDOWN);
@@ -37,7 +37,7 @@ describe("remarkWire", () => {
   it("leaves other fenced languages unchanged", async () => {
     const file = await unified()
       .use(remarkParse)
-      .use(remarkWire)
+      .use(remarkWire, { mode: "static" })
       .use(remarkRehype)
       .use(rehypeStringify)
       .process("```js\nconst wire = true;\n```\n");
@@ -48,7 +48,7 @@ describe("remarkWire", () => {
   it("fails the document build at the Wire diagnostic's Markdown location", async () => {
     const processor = unified()
       .use(remarkParse)
-      .use(remarkWire)
+      .use(remarkWire, { mode: "static" })
       .use(remarkRehype)
       .use(rehypeStringify);
 
@@ -71,7 +71,7 @@ schematic
   it("offsets diagnostic columns by the fence indentation", async () => {
     const processor = unified()
       .use(remarkParse)
-      .use(remarkWire)
+      .use(remarkWire, { mode: "static" })
       .use(remarkRehype)
       .use(rehypeStringify);
 
@@ -97,7 +97,7 @@ describe("rehypeWire", () => {
     const file = await unified()
       .use(remarkParse)
       .use(remarkRehype)
-      .use(rehypeWire)
+      .use(rehypeWire, { mode: "static" })
       .use(rehypeStringify)
       .process(MARKDOWN);
 
@@ -111,7 +111,7 @@ describe("rehypeWire", () => {
     const processor = unified()
       .use(remarkParse)
       .use(remarkRehype)
-      .use(rehypeWire)
+      .use(rehypeWire, { mode: "static" })
       .use(rehypeStringify);
 
     await expect(
@@ -131,7 +131,7 @@ schematic
   });
 
   it("works as an MDX rehype plugin", async () => {
-    const compiled = await compile(MARKDOWN, { rehypePlugins: [rehypeWire] });
+    const compiled = await compile(MARKDOWN, { rehypePlugins: [[rehypeWire, { mode: "static" }]] });
 
     expect(String(compiled)).toMatch(/"data-wire-lang-version": "\d+\.\d+\.\d+"/u);
     expect(String(compiled)).not.toContain("language-wire");
@@ -153,8 +153,8 @@ for (const plugin of [remarkWire, rehypeWire]) {
       ["CRLF", "   ```wire\r\n schematic\r\n  component X1 Flux\r\n   ```", 3, 16],
     ])("maps both range endpoints for %s", async (_name, markdown, line, column) => {
       const processor = unified().use(remarkParse);
-      if (plugin === remarkWire) processor.use(remarkWire).use(remarkRehype);
-      else processor.use(remarkRehype).use(rehypeWire);
+      if (plugin === remarkWire) processor.use(remarkWire, { mode: "static" }).use(remarkRehype);
+      else processor.use(remarkRehype).use(rehypeWire, { mode: "static" });
       processor.use(rehypeStringify);
 
       await expect(processor.process(markdown)).rejects.toMatchObject({
@@ -167,3 +167,23 @@ for (const plugin of [remarkWire, rehypeWire]) {
     });
   });
 }
+
+for (const plugin of [remarkWire, rehypeWire]) {
+  it(`${plugin.name} leaves wire fences for browser rendering by default`, async () => {
+    const processor = unified().use(remarkParse);
+    if (plugin === remarkWire) processor.use(remarkWire).use(remarkRehype);
+    else processor.use(remarkRehype).use(rehypeWire);
+    const html = String(await processor.use(rehypeStringify).process(MARKDOWN));
+    expect(html).toContain('<pre><code class="language-wire">');
+    expect(html).toContain("schematic");
+    expect(html).not.toContain("<svg");
+    // Invalid source must reach the browser too, without failing the build.
+    await expect(processor.process("```wire\ninvalid\n```")).resolves.toBeDefined();
+  });
+}
+
+it("keeps MDX wire source for rendering after hydration by default", async () => {
+  const compiled = String(await compile(MARKDOWN, { rehypePlugins: [rehypeWire] }));
+  expect(compiled).toContain("language-wire");
+  expect(compiled).not.toContain("data-wire-lang-version");
+});

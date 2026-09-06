@@ -20,7 +20,8 @@ Use this when a user asks Wire Lang to express something outside the MVP.
 - BOM generation.
 - Custom symbol drawing language.
 - Canvas rendering.
-- Browser auto-render.
+- Browser auto-render in core. The separate `@wire-lang/browser` package
+  implements asynchronous rendering after HTML loads.
 - Markdown processing in core. The separate `@wire-lang/markdown` package
   supports build-time Markdown and MDX rendering.
 - Headless language server.
@@ -36,6 +37,7 @@ Use this when a user asks Wire Lang to express something outside the MVP.
 - If the user asks for an unsupported component, use a local `define component`
   module when the terminals are known.
 - If the user asks for a custom visual symbol, use `symbol module` in the MVP.
-- If the user asks for a Markdown-rendered diagram, use `@wire-lang/markdown`
-  with fenced `wire` blocks. See `markdown.md` for setup. If they cannot configure
-  the Markdown processor, run `wire render` and embed the generated SVG.
+- If the user asks for a Markdown-rendered diagram, default to `@wire-lang/browser`
+  with fenced `wire` blocks. Use static `@wire-lang/markdown` when they need
+  ahead-of-time rendering. See `markdown.md` for setup. On hosts where neither
+  integration is possible, run `wire render` and embed the generated SVG.

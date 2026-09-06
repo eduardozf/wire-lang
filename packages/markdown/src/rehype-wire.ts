@@ -1,6 +1,7 @@
 import type { Element, Nodes, Parents, Root } from "hast";
 import type { Plugin } from "unified";
 import type { VFile } from "vfile";
+import type { WireOptions } from "./options.js";
 import { renderWireElement } from "./render-wire.js";
 
 function isElement(node: Nodes, tagName: string): node is Element {
@@ -54,9 +55,9 @@ function transformChildren(parent: Parents, file: VFile): void {
   }
 }
 
-/** Replace HAST `pre > code.language-wire` blocks with inline SVG. */
-export const rehypeWire: Plugin<[], Root> = function rehypeWire() {
+/** Keep wire code blocks for the browser, or render inline SVG in static mode. */
+export const rehypeWire: Plugin<[WireOptions?], Root> = function rehypeWire(options = {}) {
   return (tree, file) => {
-    transformChildren(tree, file);
+    if (options.mode === "static") transformChildren(tree, file);
   };
 };

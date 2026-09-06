@@ -273,7 +273,7 @@ The public happy-path API that turns a **Source Document** or **Schematic Model*
 _Avoid_: CLI command, simulation API
 
 **DOM Auto Render**:
-A post-MVP browser integration that finds Wire Lang source blocks in the DOM and replaces or augments them with rendered schematics.
+The `@wire-lang/browser` integration that asynchronously finds source blocks after HTML loads, hides successfully rendered source, and inserts sibling SVG containers. This is the default documentation workflow.
 _Avoid_: MVP command-line rendering, manual API usage
 
 **DOM Source Block**:
@@ -421,9 +421,10 @@ A fenced code block tagged as `wire` for documentation systems that integrate Wi
 _Avoid_: DOM source block, wire file
 
 **Markdown Integration**:
-The build-time `@wire-lang/markdown` plugins that replace a **Markdown Fence**
-with standalone inline SVG through remark, rehype, or MDX.
-_Avoid_: browser auto-render, raw HTML passthrough, Mermaid plugin
+The `@wire-lang/markdown` plugins that preserve a **Markdown Fence** for
+**DOM Auto Render** by default. Explicit static mode replaces it with inline SVG
+ahead of time through remark, rehype, or MDX.
+_Avoid_: raw HTML passthrough, Mermaid plugin
 
 **VS Code Extension**:
 A future editor integration for Wire Lang syntax highlighting, diagnostics, and authoring feedback.
@@ -824,7 +825,7 @@ Terminals are user-defined through recommended `pins: ic-pin-list` written as `p
 > **Domain expert:** "No. The **Developer CLI** should show **Human Diagnostic Output** by default and provide **Machine Diagnostic Output** with JSON for agents and scripts."
 >
 > **Dev:** "How does browser auto-render find Wire Lang diagrams?"
-> **Domain expert:** "After the MVP, **DOM Auto Render** should find **DOM Source Blocks** matching `pre.wire-lang` and `code.wire-lang`."
+> **Domain expert:** "**DOM Auto Render** finds **DOM Source Blocks** matching `pre > code.language-wire`, `pre.wire-lang`, and `code.wire-lang`."
 >
 > **Dev:** "Should auto-render destroy the original source block?"
 > **Domain expert:** "No. It should preserve the **DOM Source Block** and insert a separate **DOM Render Container** for the SVG."
@@ -886,8 +887,8 @@ Terminals are user-defined through recommended `pins: ic-pin-list` written as `p
 - The default file extension for a **Wire File** is `.wire`.
 - **Wire Files** are UTF-8; Unicode is allowed in values, labels, and annotations.
 - The recommended **Markdown Fence** tag is `wire`. Direct integration is
-  outside the core MVP and is implemented by the build-time
-  `@wire-lang/markdown` **Markdown Integration** package.
+  outside the core MVP. **DOM Auto Render** is the default; the
+  `@wire-lang/markdown` **Markdown Integration** package also offers static rendering.
 - Syntax highlighting and editor extensions are outside the MVP; a **Headless Language Server** and **VS Code Extension** are high-priority post-MVP follow-ups.
 - A **Wire File** contains exactly one **Source Document** in the MVP.
 - The MVP supports `//` **Line Comments** and does not need block comments.
