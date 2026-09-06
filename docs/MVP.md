@@ -489,21 +489,35 @@ Layout priority:
 
 Multiple disconnected subschematics are allowed and render separately in stable source order.
 
-Multi-terminal nets route with orthogonal visual wires: each net gets a
+Two-terminal nets between adjacent, facing IC edges route inside the empty
+corridor between the components. The router prefers a compact orthogonal Z
+path. When fixed pin order would make two nets share a segment or touch at a
+corner, it adds an orthogonal dogleg above or below the pin field. Distinct nets
+may cross only as proper perpendicular crossings; they never share a segment or
+form a false junction at another terminal. Before placing the components, auto
+layout counts these facing connections and widens their corridor enough to keep
+the router's candidate tracks at least 16 layout units apart. Ordinary routes
+claim distinct vertical tracks in source-pin order, so separate nets do not
+collapse onto the same visual column even when their segments would not touch.
+
+Other multi-terminal nets route with orthogonal visual wires: each net gets a
 horizontal rail, and every terminal drops vertically to that rail. Rails are
-packed into shared cross-level tracks per side — nets whose horizontal extents
+packed into shared cross-level tracks per side. Nets whose horizontal extents
 are clear of each other share one track instead of each stepping further from
 the bodies, so a dense schematic does not stack a separate full-width rail per
-net. Distinct nets never render exactly collinear and overlapping — when several
-terminals share a coordinate (for example multiple pins on one IC edge) and
-route to the same side, their drops are fanned into separate lanes so each
-connection reads as its own line. Collinear segments merge only when they
-genuinely belong to the same net.
+net. Distinct nets never render exactly collinear and overlapping. When several
+terminals share a coordinate, for example multiple pins on one IC edge, their
+drops are fanned into separate lanes so each connection reads as its own line.
+Collinear segments merge only when they genuinely belong to the same net.
 
 Module and IC pin pitch along top/bottom edges is label-width-aware: the gap
 between two adjacent pins widens past the base pitch when their names (e.g.
 `GPIO15`) need the room, so pin labels never overlap. Short names keep the
 classic pitch exactly.
+
+An IC with pins on both left and right edges also widens its body for the
+longest opposing labels, including the renderer's label insets and a gap between
+the two names. Short labels retain the minimum IC width.
 
 Two-terminal parts auto-mirror when that strictly shortens the flow-axis run
 to their wire partners — a part fed from its far side would otherwise have

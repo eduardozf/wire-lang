@@ -348,6 +348,10 @@ _Avoid_: magic global, implicit connection, hidden wire
 The rendered line used in a **Schematic** to show part of a **Net**.
 _Avoid_: net, physical cable
 
+**Facing Pin Channel**:
+The empty layout corridor between adjacent component edges whose terminals point toward each other. Two-terminal **Nets** use distinct, source-ordered orthogonal tracks inside this corridor before the layout falls back to external net rails. Auto layout widens the corridor when its route count needs more tracks.
+_Avoid_: bus trunk, manual coordinates
+
 **Junction Dot**:
 A filled dot rendered where visual wires explicitly connect at a junction.
 _Avoid_: wire crossing, decorative point
@@ -920,6 +924,9 @@ Terminals are user-defined through recommended `pins: ic-pin-list` written as `p
 - The MVP uses **Auto Layout** by default and avoids absolute coordinates.
 - The MVP requires **Stable Auto Layout**: deterministic output and local visual changes where practical.
 - MVP **Layout Priority** is: render hints, stability, source order, crossing reduction, compactness.
+- Two-terminal **Nets** between adjacent facing IC edges route through a **Facing Pin Channel** instead of external rails.
+- A **Facing Pin Channel** widens component spacing when needed to keep its internal route tracks visually separate.
+- IC bodies widen when needed so pin labels on opposing left and right edges do not overlap.
 - The MVP supports simple **Component Groups** to guide layout, without nested groups.
 - **Group Statements** use `group Name: A, B, C`; group layout preferences use separate render hints.
 - In the MVP, a **Component Instance** can belong to at most one **Component Group**.

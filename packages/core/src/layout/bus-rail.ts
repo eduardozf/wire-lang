@@ -2,7 +2,7 @@ import type { ComponentInstance, Net, SchematicModel } from "../model/types.js";
 import type { ComponentGeom } from "./geometry.js";
 import { componentGeometry, mirrorGeometry, rotateGeometry } from "./geometry.js";
 import { assignLanes } from "./lanes.js";
-import type { BridgeGroup, ChainGroup, PeripheralGroup } from "./peripherals.js";
+import type { BridgeGroup, ChainGroup } from "./peripherals.js";
 import { detectPeripherals, memberIds } from "./peripherals.js";
 import type {
   LayoutComponent,

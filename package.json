@@ -30,23 +30,15 @@
     "clean": "tsc -b --clean && rimraf packages/*/dist packages/*/*.tsbuildinfo"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.5.3",
+    "@biomejs/biome": "^2.5.11",
     "@resvg/resvg-js": "^2.6.2",
-    "@types/node": "^26.1.0",
-    "prettier": "3.9.4",
+    "@types/node": "^26.2.0",
+    "prettier": "3.9.6",
     "rimraf": "^6.0.1",
-    "skills": "1.5.15",
+    "skills": "1.5.23",
     "tsup": "^8.5.1",
-    "typescript": "^6.0.3",
-    "vite": "^8.1.3",
-    "vitest": "^4.1.10"
-  },
-  "pnpm": {
-    "overrides": {
-      "esbuild": "0.28.1"
-    },
-    "onlyBuiltDependencies": [
-      "esbuild"
-    ]
+    "typescript": "^7.0.2",
+    "vite": "^8.2.2",
+    "vitest": "^4.1.11"
   }
 }

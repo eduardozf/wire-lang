@@ -1,5 +1,6 @@
 import type { ComponentInstance, Net, SchematicModel } from "../model/types.js";
 import { layoutBusRail } from "./bus-rail.js";
+import { requiredFacingChannelWidth, routeFacingChannel } from "./channel-router.js";
 import type { ComponentGeom } from "./geometry.js";
 import {
   componentGeometry,
@@ -35,6 +36,12 @@ interface MC {
 /** A net member's terminal, tagged with its body center so drops can fan away from it. */
 interface DropPoint extends MC {
   centerMain: number;
+}
+
+interface RoutePoint extends DropPoint {
+  component: string;
+  placedIndex: number;
+  side?: TerminalSide;
 }
 
 /**
@@ -82,6 +89,35 @@ interface RawLabel {
   kind: "annotation" | "net-label";
 }
 
+function facingConnectionCount(
+  model: SchematicModel,
+  left: { instance: ComponentInstance; geom: ComponentGeom },
+  right: { instance: ComponentInstance; geom: ComponentGeom },
+): number {
+  const leftTerminals = new Set(
+    left.geom.terminals
+      .filter((terminal) => terminal.side === "right")
+      .map((terminal) => terminal.name),
+  );
+  const rightTerminals = new Set(
+    right.geom.terminals
+      .filter((terminal) => terminal.side === "left")
+      .map((terminal) => terminal.name),
+  );
+
+  return model.nets.filter((net) => {
+    if (net.style === "label" || net.members.length !== 2) return false;
+    const leftMember = net.members.find((member) => member.component === left.instance.id);
+    const rightMember = net.members.find((member) => member.component === right.instance.id);
+    return (
+      leftMember !== undefined &&
+      rightMember !== undefined &&
+      leftTerminals.has(leftMember.terminal) &&
+      rightTerminals.has(rightMember.terminal)
+    );
+  }).length;
+}
+
 export function layout(model: SchematicModel): LayoutModel {
   if (model.layout === "bus-rail") return layoutBusRail(model);
 
@@ -99,23 +135,30 @@ export function layout(model: SchematicModel): LayoutModel {
   // ---- placement ----------------------------------------------------------
   // Pass 1 fixes every span and start position; mirroring never changes spans,
   // so flips can be decided afterward against the final positions.
+  const placementCandidates = ordered.map((instance) => {
+    const base = componentGeometry(instance);
+    const geom =
+      instance.orientation && instance.orientation !== flowOrientation
+        ? rotateGeometry(base)
+        : base;
+    return { instance, geom };
+  });
   const placed: PlacedComponent[] = [];
   const terminalPoints = new Map<string, MC>();
   let cursor = 0;
   let maxBodyCross = 0;
   let minBodyCross = 0;
 
-  for (const instance of ordered) {
-    const base = componentGeometry(instance);
-    const geom =
-      instance.orientation && instance.orientation !== flowOrientation
-        ? rotateGeometry(base)
-        : base;
+  for (const [index, candidate] of placementCandidates.entries()) {
+    const { instance, geom } = candidate;
     const mainStart = cursor;
     maxBodyCross = Math.max(maxBodyCross, geom.crossSpan / 2);
     minBodyCross = Math.min(minBodyCross, -geom.crossSpan / 2);
     placed.push({ instance, geom, mainStart, centerMain: mainStart + geom.mainSpan / 2 });
-    cursor += geom.mainSpan + GAP_MAIN;
+    const next = placementCandidates[index + 1];
+    const connectionCount = next ? facingConnectionCount(model, candidate, next) : 0;
+    const gap = Math.max(GAP_MAIN, requiredFacingChannelWidth(connectionCount));
+    cursor += geom.mainSpan + gap;
   }
 
   // Pass 2: auto-flip. Mirror a two-terminal part when that strictly shortens
@@ -166,6 +209,15 @@ export function layout(model: SchematicModel): LayoutModel {
   const railInfo = new Map<string, { railCross: number; minMain: number; maxMain: number }>();
 
   const centerByComponent = new Map(placed.map((entry) => [entry.instance.id, entry.centerMain]));
+  const placedIndexById = new Map(placed.map((entry, index) => [entry.instance.id, index]));
+  const routePoint = (component: string, terminal: string): RoutePoint | undefined => {
+    const entry = placedById.get(component);
+    const point = terminalPoints.get(`${component}.${terminal}`);
+    const term = entry?.geom.terminals.find((candidate) => candidate.name === terminal);
+    const placedIndex = placedIndexById.get(component);
+    if (!entry || !point || !term || placedIndex === undefined) return undefined;
+    return { ...point, centerMain: entry.centerMain, component, placedIndex, side: term.side };
+  };
 
   // Multi-terminal nets route through horizontal rails, built in phases:
   //   1. pick each net's side (top/bottom) and collect its terminal drops;
@@ -187,6 +239,44 @@ export function layout(model: SchematicModel): LayoutModel {
   const bottomProvisional = maxBodyCross + RAIL_GAP;
 
   const sortedNets = [...model.nets].sort((a, b) => a.sourceIndex - b.sourceIndex);
+  const facingGroups = new Map<string, { net: Net; left: RoutePoint; right: RoutePoint }[]>();
+  for (const net of sortedNets) {
+    if (net.style === "label" || net.members.length !== 2) continue;
+    const endpoints = net.members
+      .map((member) => routePoint(member.component, member.terminal))
+      .filter((point): point is RoutePoint => point !== undefined)
+      .sort((a, b) => a.main - b.main);
+    if (endpoints.length !== 2) continue;
+    const [left, right] = endpoints;
+    if (!left || !right || right.placedIndex - left.placedIndex !== 1) continue;
+    if (left.side !== "right" || right.side !== "left" || left.main >= right.main) continue;
+    const key = `${left.component}:${right.component}`;
+    const group = facingGroups.get(key);
+    const connection = { net, left, right };
+    if (group) group.push(connection);
+    else facingGroups.set(key, [connection]);
+  }
+  const facingRoutes = new Map<Net, { from: MC; to: MC }[]>();
+  for (const group of facingGroups.values()) {
+    const routes = routeFacingChannel(
+      group.map(({ net, left, right }) => ({
+        key: net,
+        sourceIndex: net.sourceIndex,
+        left: { x: left.main, y: left.cross },
+        right: { x: right.main, y: right.cross },
+      })),
+    );
+    if (!routes) continue;
+    for (const [net, segments] of routes) {
+      facingRoutes.set(
+        net,
+        segments.map((segment) => ({
+          from: { main: segment.from.x, cross: segment.from.y },
+          to: { main: segment.to.x, cross: segment.to.y },
+        })),
+      );
+    }
+  }
   for (const net of sortedNets) {
     const points = net.members
       .map((member): DropPoint | undefined => {
@@ -210,6 +300,18 @@ export function layout(model: SchematicModel): LayoutModel {
         anonymous: net.anonymous,
         style: "wire",
         segments: [{ from: only, to: end }],
+        junctions: [],
+      });
+      continue;
+    }
+
+    const facingRoute = facingRoutes.get(net);
+    if (facingRoute) {
+      wires.push({
+        net: net.name,
+        anonymous: net.anonymous,
+        style: "wire",
+        segments: facingRoute,
         junctions: [],
       });
       continue;
