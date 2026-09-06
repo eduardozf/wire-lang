@@ -1,0 +1,54 @@
+{
+  "name": "@wire-lang/browser",
+  "version": "0.3.1",
+  "type": "module",
+  "description": "Asynchronous browser rendering for Wire Lang code blocks.",
+  "keywords": [
+    "wire-lang",
+    "schematic",
+    "browser",
+    "svg"
+  ],
+  "license": "MIT",
+  "author": "Ferraz <eduardozf1@gmail.com>",
+  "homepage": "https://github.com/eduardozf/wire-lang#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/eduardozf/wire-lang.git",
+    "directory": "packages/browser"
+  },
+  "bugs": {
+    "url": "https://github.com/eduardozf/wire-lang/issues"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist/**/*.d.ts",
+    "dist/**/*.d.ts.map",
+    "dist/**/*.js",
+    "dist/**/*.js.map",
+    "LICENSE",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@wire-lang/core": "workspace:*"
+  },
+  "devDependencies": {
+    "jsdom": "^26.1.0"
+  },
+  "scripts": {
+    "build:js": "tsup"
+  }
+}

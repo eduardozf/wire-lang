@@ -27,7 +27,8 @@ The main product reference is Mermaid: a text-first documentation workflow where
 - No polished end-user CLI beyond minimal check, render, and watch commands.
 - No preview server command in the MVP.
 - No browser auto-render in the MVP.
-- No headless language server, Markdown processor, or VS Code extension in the MVP.
+- No headless language server, Markdown processor, or VS Code extension in the
+  MVP. Markdown integration is provided separately as a post-MVP package.
 - No formal IEC 60617, IEEE 315, or other standards compliance claim.
 
 ## Source Format
@@ -362,9 +363,14 @@ Initial MVP packages:
 - `@wire-lang/core`: parser, validators, compiler, schematic model, layout model, and SVG renderer
 - `@wire-lang/cli`: `wire check`, `wire render`, and `wire watch`
 
+Implemented post-MVP packages:
+
+- `@wire-lang/browser`: asynchronous DOM discovery and rendering after HTML loads
+- `@wire-lang/markdown`: remark, rehype, and MDX plugins that preserve `wire`
+  fences by default and render SVG ahead of time with `{ mode: "static" }`
+
 Post-MVP packages:
 
-- `@wire-lang/browser`
 - `@wire-lang/language-server`
 - editor integrations such as a VS Code extension
 
@@ -609,19 +615,54 @@ Standard symbols use an IEC-style visual profile where practical. Wire Lang does
 
 ## Post-MVP Browser Auto Render
 
-Browser auto-render is outside the MVP. The planned post-MVP browser integration finds source blocks by default:
+`@wire-lang/browser` implements the default documentation workflow after HTML
+is ready. It exports asynchronous `initialize()`, `run()`, and `render(source)`
+functions and a default object containing those functions. Imports have no DOM
+side effects. `initialize()` defaults to `startOnLoad: true`, waits for
+`DOMContentLoaded` when necessary, and runs once. `startOnLoad: false` leaves
+rendering to explicit `run()` calls.
+
+Default discovery matches:
 
 ```css
-pre.wire-lang, code.wire-lang
+pre > code.language-wire, pre.wire-lang, code.wire-lang
 ```
 
-`run()` should preserve the original source block and insert a separate rendered container. It should be idempotent by default:
+`run({ root?, selector?, force? })` reads source as text, hides successfully
+rendered source blocks, and inserts a sibling `div.wire-lang-diagram` with SVG.
+It preserves the original source. Repeated and concurrent calls do not duplicate
+output. Changed source or `force: true` triggers rendering again. A supplied root
+is included if it matches. Discovery does not cross shadow roots automatically.
 
-```ts
-await run()
-await run() // does not duplicate output
-await run({ force: true }) // may re-render explicitly
-```
+Calls resolve to `{ rendered, errors }`; errors retain the source element and
+original exception. Invalid blocks remain available as source with a
+`data-wire-error` attribute, while other diagrams continue. Failed rerenders
+remove stale SVG and restore the source's previous hidden state. Invalid
+selectors or missing DOM context reject the call. Applications decide how to
+present returned errors and call `run()` after navigation or DOM updates. MDX
+applications must run after hydration to avoid competing with the framework.
+
+`render(source)` asynchronously returns the same SVG string as core's
+`renderSvg(source)`. Work yields to the event loop before each diagram, but
+compilation and layout of an individual diagram remain on the main thread.
+The standalone browser ESM bundle includes core and needs no import map.
+
+## Post-MVP Markdown and MDX Integration
+
+`@wire-lang/markdown` provides `remarkWire` and `rehypeWire`, accepting
+`{ mode?: "browser" | "static" }`. Browser mode is the default and preserves
+source nodes for the browser runtime. Standard Markdown HTML already contains
+`pre > code.language-wire`, so that workflow needs no Wire Markdown plugin.
+
+Static mode renders source with core and replaces the fence with structured
+inline SVG nodes. It requires no Wire JavaScript in the generated page and works
+in builds or server requests. Static `rehypeWire` also works as an MDX plugin.
+Fatal diagnostics fail static processing and map back into the Markdown VFile.
+Range endpoints account for the prefix removed from each original content line.
+If VFile text is missing or no longer matches, columns fall back to the opening
+fence indentation. Browser diagnostics are relative to the source block instead.
+
+See [ADR 0020](./adr/0020-browser-default-static-opt-in.md) for the default change.
 
 ## Post-MVP Roadmap
 
@@ -631,10 +672,8 @@ High-priority follow-ups:
   `anchor`, and `side` for components and groups, plus group-aware layout (today
   these emit `render.not-yet-honored` / `group.not-yet-honored` warnings).
   Per-component `orientation` is now honored.
-- browser auto-render for `pre.wire-lang` and `code.wire-lang`
 - headless language server using a Langium grammar and the existing validators
 - VS Code extension with syntax highlighting, diagnostics, and authoring feedback
-- Markdown/MDX integrations using the `wire` fenced code tag
 - custom component libraries passed through the JavaScript API
 
 Later extensions:
@@ -667,3 +706,4 @@ Later extensions:
 - [ADR 0015](./adr/0015-no-preview-server-in-mvp.md) records the MVP preview decision.
 - [ADR 0016](./adr/0016-browser-auto-render-post-mvp.md) records the browser auto-render scope decision.
 - [ADR 0017](./adr/0017-esm-only-node-20.md) records the runtime and module-format decision.
+- [ADR 0019](./adr/0019-build-time-markdown-integration.md) records the original static Markdown integration, superseded in part by ADR 0020.

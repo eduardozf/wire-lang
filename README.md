@@ -68,6 +68,38 @@ import { renderSvg } from "wire-lang";
 const svg = renderSvg(source);
 ```
 
+Write the same source inside a Markdown or MDX fence:
+
+````markdown
+```wire
+schematic
+  component R1 Resistor value=220ohm
+  component D1 LED color=red
+  connect R1.1, D1.A
+```
+````
+
+```bash
+npm install @wire-lang/browser
+```
+
+Initialize the renderer in your site's browser entry point:
+
+```js
+import wire from "@wire-lang/browser";
+
+const { errors } = await wire.initialize();
+for (const { error } of errors) console.error(error);
+```
+
+The default workflow renders diagrams asynchronously after HTML is ready.
+Your Markdown processor must preserve `pre > code.language-wire` blocks. See
+the [browser guide](./packages/browser) for setup and client navigation.
+
+For ahead-of-time rendering with no browser runtime, use `remarkWire` or
+`rehypeWire` from `@wire-lang/markdown` with `{ mode: "static" }`. See the
+[Markdown/MDX guide](./packages/markdown) for complete build configuration.
+
 ## How it compares
 
 Think **[Mermaid Charts](https://github.com/mermaid-js/mermaid), but for electronic schematics**: text goes in, documentation-
@@ -171,11 +203,13 @@ symbol art; it does not claim formal IEC/IEEE compliance. See
 
 ### Packages & development
 
-| Package                              | Role                                                       |
-| ------------------------------------ | ---------------------------------------------------------- |
-| [`wire-lang`](./packages/wire-lang)  | User-facing aggregate package and the `wire` binary        |
-| [`@wire-lang/core`](./packages/core) | Parser, compiler, schematic model, layout engine, renderer |
-| [`@wire-lang/cli`](./packages/cli)   | `wire check`, `wire render`, `wire watch`                  |
+| Package                                      | Role                                                        |
+| -------------------------------------------- | ----------------------------------------------------------- |
+| [`wire-lang`](./packages/wire-lang)          | User-facing aggregate package and the `wire` binary         |
+| [`@wire-lang/core`](./packages/core)         | Parser, compiler, schematic model, layout engine, renderer  |
+| [`@wire-lang/cli`](./packages/cli)           | `wire check`, `wire render`, `wire watch`                   |
+| [`@wire-lang/browser`](./packages/browser)   | Asynchronous rendering after HTML loads                     |
+| [`@wire-lang/markdown`](./packages/markdown) | Markdown and MDX integration with optional static rendering |
 
 ```bash
 pnpm install
