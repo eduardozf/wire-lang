@@ -1,0 +1,4 @@
+schematic
+  component D1 Diode
+  component R1 Resistor value=1k
+  connect D1.C, R1.1

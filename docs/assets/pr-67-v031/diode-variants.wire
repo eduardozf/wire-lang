@@ -1,0 +1,19 @@
+schematic
+  title "Diode variants"
+  description "A Schottky rectifier feeds a node clamped by a Zener, plus a photodiode sense leg."
+
+  component PWR1 PowerFlag name=5V
+  component D1 SchottkyDiode
+  component D2 ZenerDiode
+  component D3 Photodiode
+  component R1 Resistor value=1k
+  component G1 GroundReference
+  component G2 GroundReference
+
+  net VIN: PWR1.1, D1.A
+  net NODE: D1.C, D2.C, R1.1
+  net GNDZ: D2.A, G1.GND
+  net SENSE: R1.2, D3.A
+  net GNDP: D3.C, G2.GND
+
+  annotation "Zener clamp" near D2

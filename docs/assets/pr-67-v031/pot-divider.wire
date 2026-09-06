@@ -1,0 +1,14 @@
+schematic
+  title "Potentiometer voltage divider"
+  description "A 10k potentiometer taps a fraction of the 5V rail; a rheostat trims the return leg."
+
+  component PWR1 PowerFlag name=5V
+  component RV1 Potentiometer value=10k
+  component RH1 Rheostat value=4k7
+  component G1 GroundReference
+
+  net VCC: PWR1.1, RV1.1
+  net OUT: RV1.W, RH1.1
+  net GND: RV1.2, RH1.2, G1.GND
+
+  annotation "Wiper output" near RV1
