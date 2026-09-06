@@ -1,0 +1,8 @@
+schematic
+  component R1 Resistor value=1k
+  component D1 Diode
+  component G1 GroundReference
+  net BIAS: R1.2, D1.C
+  net GND: D1.A, G1.GND
+  render D1 orientation=vertical
+  render net GND style=label

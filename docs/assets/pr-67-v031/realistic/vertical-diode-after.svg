@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" class="wire-lang" viewBox="0 0 298 190" width="298" height="190" role="img" data-wire-lang-version="0.3.1">
+<title>Wire Lang schematic</title>
+<desc>A schematic with 3 components.</desc>
+<style>.wire-lang { background: #ffffff; }
+.wire-wire { stroke: #1f2937; stroke-width: 1.5; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.wire-symbol { stroke: #1f2937; stroke-width: 1.5; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.wire-symbol-bg { stroke: #1f2937; stroke-width: 1.5; fill: #ffffff; }
+.wire-symbol-fill { fill: #1f2937; stroke: none; }
+.wire-junction { fill: #1f2937; }
+.wire-label { fill: #111827; font: 600 11px var(--wire-font, system-ui, sans-serif); }
+.wire-pin-label { fill: #374151; font: 9px var(--wire-font, system-ui, sans-serif); }
+.wire-net-label { fill: #2563eb; font: 600 10px var(--wire-font, system-ui, sans-serif); }
+.wire-annotation { fill: #6b7280; font: italic 10px var(--wire-font, system-ui, sans-serif); }</style>
+<rect class="wire-background" x="0" y="0" width="298" height="190" fill="#ffffff"/>
+<g class="wire-wires"><g class="wire-net" data-wire-kind="net" data-wire-style="label" data-wire-net="GND"><line class="wire-wire" x1="163" y1="126" x2="163" y2="144"/><line class="wire-wire" x1="244" y1="79" x2="244" y2="61"/></g><g class="wire-net" data-wire-kind="net" data-wire-style="wire" data-wire-net="BIAS"><line class="wire-wire" x1="100" y1="36" x2="163" y2="36"/><line class="wire-wire" x1="100" y1="94" x2="100" y2="36"/><line class="wire-wire" x1="163" y1="62" x2="163" y2="36"/></g></g>
+<g class="wire-component" data-wire-kind="component" data-wire-id="R1" data-wire-type="Resistor" data-wire-symbol="resistor" id="wire-component-R1"><path class="wire-symbol" fill="none" d="M 36 94 L 50 94 L 53 87 L 59 101 L 65 87 L 71 101 L 77 87 L 83 101 L 86 94 L 100 94"/><text class="wire-label" x="68" y="77" text-anchor="middle">R1</text><text class="wire-label" x="68" y="64" text-anchor="middle">1k</text></g><g class="wire-component" data-wire-kind="component" data-wire-id="D1" data-wire-type="Diode" data-wire-symbol="diode" id="wire-component-D1"><path class="wire-symbol" fill="none" d="M 163 126 L 163 101"/><path class="wire-symbol" fill="none" d="M 163 87 L 163 62"/><polygon class="wire-symbol-fill" points="171,101 155,101 163,87" fill="#1f2937"/><line class="wire-symbol" x1="171" y1="87" x2="155" y2="87"/><text class="wire-label" x="180" y="98" text-anchor="start">D1</text></g><g class="wire-component" data-wire-kind="component" data-wire-id="G1" data-wire-type="GroundReference" data-wire-symbol="ground-reference" id="wire-component-G1"><path class="wire-symbol" fill="none" d="M 244 79 L 244 85.75"/><line class="wire-symbol" x1="256" y1="85.75" x2="232" y2="85.75"/><line class="wire-symbol" x1="252" y1="89.2" x2="236" y2="89.2"/><line class="wire-symbol" x1="248" y1="92.5" x2="240" y2="92.5"/></g>
+<g class="wire-labels"><text class="wire-net-label" x="163" y="154" text-anchor="middle">GND</text><text class="wire-net-label" x="244" y="57" text-anchor="middle">GND</text></g>
+</svg>

@@ -1,0 +1,5 @@
+schematic
+  component R1 Resistor value=1k
+  component G1 GroundReference
+  net GND: R1.2, G1.GND
+  render R1 orientation=vertical
