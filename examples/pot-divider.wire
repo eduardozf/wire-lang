@@ -1,0 +1,14 @@
+schematic
+  title "Loaded potentiometer divider"
+  description "A 10k potentiometer divides 5V; a 4k7 rheostat loads its OUT node to ground."
+  component PWR1 PowerFlag name=5V
+  component RV1 Potentiometer value=10k
+  component RH1 Rheostat value=4k7
+  component G1 GroundReference
+  net 5V: PWR1.1, RV1.1
+  net OUT: RV1.W, RH1.1
+  net GND: RV1.2, RH1.2, G1.GND
+  render RV1 orientation=vertical
+  render RH1 orientation=vertical
+  render net GND style=label
+  annotation "OUT" near net OUT

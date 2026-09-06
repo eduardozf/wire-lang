@@ -35,6 +35,7 @@ interface MC {
 
 /** A net member's terminal, tagged with its body center so drops can fan away from it. */
 interface DropPoint extends MC {
+  component: string;
   centerMain: number;
 }
 
@@ -55,6 +56,7 @@ interface Drop {
   railCross: number;
   centerMain: number;
   lane: number;
+  escapeCross?: number;
 }
 
 /** A multi-terminal net awaiting rail-track assignment and segment emission. */
@@ -192,6 +194,44 @@ export function layout(model: SchematicModel): LayoutModel {
     };
     const mirrored = mirrorGeometry(entry.geom);
     if (cost(mirrored) < cost(entry.geom)) entry.geom = mirrored;
+    // In horizontal flows, vertical two-terminal branches read top to bottom:
+    // earlier partners feed the top and later partners receive the bottom.
+    // Explicit ground/power glyphs take precedence over declaration order.
+    if (
+      !vertical &&
+      entry.geom.terminals.length === 2 &&
+      entry.geom.terminals[0]!.main === entry.geom.terminals[1]!.main
+    ) {
+      const crossCost = (geom: ComponentGeom): number => {
+        let total = 0;
+        for (const net of model.nets) {
+          const own = net.members.find((member) => member.component === entry.instance.id);
+          const terminal = geom.terminals.find((term) => term.name === own?.terminal);
+          if (!terminal) continue;
+          const ground = net.members.some(
+            (member) => placedById.get(member.component)?.instance.symbol === "ground-reference",
+          );
+          const supply = net.members.some(
+            (member) => placedById.get(member.component)?.instance.symbol === "power-flag",
+          );
+          if (ground || supply) {
+            total += (ground ? -terminal.cross : terminal.cross) * model.components.length;
+            continue;
+          }
+          for (const partner of net.members) {
+            if (partner.component === entry.instance.id) continue;
+            const other = partnerMain(partner.component, partner.terminal);
+            if (other !== undefined) total += terminal.cross * (other < entry.centerMain ? 1 : -1);
+          }
+        }
+        return total;
+      };
+      const flipped = {
+        ...entry.geom,
+        terminals: entry.geom.terminals.map((term) => ({ ...term, cross: -term.cross })),
+      };
+      if (crossCost(flipped) < crossCost(entry.geom)) entry.geom = flipped;
+    }
   }
 
   for (const entry of placed) {
@@ -282,7 +322,11 @@ export function layout(model: SchematicModel): LayoutModel {
       .map((member): DropPoint | undefined => {
         const point = terminalPoints.get(`${member.component}.${member.terminal}`);
         if (!point) return undefined;
-        return { ...point, centerMain: centerByComponent.get(member.component) ?? point.main };
+        return {
+          ...point,
+          component: member.component,
+          centerMain: centerByComponent.get(member.component) ?? point.main,
+        };
       })
       .filter((point): point is DropPoint => point !== undefined);
     if (points.length === 0) continue;
@@ -317,6 +361,27 @@ export function layout(model: SchematicModel): LayoutModel {
       continue;
     }
 
+    // Adjacent facing terminals on one axis need only a straight connection.
+    const [left, right] = [...points].sort((a, b) => a.main - b.main);
+    if (
+      points.length === 2 &&
+      left &&
+      right &&
+      left.cross === right.cross &&
+      left.main > left.centerMain &&
+      right.main < right.centerMain &&
+      !placed.some((entry) => entry.centerMain > left.main && entry.centerMain < right.main)
+    ) {
+      wires.push({
+        net: net.name,
+        anonymous: net.anonymous,
+        style: "wire",
+        segments: [{ from: left, to: right }],
+        junctions: [],
+      });
+      continue;
+    }
+
     const avg = points.reduce((sum, point) => sum + point.cross, 0) / points.length;
     const side: "top" | "bottom" = avg < 0 ? "top" : "bottom";
     const railCross = side === "top" ? topProvisional : bottomProvisional;
@@ -326,12 +391,22 @@ export function layout(model: SchematicModel): LayoutModel {
       railCross,
       centerMain: point.centerMain,
       lane: 0,
+      escapeCross:
+        placedById.get(point.component)?.instance.symbol === "ground-reference" &&
+        point.cross < 0 &&
+        railCross > point.cross
+          ? point.cross - STUB
+          : undefined,
     }));
     pendingNets.push({ net, side, railCross, minMain: 0, maxMain: 0, drops });
     allDrops.push(...drops);
   }
 
   assignDropLanes(allDrops);
+  // Leave the ground terminal outward before passing around its bars.
+  for (const drop of allDrops) {
+    if (drop.escapeCross !== undefined) drop.lane = Math.max(24, drop.lane);
+  }
 
   // With lanes fixed, record each rail's true main extent, then pack the rails
   // into shared tracks per side so unrelated nets stop stacking up the margins.
@@ -356,6 +431,21 @@ export function layout(model: SchematicModel): LayoutModel {
     }
     for (const drop of drops) {
       const lm = laneMain(drop);
+      if (drop.escapeCross !== undefined) {
+        segments.push(
+          {
+            from: { main: drop.main, cross: drop.cross },
+            to: { main: drop.main, cross: drop.escapeCross },
+          },
+          {
+            from: { main: drop.main, cross: drop.escapeCross },
+            to: { main: lm, cross: drop.escapeCross },
+          },
+          { from: { main: lm, cross: drop.escapeCross }, to: { main: lm, cross: railCross } },
+        );
+        if (lm > minMain && lm < maxMain) junctions.push({ main: lm, cross: railCross });
+        continue;
+      }
       // Step sideways into the assigned lane before running down to the rail.
       if (drop.lane !== 0) {
         segments.push({

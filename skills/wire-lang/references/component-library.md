@@ -9,8 +9,13 @@ Lang source.
 | `Capacitor` | `1`, `2` | recommended `capacitance` | `id`, `capacitance` |
 | `PolarizedCapacitor` | `+`, `-` | recommended `capacitance` | `id`, `capacitance` |
 | `Inductor` | `1`, `2` | recommended `inductance` | `id`, `inductance` |
+| `Potentiometer` | `1`, `W`, `2` | recommended `value` | `id`, `value` |
+| `Rheostat` | `1`, `2` | recommended `value` | `id`, `value` |
 | `Diode` | `A`, `C` | none | `id` |
 | `LED` | `A`, `C` | optional `color` | `id` |
+| `ZenerDiode` | `A`, `C` | optional `voltage` | `id`, `voltage` |
+| `SchottkyDiode` | `A`, `C` | none | `id` |
+| `Photodiode` | `A`, `C` | none | `id` |
 | `NPNTransistor` | `C`, `B`, `E` | none | `id` |
 | `PNPTransistor` | `C`, `B`, `E` | none | `id` |
 | `Battery` | `+`, `-` | recommended `voltage` | `id`, `voltage` |
@@ -30,10 +35,26 @@ Lang source.
 `PTC` is the resettable-fuse / polyfuse variant. `PowerFlag` draws its `name`
 (e.g. `5V`, `3V3`, `VBAT`) as a rail flag and is not a hidden global net.
 
+`Potentiometer` is a three-terminal variable resistor: the two track ends `1`
+and `2` are interchangeable and the `W` wiper taps the middle (connect it by name
+or via the `wiper` role alias, e.g. `net OUT: RV1.W, ...`). `Rheostat` is the
+two-terminal form. Potentiometer labels are placed opposite the wiper and follow
+orientation hints. The arrow touches the resistor track. Avoid redundant
+annotations beside these parts when the component and net names already explain
+the circuit; annotations are not automatically routed around wires.
+
+`ZenerDiode`, `SchottkyDiode`, and `Photodiode` reuse the
+`Diode` `A`/`C` terminals.
+
 ## Property Examples
 
 ```wire
 component R1 Resistor value=10k
+component RV1 Potentiometer value=10k
+component RH1 Rheostat value=4k7
+component D2 ZenerDiode
+component D3 SchottkyDiode
+component D4 Photodiode
 component C1 Capacitor capacitance=100nF
 component BT1 Battery voltage=5V
 component D1 LED color=red
@@ -62,3 +83,14 @@ MOSFETs, op-amps, relays, motors, displays, sensors, Arduino boards, ESP32
 boards, and custom component libraries are outside the MVP standard library. Use
 a local `define component ... symbol module` block when a simple module
 placeholder is enough.
+
+## Practical diode and divider examples
+
+Use `ZenerDiode voltage=3.3V` to show its nominal breakdown voltage. A Zener
+shunt bias needs current limiting ahead of its branch, not just a resistor in
+another load branch. For a reverse-biased photodiode, connect the cathode toward
+the positive bias and its anode toward the sensing resistor and ground.
+
+GroundReference glyphs do not merge nets. Put all intended common returns in
+one `GND` net, even when using `render net GND style=label` to shorten the drawing.
+A rheostat between a potentiometer wiper and ground is a load on the output.

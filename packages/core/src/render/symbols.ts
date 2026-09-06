@@ -232,26 +232,32 @@ function drawInductor(pen: Pen, length: number): string {
   return pen.wire({ points });
 }
 
-function drawDiode(pen: Pen, length: number, component: LayoutComponent, led: boolean): string {
+const DIODE_TIP = 7; // half-length of the body: flat anode at -tip, point at +tip
+const DIODE_HEIGHT = 16; // height of the body and the cathode bar
+
+/** Diode leads plus the filled triangle body, shared by every diode variant. */
+function drawDiodeBody(pen: Pen, length: number, fill: string): string {
   const center = length / 2;
-  const tipDistance = 7; // half-length of the body: flat anode at -tip, point at +tip
-  const bodyHeight = 16; // height of the body and the cathode bar
-  const fill = led ? (ledColor(component) ?? "#9ca3af") : "#1f2937";
-  const parts = [
-    pen.lead({ from: { along: 0, across: 0 }, to: { along: center - tipDistance, across: 0 } }), // anode lead
-    pen.lead({
-      from: { along: center + tipDistance, across: 0 },
-      to: { along: length, across: 0 },
-    }), // cathode lead
+  return group(
+    pen.lead({ from: { along: 0, across: 0 }, to: { along: center - DIODE_TIP, across: 0 } }), // anode lead
+    pen.lead({ from: { along: center + DIODE_TIP, across: 0 }, to: { along: length, across: 0 } }), // cathode lead
     pen.triangle({
       fill,
       points: [
-        { along: center - tipDistance, across: -bodyHeight / 2 },
-        { along: center - tipDistance, across: bodyHeight / 2 },
-        { along: center + tipDistance, across: 0 },
+        { along: center - DIODE_TIP, across: -DIODE_HEIGHT / 2 },
+        { along: center - DIODE_TIP, across: DIODE_HEIGHT / 2 },
+        { along: center + DIODE_TIP, across: 0 },
       ],
     }),
-    pen.bar({ at: center + tipDistance, height: bodyHeight }), // cathode bar
+  );
+}
+
+function drawDiode(pen: Pen, length: number, component: LayoutComponent, led: boolean): string {
+  const center = length / 2;
+  const fill = led ? (ledColor(component) ?? "#9ca3af") : "#1f2937";
+  const parts = [
+    drawDiodeBody(pen, length, fill),
+    pen.bar({ at: center + DIODE_TIP, height: DIODE_HEIGHT }), // straight cathode bar
   ];
   if (led) {
     // Two parallel "emitted light" arrows pointing away from the diode.
@@ -264,6 +270,70 @@ function drawDiode(pen: Pen, length: number, component: LayoutComponent, led: bo
     );
   }
   return group(...parts);
+}
+
+function drawZenerDiode(pen: Pen, length: number): string {
+  const center = length / 2;
+  const bar = center + DIODE_TIP;
+  const h = DIODE_HEIGHT / 2;
+  // Canonical Zener cathode bar: a "Z" with the top end bent back toward the
+  // anode and the bottom end bent forward toward the cathode. (A unidirectional
+  // TVS shares this standard mark; the bidirectional TVS is the two-triangle form.)
+  return group(
+    drawDiodeBody(pen, length, "#1f2937"),
+    pen.wire({
+      points: [
+        { along: bar - 4, across: -h },
+        { along: bar, across: -h },
+        { along: bar, across: h },
+        { along: bar + 4, across: h },
+      ],
+    }),
+  );
+}
+
+function drawSchottkyDiode(pen: Pen, length: number): string {
+  const center = length / 2;
+  const bar = center + DIODE_TIP;
+  const h = DIODE_HEIGHT / 2;
+  // Cathode bar with squared "S" hooks: a forward tick on top, a back tick below.
+  return group(
+    drawDiodeBody(pen, length, "#1f2937"),
+    pen.wire({
+      points: [
+        { along: bar + 4, across: -h + 4 },
+        { along: bar + 4, across: -h },
+        { along: bar, across: -h },
+        { along: bar, across: h },
+        { along: bar - 4, across: h },
+        { along: bar - 4, across: h - 4 },
+      ],
+    }),
+  );
+}
+
+function drawPhotodiode(pen: Pen, length: number): string {
+  const center = length / 2;
+  // A plain diode plus two arrows pointing *into* the body (incident light),
+  // the inverse of the LED's outward-emitting arrows.
+  return group(
+    drawDiodeBody(pen, length, "#1f2937"),
+    pen.bar({ at: center + DIODE_TIP, height: DIODE_HEIGHT }),
+    pen.arrow({ from: { along: center + 4, across: -16 }, to: { along: center, across: -10 } }),
+    pen.arrow({ from: { along: center + 8, across: -14 }, to: { along: center + 4, across: -8 } }),
+  );
+}
+
+function drawRheostat(pen: Pen, length: number): string {
+  const center = length / 2;
+  // A resistor body with a diagonal wiper arrow drawn across it.
+  return group(
+    drawResistor(pen, length),
+    pen.arrow({
+      from: { along: center - 12, across: 13 },
+      to: { along: center + 12, across: -13 },
+    }),
+  );
 }
 
 function drawBattery(pen: Pen, length: number): string {
@@ -692,6 +762,28 @@ function drawModule(component: LayoutComponent): string {
   return parts.join("");
 }
 
+function drawPotentiometer(component: LayoutComponent): string {
+  // The body is a resistor between the two track ends; the wiper taps the
+  // midpoint with an arrow. Resolve the wiper by role, then draw the body in the
+  // end-to-end frame and the arrow in a fresh frame from the wiper to the body.
+  const wiperName = component.roleMappings.find((mapping) => mapping.role === "wiper")?.terminal;
+  const wiper =
+    component.terminals.find((terminal) => terminal.name === wiperName) ?? component.terminals[1];
+  const ends = component.terminals.filter((terminal) => terminal !== wiper);
+  const [a, b] = ends.length >= 2 ? ends : component.terminals;
+  if (!a || !b) return "";
+  const { frame, length } = makeFrame(a.point, b.point);
+  const body = drawResistor(makePen(frame), length);
+  if (!wiper) return body;
+  const bodyCenter = frame({ along: length / 2, across: 0 });
+  const { frame: wiperFrame, length: wiperLength } = makeFrame(wiper.point, bodyCenter);
+  const arrow = makePen(wiperFrame).arrow({
+    from: { along: 0, across: 0 },
+    to: { along: wiperLength, across: 0 },
+  });
+  return group(body, arrow);
+}
+
 function drawTwoTerminal(component: LayoutComponent): string | null {
   const [first, second] = component.terminals;
   if (!first || !second) return null;
@@ -710,6 +802,14 @@ function drawTwoTerminal(component: LayoutComponent): string | null {
       return drawDiode(p, length, component, false);
     case "led":
       return drawDiode(p, length, component, true);
+    case "zener-diode":
+      return drawZenerDiode(p, length);
+    case "schottky-diode":
+      return drawSchottkyDiode(p, length);
+    case "photodiode":
+      return drawPhotodiode(p, length);
+    case "rheostat":
+      return drawRheostat(p, length);
     case "battery":
       return drawBattery(p, length);
     case "spst-switch":
@@ -733,6 +833,28 @@ function drawLabels(component: LayoutComponent): string {
   const labels = component.labels.filter((label) => label !== "");
   if (labels.length === 0) return "";
   const parts: string[] = [];
+  if (component.symbol === "potentiometer") {
+    const wiperName = component.roleMappings.find((mapping) => mapping.role === "wiper")?.terminal;
+    const wiper = component.terminals.find((terminal) => terminal.name === wiperName);
+    if (wiper) {
+      // Keep text opposite the wiper, beside the track rather than in any of
+      // the three terminal paths. Use final coordinates so hints rotate it.
+      const dx = wiper.point.x - component.center.x;
+      const dy = wiper.point.y - component.center.y;
+      const vertical = Math.abs(dx) > Math.abs(dy);
+      const side = (vertical ? dx : dy) < 0 ? 1 : -1;
+      const x = component.center.x + (vertical ? side * 18 : 0);
+      const anchor = vertical ? (side > 0 ? "start" : "end") : "middle";
+      let y = vertical
+        ? component.center.y + 4 - ((labels.length - 1) * 13) / 2
+        : component.center.y + (side > 0 ? 22 : -16);
+      for (const label of labels) {
+        parts.push(text(label, { x, y }, anchor, "wire-label"));
+        y += vertical ? 13 : side * 13;
+      }
+      return parts.join("");
+    }
+  }
   // A vertical two-terminal part has wires entering top and bottom, so labels
   // above would sit in the wire's path; put them beside the body instead.
   const [first, second] = component.terminals;
@@ -742,7 +864,8 @@ function drawLabels(component: LayoutComponent): string {
     second &&
     Math.abs(second.point.y - first.point.y) > Math.abs(second.point.x - first.point.x);
   if (vertical) {
-    const x = component.position.x + component.size.width + 6;
+    const optical = component.symbol === "photodiode" || component.symbol === "led";
+    const x = component.position.x + component.size.width + (optical ? 18 : 6);
     let y = component.center.y + 4 - ((labels.length - 1) * 13) / 2;
     for (const label of labels) {
       parts.push(
@@ -783,6 +906,9 @@ export function renderComponent(component: LayoutComponent): string {
       break;
     case "pnp-transistor":
       glyph = drawTransistor(component, true);
+      break;
+    case "potentiometer":
+      glyph = drawPotentiometer(component);
       break;
     case "ic":
       glyph = drawIc(component);

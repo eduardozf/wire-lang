@@ -15,6 +15,10 @@ describe("parts catalog: new discrete components", () => {
     { type: "TVSDiode", id: "D1", symbol: "tvs-diode", terminals: ["A", "C"] },
     { type: "Speaker", id: "LS1", symbol: "speaker", terminals: ["+", "-"] },
     { type: "PTC", id: "F1", symbol: "ptc", terminals: ["1", "2"] },
+    { type: "Rheostat", id: "RV1", symbol: "rheostat", terminals: ["1", "2"] },
+    { type: "ZenerDiode", id: "D2", symbol: "zener-diode", terminals: ["A", "C"] },
+    { type: "SchottkyDiode", id: "D3", symbol: "schottky-diode", terminals: ["A", "C"] },
+    { type: "Photodiode", id: "D4", symbol: "photodiode", terminals: ["A", "C"] },
   ];
 
   for (const part of twoTerminal) {
@@ -80,6 +84,70 @@ describe("parts catalog: new discrete components", () => {
 `;
     expect(errorCodes(source)).toEqual([]);
     expect(() => renderSvg(source)).not.toThrow();
+  });
+});
+
+describe("parts catalog: potentiometer", () => {
+  const DIVIDER = `schematic
+  component RV1 Potentiometer value=10k
+  component R1 Resistor value=1k
+  component R2 Resistor value=2k
+  component R3 Resistor value=3k
+  net TOP: RV1.1, R1.1
+  net WIP: RV1.W, R2.1
+  net BOT: RV1.2, R3.1
+  net RET: R1.2, R2.2, R3.2
+`;
+
+  it("resolves three terminals with a wiper role mapping", () => {
+    const { model, ok } = compile(DIVIDER);
+    expect(ok).toBe(true);
+    const rv = model.components.find((c) => c.id === "RV1")!;
+    expect(rv.symbol).toBe("potentiometer");
+    expect(rv.terminals).toEqual(["1", "W", "2"]);
+    expect(rv.roleMappings).toContainEqual({ role: "wiper", terminal: "W" });
+  });
+
+  it("accepts the `wiper` role as a terminal alias on a net", () => {
+    const source = `schematic
+  component RV1 Potentiometer value=10k
+  component R1 Resistor value=1k
+  component R2 Resistor value=2k
+  component R3 Resistor value=3k
+  net TOP: RV1.1, R1.1
+  net WIP: RV1.wiper, R2.1
+  net BOT: RV1.2, R3.1
+  net RET: R1.2, R2.2, R3.2
+`;
+    expect(errorCodes(source)).toEqual([]);
+    const { model } = compile(source);
+    const wip = model.nets.find((n) => n.name === "WIP")!;
+    expect(wip.members).toContainEqual({ component: "RV1", terminal: "W" });
+  });
+
+  it("renders the potentiometer symbol without error", () => {
+    expect(() => renderSvg(DIVIDER)).not.toThrow();
+    expect(renderSvg(DIVIDER)).toContain('data-wire-symbol="potentiometer"');
+  });
+});
+
+describe("parts catalog: variable resistors & diode variants snapshot", () => {
+  it("renders the new discrete parts stably", () => {
+    const svg = renderSvg(`schematic
+  title "Variable resistors and diode variants"
+  component RV1 Potentiometer value=10k
+  component RH1 Rheostat value=4k7
+  component D1 ZenerDiode
+  component D2 SchottkyDiode
+  component D3 Photodiode
+  net A: RV1.1, RH1.1, D3.C
+  net W: RV1.W, D1.A
+  net B: RV1.2, D1.C
+  net C: RH1.2, D2.A
+  net D: D2.C, D3.A
+`);
+    expect(svg.startsWith("<svg")).toBe(true);
+    expect(svg).toMatchSnapshot();
   });
 });
 

@@ -275,8 +275,13 @@ The MVP ships a small standard component library.
 | `Capacitor` | `1`, `2` | recommended `capacitance: capacitance` | `id`, `capacitance` | `capacitor` |
 | `PolarizedCapacitor` | `+`, `-` | recommended `capacitance: capacitance` | `id`, `capacitance` | `polarized-capacitor` |
 | `Inductor` | `1`, `2` | recommended `inductance: inductance` | `id`, `inductance` | `inductor` |
+| `Potentiometer` | `1`, `W`, `2` | recommended `value: resistance` | `id`, `value` | `potentiometer` |
+| `Rheostat` | `1`, `2` | recommended `value: resistance` | `id`, `value` | `rheostat` |
 | `Diode` | `A`, `C` | none | `id` | `diode` |
 | `LED` | `A`, `C` | optional `color: enum(red, green, blue, yellow, white, amber)` | `id` | `led` |
+| `ZenerDiode` | `A`, `C` | optional `voltage: voltage` | `id`, `voltage` | `zener-diode` |
+| `SchottkyDiode` | `A`, `C` | none | `id` | `schottky-diode` |
+| `Photodiode` | `A`, `C` | none | `id` | `photodiode` |
 | `NPNTransistor` | `C`, `B`, `E` | none | `id` | `npn-transistor` |
 | `PNPTransistor` | `C`, `B`, `E` | none | `id` | `pnp-transistor` |
 | `Battery` | `+`, `-` | recommended `voltage: voltage` | `id`, `voltage` | `battery` |
@@ -293,14 +298,20 @@ The MVP ships a small standard component library.
 | `PowerFlag` | `1` | recommended `name: string` | none | `power-flag` |
 | `IC` | from `pins=[...]` | recommended `pins: ic-pin-list` | `id` | `ic` |
 
-Designator prefixes: `FerriteBead` → `FB`/`L`, `TVSDiode` → `D`/`TVS`, `Speaker` →
-`LS`/`SP`, `Antenna` → `ANT`/`E`, `TestPoint` → `TP`, `PTC` → `F`/`RT`,
-`PowerFlag` → `PWR`/`PR`/`PF`, `IC` → `U`/`IC`.
+Designator prefixes: `Potentiometer` → `R`/`RV`/`VR`, `Rheostat` →
+`R`/`RV`/`VR`/`RH`, `ZenerDiode` → `D`/`ZD`, `SchottkyDiode` → `D`/`SD`,
+`Photodiode` → `D`/`PD`, `FerriteBead` → `FB`/`L`, `TVSDiode` → `D`/`TVS`,
+`Speaker` → `LS`/`SP`, `Antenna` → `ANT`/`E`, `TestPoint` → `TP`, `PTC` →
+`F`/`RT`, `PowerFlag` → `PWR`/`PR`/`PF`, `IC` → `U`/`IC`.
 
-`TVSDiode` maps `anode`→`A` and `cathode`→`C`; `Speaker` maps `positive`→`+` and
-`negative`→`-`. `PowerFlag` draws its `name` (e.g. `VBAT`, `5V`, `3V3`, `VCC`)
-inside the flag glyph; it is a visual rail flag only and does not create a hidden
-global net.
+`Potentiometer` maps `wiper`→`W` (the two track ends `1`/`2` are
+interchangeable); `ZenerDiode`, `SchottkyDiode`, and `Photodiode` map `anode`→`A`
+and `cathode`→`C` like `Diode`. Potentiometer labels sit opposite the wiper,
+using final terminal coordinates so orientation and direction hints preserve
+clearance from the terminal paths. The wiper arrow touches the track midpoint. `TVSDiode` maps `anode`→`A` and `cathode`→`C`;
+`Speaker` maps `positive`→`+` and `negative`→`-`. `PowerFlag` draws its `name`
+(e.g. `VBAT`, `5V`, `3V3`, `VCC`) inside the flag glyph; it is a visual rail flag
+only and does not create a hidden global net.
 
 MOSFETs and complex board modules such as Arduino boards are outside the MVP.
 
@@ -707,3 +718,17 @@ Later extensions:
 - [ADR 0016](./adr/0016-browser-auto-render-post-mvp.md) records the browser auto-render scope decision.
 - [ADR 0017](./adr/0017-esm-only-node-20.md) records the runtime and module-format decision.
 - [ADR 0019](./adr/0019-build-time-markdown-integration.md) records the original static Markdown integration, superseded in part by ADR 0020.
+
+### Discrete branch routing
+
+In horizontal flows, vertical two-terminal parts can flip to put earlier
+connections above later connections, with explicit power and ground symbols
+taking priority. Potentiometers can mirror to face their connected load.
+Adjacent facing terminals on the same axis connect directly when no component
+lies between them. Ground connections routed to a lower rail first leave the
+terminal outward and pass around the symbol bars.
+
+The diode gallery uses a series resistor ahead of a Zener bias rail, a
+reverse-biased photodiode, and one explicit shared GND net. `ZenerDiode` accepts
+an optional `voltage` quantity and displays it. The divider gallery shows a
+rheostat loading the wiper output, with ground connections represented by labels.

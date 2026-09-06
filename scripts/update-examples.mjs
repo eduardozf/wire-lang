@@ -21,6 +21,8 @@ const EXAMPLES = [
   ["examples/npn-led-driver.wire", "docs/assets/npn-led-driver"],
   ["examples/kitchen-sink.wire", "docs/assets/kitchen-sink"],
   ["examples/bus-rail.wire", "docs/assets/bus-rail"],
+  ["examples/pot-divider.wire", "docs/assets/pot-divider"],
+  ["examples/diode-variants.wire", "docs/assets/diode-variants"],
 ];
 
 execFileSync("pnpm", ["--filter", "@wire-lang/core", "run", "build:js"], {
