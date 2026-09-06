@@ -102,13 +102,17 @@ const SINGLE_TERMINAL_SYMBOLS = new Set([
 ]);
 
 /**
- * Symbols the layout may mirror to face a wire. Only two-terminal parts qualify:
+ * Symbols the layout may mirror to face a wire. Two-terminal parts qualify:
  * their glyphs draw between the terminal points, so swapped terminals mirror the
  * drawing for free, and a reversed diode/LED/battery is legitimate schematic
- * practice. Modules and ICs draw from `side` and never mirror; transistors draw
+ * practice. Potentiometers also draw from role positions, so the wiper can face
+ * its load while the interchangeable track ends swap. Modules and ICs draw from `side` and never mirror; transistors draw
  * from role positions and are excluded for the same reason.
  */
-export const MIRRORABLE_SYMBOLS: ReadonlySet<string> = TWO_TERMINAL_SYMBOLS;
+export const MIRRORABLE_SYMBOLS: ReadonlySet<string> = new Set([
+  ...TWO_TERMINAL_SYMBOLS,
+  "potentiometer",
+]);
 
 export function isTwoTerminalSymbol(symbol: string): boolean {
   return TWO_TERMINAL_SYMBOLS.has(symbol);

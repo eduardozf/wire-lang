@@ -1,11 +1,20 @@
-import { readFileSync } from "node:fs";
 import { compile, layout, renderSvg } from "@wire-lang/core";
 import { describe, expect, it } from "vitest";
 
-const divider = readFileSync(
-  new URL("../../../examples/pot-divider.wire", import.meta.url),
-  "utf8",
-);
+// Keep the original collision fixture independent of gallery edits.
+const divider = `schematic
+  title "Potentiometer voltage divider"
+  description "A 10k potentiometer taps a fraction of the 5V rail; a rheostat trims the return leg."
+
+  component PWR1 PowerFlag name=5V
+  component RV1 Potentiometer value=10k
+  component RH1 Rheostat value=4k7
+  component G1 GroundReference
+
+  net VCC: PWR1.1, RV1.1
+  net OUT: RV1.W, RH1.1
+  net GND: RV1.2, RH1.2, G1.GND
+`;
 
 function coordinates(value: string): number[] {
   return value.match(/-?\d+(?:\.\d+)?/g)!.map(Number);

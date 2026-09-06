@@ -1,17 +1,21 @@
 schematic
   title "Diode variants"
-  description "A Schottky rectifier feeds a node clamped by a Zener, plus a photodiode sense leg."
-
+  description "A Schottky-protected 5V input feeds a current-limited 3.3V Zener rail and a reverse-biased photodiode with a sense resistor."
   component PWR1 PowerFlag name=5V
   component D1 SchottkyDiode
-  component D2 ZenerDiode
-  component D3 Photodiode
   component R1 Resistor value=1k
+  component D2 ZenerDiode voltage=3.3V
+  component D3 Photodiode
+  component R2 Resistor value=100k
   component G1 GroundReference
-  component G2 GroundReference
+  net 5V: PWR1.1, D1.A
+  net LIMITED: D1.C, R1.1
+  net BIAS: R1.2, D2.C, D3.C
+  net SENSE: D3.A, R2.1
+  net GND: D2.A, R2.2, G1.GND
+  render D2 orientation=vertical
+  render D3 orientation=vertical
+  render R2 orientation=vertical
 
-  net VIN: PWR1.1, D1.A
-  net NODE: D1.C, D2.C, R1.1
-  net GNDZ: D2.A, G1.GND
-  net SENSE: R1.2, D3.A
-  net GNDP: D3.C, G2.GND
+  render net GND style=label
+  render net SENSE style=label

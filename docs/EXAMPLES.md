@@ -53,7 +53,7 @@ Source: [examples/bus-rail.wire](../examples/bus-rail.wire)
 
 Source: [examples/pot-divider.wire](../examples/pot-divider.wire)
 
-![Potentiometer voltage divider](./assets/pot-divider.svg)
+![Loaded potentiometer divider](./assets/pot-divider.svg)
 
 ## Diode Variants
 

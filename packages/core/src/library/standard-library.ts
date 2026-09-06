@@ -100,8 +100,8 @@ const DEFINITIONS: readonly ComponentTypeDef[] = [
   {
     name: "ZenerDiode",
     terminals: ["A", "C"],
-    properties: [],
-    defaultLabels: ["id"],
+    properties: [{ name: "voltage", kind: "quantity", dimension: "voltage" }],
+    defaultLabels: ["id", "voltage"],
     symbol: "zener-diode",
     roleMappings: [
       { role: "anode", terminal: "A" },

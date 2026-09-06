@@ -279,7 +279,7 @@ The MVP ships a small standard component library.
 | `Rheostat` | `1`, `2` | recommended `value: resistance` | `id`, `value` | `rheostat` |
 | `Diode` | `A`, `C` | none | `id` | `diode` |
 | `LED` | `A`, `C` | optional `color: enum(red, green, blue, yellow, white, amber)` | `id` | `led` |
-| `ZenerDiode` | `A`, `C` | none | `id` | `zener-diode` |
+| `ZenerDiode` | `A`, `C` | optional `voltage: voltage` | `id`, `voltage` | `zener-diode` |
 | `SchottkyDiode` | `A`, `C` | none | `id` | `schottky-diode` |
 | `Photodiode` | `A`, `C` | none | `id` | `photodiode` |
 | `NPNTransistor` | `C`, `B`, `E` | none | `id` | `npn-transistor` |
@@ -718,3 +718,17 @@ Later extensions:
 - [ADR 0016](./adr/0016-browser-auto-render-post-mvp.md) records the browser auto-render scope decision.
 - [ADR 0017](./adr/0017-esm-only-node-20.md) records the runtime and module-format decision.
 - [ADR 0019](./adr/0019-build-time-markdown-integration.md) records the original static Markdown integration, superseded in part by ADR 0020.
+
+### Discrete branch routing
+
+In horizontal flows, vertical two-terminal parts can flip to put earlier
+connections above later connections, with explicit power and ground symbols
+taking priority. Potentiometers can mirror to face their connected load.
+Adjacent facing terminals on the same axis connect directly when no component
+lies between them. Ground connections routed to a lower rail first leave the
+terminal outward and pass around the symbol bars.
+
+The diode gallery uses a series resistor ahead of a Zener bias rail, a
+reverse-biased photodiode, and one explicit shared GND net. `ZenerDiode` accepts
+an optional `voltage` quantity and displays it. The divider gallery shows a
+rheostat loading the wiper output, with ground connections represented by labels.

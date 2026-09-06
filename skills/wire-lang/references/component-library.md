@@ -13,7 +13,7 @@ Lang source.
 | `Rheostat` | `1`, `2` | recommended `value` | `id`, `value` |
 | `Diode` | `A`, `C` | none | `id` |
 | `LED` | `A`, `C` | optional `color` | `id` |
-| `ZenerDiode` | `A`, `C` | none | `id` |
+| `ZenerDiode` | `A`, `C` | optional `voltage` | `id`, `voltage` |
 | `SchottkyDiode` | `A`, `C` | none | `id` |
 | `Photodiode` | `A`, `C` | none | `id` |
 | `NPNTransistor` | `C`, `B`, `E` | none | `id` |
@@ -83,3 +83,14 @@ MOSFETs, op-amps, relays, motors, displays, sensors, Arduino boards, ESP32
 boards, and custom component libraries are outside the MVP standard library. Use
 a local `define component ... symbol module` block when a simple module
 placeholder is enough.
+
+## Practical diode and divider examples
+
+Use `ZenerDiode voltage=3.3V` to show its nominal breakdown voltage. A Zener
+shunt bias needs current limiting ahead of its branch, not just a resistor in
+another load branch. For a reverse-biased photodiode, connect the cathode toward
+the positive bias and its anode toward the sensing resistor and ground.
+
+GroundReference glyphs do not merge nets. Put all intended common returns in
+one `GND` net, even when using `render net GND style=label` to shorten the drawing.
+A rheostat between a potentiometer wiper and ground is a load on the output.

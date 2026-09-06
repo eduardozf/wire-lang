@@ -864,7 +864,8 @@ function drawLabels(component: LayoutComponent): string {
     second &&
     Math.abs(second.point.y - first.point.y) > Math.abs(second.point.x - first.point.x);
   if (vertical) {
-    const x = component.position.x + component.size.width + 6;
+    const optical = component.symbol === "photodiode" || component.symbol === "led";
+    const x = component.position.x + component.size.width + (optical ? 18 : 6);
     let y = component.center.y + 4 - ((labels.length - 1) * 13) / 2;
     for (const label of labels) {
       parts.push(
