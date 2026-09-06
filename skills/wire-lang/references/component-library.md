@@ -38,7 +38,12 @@ Lang source.
 `Potentiometer` is a three-terminal variable resistor: the two track ends `1`
 and `2` are interchangeable and the `W` wiper taps the middle (connect it by name
 or via the `wiper` role alias, e.g. `net OUT: RV1.W, ...`). `Rheostat` is the
-two-terminal form. `ZenerDiode`, `SchottkyDiode`, and `Photodiode` reuse the
+two-terminal form. Potentiometer labels are placed opposite the wiper and follow
+orientation hints. The arrow touches the resistor track. Avoid redundant
+annotations beside these parts when the component and net names already explain
+the circuit; annotations are not automatically routed around wires.
+
+`ZenerDiode`, `SchottkyDiode`, and `Photodiode` reuse the
 `Diode` `A`/`C` terminals.
 
 ## Property Examples

@@ -10,5 +10,3 @@ schematic
   net VCC: PWR1.1, RV1.1
   net OUT: RV1.W, RH1.1
   net GND: RV1.2, RH1.2, G1.GND
-
-  annotation "Wiper output" near RV1

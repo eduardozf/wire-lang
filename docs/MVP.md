@@ -306,7 +306,9 @@ Designator prefixes: `Potentiometer` → `R`/`RV`/`VR`, `Rheostat` →
 
 `Potentiometer` maps `wiper`→`W` (the two track ends `1`/`2` are
 interchangeable); `ZenerDiode`, `SchottkyDiode`, and `Photodiode` map `anode`→`A`
-and `cathode`→`C` like `Diode`. `TVSDiode` maps `anode`→`A` and `cathode`→`C`;
+and `cathode`→`C` like `Diode`. Potentiometer labels sit opposite the wiper,
+using final terminal coordinates so orientation and direction hints preserve
+clearance from the terminal paths. The wiper arrow touches the track midpoint. `TVSDiode` maps `anode`→`A` and `cathode`→`C`;
 `Speaker` maps `positive`→`+` and `negative`→`-`. `PowerFlag` draws its `name`
 (e.g. `VBAT`, `5V`, `3V3`, `VCC`) inside the flag glyph; it is a visual rail flag
 only and does not create a hidden global net.

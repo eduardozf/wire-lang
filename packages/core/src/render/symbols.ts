@@ -779,7 +779,7 @@ function drawPotentiometer(component: LayoutComponent): string {
   const { frame: wiperFrame, length: wiperLength } = makeFrame(wiper.point, bodyCenter);
   const arrow = makePen(wiperFrame).arrow({
     from: { along: 0, across: 0 },
-    to: { along: Math.max(wiperLength - 9, wiperLength * 0.6), across: 0 },
+    to: { along: wiperLength, across: 0 },
   });
   return group(body, arrow);
 }
@@ -833,6 +833,28 @@ function drawLabels(component: LayoutComponent): string {
   const labels = component.labels.filter((label) => label !== "");
   if (labels.length === 0) return "";
   const parts: string[] = [];
+  if (component.symbol === "potentiometer") {
+    const wiperName = component.roleMappings.find((mapping) => mapping.role === "wiper")?.terminal;
+    const wiper = component.terminals.find((terminal) => terminal.name === wiperName);
+    if (wiper) {
+      // Keep text opposite the wiper, beside the track rather than in any of
+      // the three terminal paths. Use final coordinates so hints rotate it.
+      const dx = wiper.point.x - component.center.x;
+      const dy = wiper.point.y - component.center.y;
+      const vertical = Math.abs(dx) > Math.abs(dy);
+      const side = (vertical ? dx : dy) < 0 ? 1 : -1;
+      const x = component.center.x + (vertical ? side * 18 : 0);
+      const anchor = vertical ? (side > 0 ? "start" : "end") : "middle";
+      let y = vertical
+        ? component.center.y + 4 - ((labels.length - 1) * 13) / 2
+        : component.center.y + (side > 0 ? 22 : -16);
+      for (const label of labels) {
+        parts.push(text(label, { x, y }, anchor, "wire-label"));
+        y += vertical ? 13 : side * 13;
+      }
+      return parts.join("");
+    }
+  }
   // A vertical two-terminal part has wires entering top and bottom, so labels
   // above would sit in the wire's path; put them beside the body instead.
   const [first, second] = component.terminals;
