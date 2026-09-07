@@ -1,7 +1,7 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
 exports[`parts catalog: snapshot > renders a mixed-parts schematic stably 1`] = `
-"<svg xmlns="http://www.w3.org/2000/svg" class="wire-lang" viewBox="0 0 904 306" width="904" height="306" role="img" data-wire-lang-version="0.3.1">
+"<svg xmlns="http://www.w3.org/2000/svg" class="wire-lang" viewBox="0 0 904 306" width="904" height="306" role="img" data-wire-lang-version="0.4.0">
 <title>Parts catalog coverage</title>
 <desc>A schematic with 8 components.</desc>
 <style>.wire-lang { background: #ffffff; }
@@ -23,7 +23,7 @@ exports[`parts catalog: snapshot > renders a mixed-parts schematic stably 1`] = 
 `;
 
 exports[`parts catalog: variable resistors & diode variants snapshot > renders the new discrete parts stably 1`] = `
-"<svg xmlns="http://www.w3.org/2000/svg" class="wire-lang" viewBox="0 0 600 224" width="600" height="224" role="img" data-wire-lang-version="0.3.1">
+"<svg xmlns="http://www.w3.org/2000/svg" class="wire-lang" viewBox="0 0 600 224" width="600" height="224" role="img" data-wire-lang-version="0.4.0">
 <title>Variable resistors and diode variants</title>
 <desc>A schematic with 5 components.</desc>
 <style>.wire-lang { background: #ffffff; }
