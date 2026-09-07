@@ -24,7 +24,7 @@
     "skill:publish": "skills add eduardozf/wire-lang --skill wire-lang --agent codex --global --copy --yes",
     "pack:dry-run": "pnpm --filter @wire-lang/core pack --dry-run && pnpm --filter @wire-lang/cli pack --dry-run && pnpm --filter @wire-lang/browser pack --dry-run && pnpm --filter @wire-lang/markdown pack --dry-run && pnpm --filter wire-lang pack --dry-run",
     "package:smoke": "node scripts/package-smoke-test.mjs",
-    "release:check": "pnpm lint && pnpm docs:check && pnpm typecheck && pnpm test && pnpm build && pnpm audit --prod && pnpm pack:dry-run && pnpm package:smoke",
+    "release:check": "node --test scripts/release-target.test.mjs && pnpm lint && pnpm docs:check && pnpm typecheck && pnpm test && pnpm build && pnpm audit --prod && pnpm pack:dry-run && pnpm package:smoke",
     "examples:update": "node scripts/update-examples.mjs",
     "bench": "node tools/symbol-bench/server.mjs",
     "clean": "tsc -b --clean && rimraf packages/*/dist packages/*/*.tsbuildinfo"

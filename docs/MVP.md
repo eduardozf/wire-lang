@@ -1,5 +1,19 @@
 # Wire Lang MVP
 
+## Package release contract
+
+Public packages use independent versions. A `<directory>@<version>` tag selects
+exactly one package for publication and must match its package manifest. Supported
+directories are `core`, `cli`, `browser`, `markdown`, and `wire-lang`. Global `v*`
+tags are historical and no longer trigger releases. Manual publication also
+requires a package tag; branch runs can only perform a selected-package dry run.
+All repository release checks still run before publishing. Workspace dependencies
+are pinned to their own local versions, which must be published before consumers.
+Browser embeds core and needs its own release to distribute core changes. Package
+versions need not match language metadata or the installed CLI version.
+
+See `.github/CONTRIBUTING.md` for the release procedure.
+
 This document defines the first useful version of Wire Lang: a JavaScript/TypeScript library and minimal developer CLI for turning textual electronic schematic descriptions into readable SVG diagrams.
 
 Wire Lang is not a breadboard tool, PCB layout tool, simulator, BOM manager, or visual editor in the MVP. It is a documentation-oriented schematic renderer with strong authoring feedback for humans, editors, and AI agents.

@@ -3,9 +3,24 @@ name: Release
 on:
   push:
     tags:
-      - "v*"
+      - "core@*"
+      - "cli@*"
+      - "browser@*"
+      - "markdown@*"
+      - "wire-lang@*"
   workflow_dispatch:
     inputs:
+      package:
+        description: "Package for a dry run on a branch; package tags select their own target"
+        required: true
+        default: "browser"
+        type: choice
+        options:
+          - core
+          - cli
+          - browser
+          - markdown
+          - wire-lang
       mode:
         description: "Run a dry-run publish check, or publish to npm"
         required: true
@@ -34,6 +49,13 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Select and validate release target
+        id: target
+        env:
+          RELEASE_PACKAGE: ${{ inputs.package }}
+          RELEASE_MODE: ${{ inputs.mode }}
+        run: node scripts/release-target.mjs
+
       - name: Install pnpm
         uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
 
@@ -61,19 +83,11 @@ jobs:
       - name: Run release checks
         run: pnpm release:check
 
-      # Publish with pnpm, not `npm publish <tarball>`. pnpm runs the publish
-      # from each package directory (rewriting workspace:* deps to real
-      # versions), which is what lets npm's OIDC trusted-publishing token
-      # exchange engage. Publishing a pre-packed tarball via `npm publish` skips
-      # OIDC entirely and fails with a misleading ENEEDAUTH/E404.
       - name: Dry-run publish
-        run: pnpm -r publish --dry-run --no-git-checks --access public --tag "${{ inputs.npm_tag || 'latest' }}"
-
-      - name: Require tag for real publish
-        if: (github.event_name == 'push' || inputs.mode == 'publish') && !startsWith(github.ref, 'refs/tags/v')
-        run: |
-          echo "Real publish must run from a v* tag, for example refs/tags/v0.2.0." >&2
-          exit 1
+        env:
+          RELEASE_PACKAGE: ${{ steps.target.outputs.name }}
+          NPM_DIST_TAG: ${{ inputs.npm_tag || 'latest' }}
+        run: pnpm --filter "$RELEASE_PACKAGE" publish --dry-run --no-git-checks --access public --tag "$NPM_DIST_TAG"
 
       - name: Verify trusted publishing environment
         if: github.event_name == 'push' || inputs.mode == 'publish'
@@ -95,10 +109,11 @@ jobs:
       # OIDC token exchange engage; npm attaches provenance automatically.
       - name: Publish to npm
         if: github.event_name == 'push' || inputs.mode == 'publish'
+        env:
+          RELEASE_DIRECTORY: ${{ steps.target.outputs.directory }}
+          NPM_DIST_TAG: ${{ inputs.npm_tag || 'latest' }}
         run: |
           set -euo pipefail
           node scripts/pin-workspace-deps.mjs
-          tag="${{ inputs.npm_tag || 'latest' }}"
-          for pkg in core cli browser markdown wire-lang; do
-            ( cd "packages/$pkg" && npm publish --provenance --access public --tag "$tag" )
-          done
+          cd "packages/$RELEASE_DIRECTORY"
+          npm publish --provenance --access public --tag "$NPM_DIST_TAG"
