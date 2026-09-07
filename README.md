@@ -18,55 +18,110 @@
   <img src="https://img.shields.io/node/v/wire-lang.svg" alt="Node version">
 </p>
 
-**Text-first electronic schematics.** Describe a circuit in a small declarative
-language and render it as a clean, documentation-ready SVG.
+Describe electronic schematics in text and render them as SVG.
 
-## Why Wire Lang
+## This is how you write
 
-LLMs changed how we write software because code is text. Diagrams followed with tools like [Mermaid](https://github.com/mermaid-js/mermaid), giving AI a format it can easily generate, understand, and modify.
+Name the components, declare their pins, and connect them with nets.
+Here is an excerpt from a sensor controller with a button and status LED:
 
-Electronic schematics are still stuck in GUI editors.
+```wire
+schematic
+  title "Sensor controller with status LED"
 
-Wire Lang brings schematics into the AI era with a text-based representation that enables real-time collaboration between engineers and AI. Instead of screenshots and proprietary files, schematics become something AI can reason about, generate, review, and improve.
+  // Declare a button and a green status LED.
+  component SW1 PushButton
+  component D1 LED color=green
 
-Wire Lang is the missing layer between AI and electronic schematics.
+  // Connect named pins to describe each electrical net.
+  net BTN: SW1.1, U2.BTN
+  net LED_OUT: U3.OUT, D1.A
+  // ... full circuit below
+```
 
-## Setup
+<details>
+<summary>View the complete Wire Lang source</summary>
+
+```wire
+schematic
+  title "Sensor controller with status LED"
+  description "A controller reads an I2C sensor, accepts a button input, and controls a status LED through a driver."
+
+  // Declare each block and its named pins. @left and @right set pin sides.
+  // U1: I2C sensor with an interrupt output.
+  component U1 IC pins=[1:VCC@left, 2:GND@left, 3:SCL@right, 4:SDA@right, 5:INT@right]
+  // U2: microcontroller that reads the sensor and button.
+  component U2 IC pins=[1:3V3@left, 2:GND@right, 3:SCL@left, 4:SDA@left, 5:IRQ@left, 6:BTN@left, 7:DRIVE@right, 8:FAULT@right]
+  // U3: LED driver with a fault output back to the controller.
+  component U3 IC pins=[1:VIN@left, 2:GND@left, 3:IN@left, 4:FAULT@left, 5:OUT@right]
+  component SW1 PushButton
+  component D1 LED color=green
+
+  // All blocks share the supply and ground rails.
+  net VCC: U1.VCC, U2.3V3, U3.VIN
+  net GND: U1.GND, U2.GND, U3.GND, SW1.2, D1.C
+
+  // The sensor sends readings over I2C and signals an interrupt on INT.
+  net SCL: U1.SCL, U2.SCL
+  net SDA: U1.SDA, U2.SDA
+  net INT: U1.INT, U2.IRQ
+
+  // The controller commands the driver, which reports faults back.
+  net DRIVE: U2.DRIVE, U3.IN
+  net FAULT: U3.FAULT, U2.FAULT
+
+  // Pressing the button connects BTN to ground. The driver powers the LED.
+  net BTN: SW1.1, U2.BTN
+  net LED_OUT: U3.OUT, D1.A
+
+  // Draw supply rails above and below the blocks, and bundle related signals.
+  render layout=bus-rail
+```
+
+</details>
+
+## This is what you get
+
+The complete source renders as a schematic with shared power rails, a sensor
+bus, and separate control signals.
+
+<img src="./docs/assets/sensor-controller.svg" alt="Sensor controller with an I2C sensor, LED driver, status LED, and push button" width="100%">
+
+## Install and use
 
 ```bash
 npm install wire-lang
 ```
 
-Write a `.wire` file:
-
-```wire
-schematic
-  title "LED current limiting circuit"
-
-  component BT1 Battery voltage=5V
-  component R1 Resistor value=220ohm
-  component D1 LED color=red
-
-  net VCC: BT1.+, R1.1
-  connect R1.2, D1.A
-  net GND: D1.C, BT1.-
-
-  annotation "Current limiting resistor" near R1
-```
-
-Render it from the CLI:
+Save the [complete source](./examples/sensor-controller.wire) as
+`sensor-controller.wire`, then render it:
 
 ```bash
-npx wire render led.wire --out led.svg
+npx wire render sensor-controller.wire --out sensor-controller.svg
 ```
 
-…or from JavaScript/TypeScript:
+Open `sensor-controller.svg` to view the schematic. To render from JavaScript or TypeScript:
 
 ```ts
 import { renderSvg } from "wire-lang";
 
 const svg = renderSvg(source);
 ```
+
+## AI skill
+
+Install the [Wire Lang authoring skill](./skills/wire-lang/SKILL.md) to teach your
+AI assistant the syntax, component library, and validation workflow:
+
+```bash
+npx skills add eduardozf/wire-lang --skill wire-lang
+```
+
+Agents can validate source with `wire check sensor-controller.wire --json`. The parser returns
+a partial AST for invalid input, with source locations and suggested fixes in
+its diagnostics.
+
+## Markdown and MDX
 
 Write the same source inside a Markdown or MDX fence:
 
@@ -100,71 +155,7 @@ For ahead-of-time rendering with no browser runtime, use `remarkWire` or
 `rehypeWire` from `@wire-lang/markdown` with `{ mode: "static" }`. See the
 [Markdown/MDX guide](./packages/markdown) for complete build configuration.
 
-## How it compares
-
-Think **[Mermaid Charts](https://github.com/mermaid-js/mermaid), but for electronic schematics**: text goes in, documentation-
-friendly diagrams come out. The difference is that Wire Lang models real
-electrical nets, terminals, and components instead of flowchart boxes and arrows.
-
-## Use with AI
-
-Wire Lang is built for AI-assisted authoring:
-
-- `parse(source)` returns a partial AST even for invalid input, and every
-  diagnostic carries a source location and suggested fix — so agents can
-  self-correct.
-- The CLI speaks JSON for scripts and agents: `wire check led.wire --json`.
-- A bundled [Agent Skill](./skills/wire-lang/SKILL.md) teaches assistants the
-  syntax and component library so they generate valid `.wire` source.
-
-Install the authoring skill with the open Agent Skills CLI:
-
-```bash
-npx skills add eduardozf/wire-lang --skill wire-lang
-```
-
-## Examples
-
-| LED current limiter                                                                                                    | Soil sensor (bus-rail)                                                                               | Bus-rail block diagram                                                                                |
-| ---------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| <img src="./docs/assets/led-current-limiter.svg" alt="LED current limiting circuit rendered by Wire Lang" width="260"> | <img src="./docs/assets/soil-sensor.svg" alt="Soil sensor module rendered by Wire Lang" width="260"> | <img src="./docs/assets/bus-rail.svg" alt="Bus-rail block diagram rendered by Wire Lang" width="260"> |
-
-See the [full gallery](./docs/EXAMPLES.md) and source in [examples/](./examples).
-
----
-
 ## Reference
-
-### The language
-
-Wire Lang separates the electrical model from the rendered drawing. In the
-source below, `R1`/`D1` are component instances, `Resistor`/`LED` are types,
-`VCC`/`GND` are nets, and `connect` makes an anonymous net. Visual wires are
-renderer output, not the source of truth.
-
-```wire
-schematic
-  component R1 Resistor value=10k
-  component D1 LED color=red
-
-  net VCC: R1.1
-  connect R1.2, D1.A
-  net GND: D1.C
-```
-
-Components can also be defined locally, including overriding a built-in symbol:
-
-```wire
-define component SoilSensor
-  terminal VCC
-  terminal GND
-  terminal AOUT
-  terminal DOUT
-  symbol module
-end
-
-component S1 SoilSensor
-```
 
 ### API
 
@@ -182,53 +173,14 @@ stage's output. Packages are ESM-only and target Node.js 20+.
 ### CLI
 
 ```bash
-wire check  examples/led.wire            # validate
-wire render examples/led.wire --out led.svg
-wire watch  examples/led.wire --out led.svg
+wire check  examples/sensor-controller.wire            # validate
+wire render examples/sensor-controller.wire --out sensor-controller.svg
+wire watch  examples/sensor-controller.wire --out sensor-controller.svg
 ```
 
 Add `--json` to `check`/`render` for machine-readable output. Exit codes: `0`
 success (incl. warnings), `1` source/render errors, `2` usage or I/O problems.
 There is no preview server; open the generated SVG directly.
-
-### Standard components
-
-`Resistor`, `Capacitor`, `PolarizedCapacitor`, `Inductor`, `Diode`, `LED`,
-`NPNTransistor`, `PNPTransistor`, `Battery`, `GroundReference`, `SPSTSwitch`,
-`PushButton`, `Header`.
-
-Wire Lang uses IEC-style conventions where practical with original, open-source
-symbol art; it does not claim formal IEC/IEEE compliance. See
-[CONTRIBUTING.md](./.github/CONTRIBUTING.md) for the artwork policy.
-
-### Packages & development
-
-| Package                                      | Role                                                        |
-| -------------------------------------------- | ----------------------------------------------------------- |
-| [`wire-lang`](./packages/wire-lang)          | User-facing aggregate package and the `wire` binary         |
-| [`@wire-lang/core`](./packages/core)         | Parser, compiler, schematic model, layout engine, renderer  |
-| [`@wire-lang/cli`](./packages/cli)           | `wire check`, `wire render`, `wire watch`                   |
-| [`@wire-lang/browser`](./packages/browser)   | Asynchronous rendering after HTML loads                     |
-| [`@wire-lang/markdown`](./packages/markdown) | Markdown and MDX integration with optional static rendering |
-
-```bash
-pnpm install
-pnpm build   # tsup build + tsc typecheck
-pnpm test    # vitest
-```
-
-### Scope
-
-The MVP is implemented: a working `parse → compile → layout → renderSvg`
-pipeline plus the CLI. Scope is intentionally narrow — schematic documentation,
-not simulation, PCB/breadboard layout, BOMs, or editor integrations. See
-[docs/MVP.md](./docs/MVP.md) for the full specification.
-
-## Documentation
-
-- [MVP specification](./docs/MVP.md) · [Example gallery](./docs/EXAMPLES.md) · [Domain vocabulary](./docs/CONTEXT.md)
-- [Architecture decisions](./docs/adr/) · [Brand assets](./docs/brand/)
-- [Contributing](./.github/CONTRIBUTING.md) · [Code of conduct](./.github/CODE_OF_CONDUCT.md) · [Support](./.github/SUPPORT.md) · [Security](./.github/SECURITY.md) · [Changelog](./CHANGELOG.md)
 
 ## Contributing
 

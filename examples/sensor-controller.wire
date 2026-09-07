@@ -1,0 +1,33 @@
+schematic
+  title "Sensor controller with status LED"
+  description "A controller reads an I2C sensor, accepts a button input, and controls a status LED through a driver."
+
+  // Declare each block and its named pins. @left and @right set pin sides.
+  // U1: I2C sensor with an interrupt output.
+  component U1 IC pins=[1:VCC@left, 2:GND@left, 3:SCL@right, 4:SDA@right, 5:INT@right]
+  // U2: microcontroller that reads the sensor and button.
+  component U2 IC pins=[1:3V3@left, 2:GND@right, 3:SCL@left, 4:SDA@left, 5:IRQ@left, 6:BTN@left, 7:DRIVE@right, 8:FAULT@right]
+  // U3: LED driver with a fault output back to the controller.
+  component U3 IC pins=[1:VIN@left, 2:GND@left, 3:IN@left, 4:FAULT@left, 5:OUT@right]
+  component SW1 PushButton
+  component D1 LED color=green
+
+  // All blocks share the supply and ground rails.
+  net VCC: U1.VCC, U2.3V3, U3.VIN
+  net GND: U1.GND, U2.GND, U3.GND, SW1.2, D1.C
+
+  // The sensor sends readings over I2C and signals an interrupt on INT.
+  net SCL: U1.SCL, U2.SCL
+  net SDA: U1.SDA, U2.SDA
+  net INT: U1.INT, U2.IRQ
+
+  // The controller commands the driver, which reports faults back.
+  net DRIVE: U2.DRIVE, U3.IN
+  net FAULT: U3.FAULT, U2.FAULT
+
+  // Pressing the button connects BTN to ground. The driver powers the LED.
+  net BTN: SW1.1, U2.BTN
+  net LED_OUT: U3.OUT, D1.A
+
+  // Draw supply rails above and below the blocks, and bundle related signals.
+  render layout=bus-rail
