@@ -87,6 +87,19 @@ bus, and separate control signals.
 
 <img src="./docs/assets/sensor-controller.svg" alt="Sensor controller with an I2C sensor, LED driver, status LED, and push button" width="100%">
 
+## jsDelivr CDN
+
+These versionless URLs resolve to the latest version published on npm and will
+follow future releases:
+
+| Package | CDN URL |
+| --- | --- |
+| `wire-lang` | <https://cdn.jsdelivr.net/npm/wire-lang> |
+| `@wire-lang/core` | <https://cdn.jsdelivr.net/npm/@wire-lang/core> |
+| `@wire-lang/cli` | <https://cdn.jsdelivr.net/npm/@wire-lang/cli> |
+| `@wire-lang/browser` | <https://cdn.jsdelivr.net/npm/@wire-lang/browser> |
+| `@wire-lang/markdown` | <https://cdn.jsdelivr.net/npm/@wire-lang/markdown> |
+
 ## Install and use
 
 ```bash
