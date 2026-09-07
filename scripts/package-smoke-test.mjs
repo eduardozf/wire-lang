@@ -43,10 +43,19 @@ function tarball(packDir, fileName) {
 }
 
 async function main() {
-  const packageJson = JSON.parse(
-    await readFile(new URL("../packages/wire-lang/package.json", import.meta.url), "utf8"),
+  const versions = {};
+  for (const directory of ["core", "cli", "browser", "markdown", "wire-lang"]) {
+    const manifest = JSON.parse(
+      await readFile(new URL(`../packages/${directory}/package.json`, import.meta.url), "utf8"),
+    );
+    versions[directory] = manifest.version;
+  }
+  const modelSource = await readFile(
+    new URL("../packages/core/src/model/types.ts", import.meta.url),
+    "utf8",
   );
-  const version = packageJson.version;
+  const LANGUAGE_VERSION = /export const LANGUAGE_VERSION = "([^"]+)"/.exec(modelSource)?.[1];
+  if (!LANGUAGE_VERSION) throw new Error("Language version declaration missing");
   const workspace = await mkdtemp(join(tmpdir(), "wire-lang-package-smoke-"));
   const packDir = join(workspace, "tarballs");
   const consumerDir = join(workspace, "consumer");
@@ -66,11 +75,11 @@ async function main() {
         "install",
         "--no-audit",
         "--no-fund",
-        tarball(packDir, `wire-lang-core-${version}.tgz`),
-        tarball(packDir, `wire-lang-cli-${version}.tgz`),
-        tarball(packDir, `wire-lang-markdown-${version}.tgz`),
-        tarball(packDir, `wire-lang-browser-${version}.tgz`),
-        tarball(packDir, `wire-lang-${version}.tgz`),
+        tarball(packDir, `wire-lang-core-${versions.core}.tgz`),
+        tarball(packDir, `wire-lang-cli-${versions.cli}.tgz`),
+        tarball(packDir, `wire-lang-markdown-${versions.markdown}.tgz`),
+        tarball(packDir, `wire-lang-browser-${versions.browser}.tgz`),
+        tarball(packDir, `wire-lang-${versions["wire-lang"]}.tgz`),
       ],
       { cwd: consumerDir },
     );
@@ -94,7 +103,7 @@ if (!compiled.ok) {
   throw new Error("compile returned fatal diagnostics");
 }
 const svg = renderSvg(source);
-if (!svg.startsWith("<svg") || !svg.includes(${JSON.stringify(`data-wire-lang-version="${version}"`)})) {
+if (!svg.startsWith("<svg") || !svg.includes(${JSON.stringify(`data-wire-lang-version="${LANGUAGE_VERSION}"`)})) {
   throw new Error("renderSvg did not return the expected standalone SVG");
 }
 `,
@@ -184,8 +193,10 @@ void result;
     );
 
     const wireBin = join(consumerDir, "node_modules", ".bin", binName);
-    const versionResult = await run(wireBin, ["--version"], { cwd: consumerDir });
-    if (versionResult.stdout.trim() !== version) {
+    const versionResult = await run(wireBin, ["--version"], {
+      cwd: consumerDir,
+    });
+    if (versionResult.stdout.trim() !== versions.cli) {
       throw new Error(`wire --version returned ${JSON.stringify(versionResult.stdout.trim())}`);
     }
 
