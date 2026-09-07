@@ -89,8 +89,22 @@ bus, and separate control signals.
 
 ## jsDelivr CDN
 
-These versionless URLs resolve to the latest version published on npm and will
-follow future releases:
+Add this module script to your site's `<head>`. It waits for the page to load,
+then renders every Wire Lang code block:
+
+```html
+<script type="module">
+  import wire from "https://cdn.jsdelivr.net/npm/@wire-lang/browser/dist/index.js";
+
+  await wire.initialize();
+</script>
+```
+
+The versionless URL loads the latest version published on npm and will follow
+future releases.
+
+<details>
+<summary>Show all CDN URLs</summary>
 
 | Package | CDN URL |
 | --- | --- |
@@ -99,6 +113,8 @@ follow future releases:
 | `@wire-lang/cli` | <https://cdn.jsdelivr.net/npm/@wire-lang/cli> |
 | `@wire-lang/browser` | <https://cdn.jsdelivr.net/npm/@wire-lang/browser> |
 | `@wire-lang/markdown` | <https://cdn.jsdelivr.net/npm/@wire-lang/markdown> |
+
+</details>
 
 ## Install and use
 
