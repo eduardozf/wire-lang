@@ -401,7 +401,7 @@ Post-MVP packages:
 
 The monorepo uses pnpm workspaces, TypeScript project references for package-level type checking, and tsup for package builds.
 
-MVP packages are ESM-only and target Node.js 20 or newer. The MVP does not ship CommonJS builds.
+MVP packages are ESM-only and target Node.js 20 or newer at runtime. The MVP does not ship CommonJS builds. Development and CI use Node.js 24 or newer (see ADR 0021).
 
 Vitest is the primary MVP test runner. Tests should cover parser diagnostics, schematic model normalization, layout stability, SVG output, and CLI behavior. Browser automation can be added later for DOM auto-render integration.
 
@@ -731,6 +731,7 @@ Later extensions:
 - [ADR 0015](./adr/0015-no-preview-server-in-mvp.md) records the MVP preview decision.
 - [ADR 0016](./adr/0016-browser-auto-render-post-mvp.md) records the browser auto-render scope decision.
 - [ADR 0017](./adr/0017-esm-only-node-20.md) records the runtime and module-format decision.
+- [ADR 0021](./adr/0021-node-24-dev-baseline.md) records the Node 24 dev/CI baseline.
 - [ADR 0019](./adr/0019-build-time-markdown-integration.md) records the original static Markdown integration, superseded in part by ADR 0020.
 
 ### Discrete branch routing
