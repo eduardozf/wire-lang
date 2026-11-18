@@ -1,5 +1,8 @@
 # `@wire-lang/markdown`
 
+> Wire Lang is deprecated and no longer maintained. Existing releases remain
+> available. See the [project README](https://github.com/eduardozf/wire-lang#readme).
+
 Remark, rehype, and MDX support for fenced `wire` diagrams. Browser rendering
 after HTML loads is the default; ahead-of-time SVG rendering is opt-in.
 

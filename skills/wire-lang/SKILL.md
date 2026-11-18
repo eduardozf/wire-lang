@@ -6,6 +6,9 @@ license: MIT
 
 # Wire Lang Authoring Skill
 
+Wire Lang is deprecated and no longer maintained. This skill remains a reference
+for existing schematics and published releases.
+
 Use this skill to help people author Wire Lang source. Wire Lang is a textual
 language for describing electronic schematics and rendering them as readable SVG
 diagrams.

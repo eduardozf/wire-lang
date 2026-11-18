@@ -1,6 +1,8 @@
 # Changelog
 
-All notable changes to Wire Lang will be documented in this file.
+## Deprecation
+
+Wire Lang is no longer maintained. Existing npm releases remain available.
 
 ## 0.4.0
 

@@ -10,6 +10,12 @@
   </picture>
 </p>
 
+> [!IMPORTANT]
+> **Wire Lang is deprecated and no longer maintained.** No further releases,
+> bug fixes, or security updates are planned. Existing npm releases remain
+> available. If you already use Wire Lang, keep your `.wire` sources and
+> [export standalone SVGs](#cli) so readers can view diagrams without the renderer.
+
 <p align="center">
   <a href="https://www.npmjs.com/package/wire-lang"><img src="https://img.shields.io/npm/v/wire-lang.svg?color=cb3837&logo=npm" alt="npm version"></a>
   <a href="https://www.npmjs.com/package/wire-lang"><img src="https://img.shields.io/npm/dm/wire-lang.svg?color=cb3837" alt="npm downloads"></a>
@@ -94,24 +100,24 @@ then renders every Wire Lang code block:
 
 ```html
 <script type="module">
-  import wire from "https://cdn.jsdelivr.net/npm/@wire-lang/browser/dist/index.js";
+  import wire from "https://cdn.jsdelivr.net/npm/@wire-lang/browser@0.4.0/dist/index.js";
 
   await wire.initialize();
 </script>
 ```
 
-The versionless URL loads the latest version published on npm and will follow
-future releases.
+The script above pins version `0.4.0`. The versionless URLs below load the
+version tagged `latest` on npm.
 
 <details>
 <summary>Show all CDN URLs</summary>
 
-| Package | CDN URL |
-| --- | --- |
-| `wire-lang` | <https://cdn.jsdelivr.net/npm/wire-lang> |
-| `@wire-lang/core` | <https://cdn.jsdelivr.net/npm/@wire-lang/core> |
-| `@wire-lang/cli` | <https://cdn.jsdelivr.net/npm/@wire-lang/cli> |
-| `@wire-lang/browser` | <https://cdn.jsdelivr.net/npm/@wire-lang/browser> |
+| Package               | CDN URL                                            |
+| --------------------- | -------------------------------------------------- |
+| `wire-lang`           | <https://cdn.jsdelivr.net/npm/wire-lang>           |
+| `@wire-lang/core`     | <https://cdn.jsdelivr.net/npm/@wire-lang/core>     |
+| `@wire-lang/cli`      | <https://cdn.jsdelivr.net/npm/@wire-lang/cli>      |
+| `@wire-lang/browser`  | <https://cdn.jsdelivr.net/npm/@wire-lang/browser>  |
 | `@wire-lang/markdown` | <https://cdn.jsdelivr.net/npm/@wire-lang/markdown> |
 
 </details>
@@ -119,7 +125,7 @@ future releases.
 ## Install and use
 
 ```bash
-npm install wire-lang
+npm install --save-exact wire-lang@0.4.0
 ```
 
 Save the [complete source](./examples/sensor-controller.wire) as
@@ -210,13 +216,6 @@ wire watch  examples/sensor-controller.wire --out sensor-controller.svg
 Add `--json` to `check`/`render` for machine-readable output. Exit codes: `0`
 success (incl. warnings), `1` source/render errors, `2` usage or I/O problems.
 There is no preview server; open the generated SVG directly.
-
-## Contributing
-
-Wire Lang is early and design-heavy. The most useful contributions right now are
-tightening the language spec, challenging ambiguous syntax, proposing test cases
-for parsing and layout stability, and designing original schematic symbols. Read
-[CONTRIBUTING.md](./.github/CONTRIBUTING.md) first.
 
 ## License
 

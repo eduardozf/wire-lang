@@ -1,7 +1,7 @@
 # Contributing
 
-Thanks for your interest in Wire Lang. This guide covers local setup, the
-checks we run, and the project conventions.
+Wire Lang is deprecated and closed to new contributions. These instructions are
+for working with a local copy or fork.
 
 ## Prerequisites
 
@@ -33,19 +33,13 @@ Try the CLI against an example:
 node packages/wire-lang/dist/bin.js render examples/led.wire --out led.svg
 ```
 
-## Before opening a pull request
+## Checking changes
 
 1. `pnpm lint`, `pnpm typecheck`, and `pnpm test` all pass.
 2. New or changed behavior is pinned by a test. SVG output is covered by
    snapshot tests; update them deliberately with `pnpm exec vitest run -u` and
    review the diff.
 3. Keep the source-of-truth docs in sync **in the same change** (see below).
-
-CI runs lint, typecheck, test, and build on every pull request.
-
-Use the GitHub issue and pull request templates when contributing publicly.
-Questions belong in discussions when enabled, or in an issue marked as a
-question. Please follow the [Code of Conduct](./CODE_OF_CONDUCT.md).
 
 ## Keep the docs in sync
 
@@ -58,30 +52,11 @@ document in the same change (see `AGENTS.md`):
 - `docs/adr/` — hard-to-reverse architectural decisions.
 - `skills/wire-lang/` — user-facing authoring instructions and syntax guidance.
 
-## Package releases
+## Local package checks
 
-Packages have independent versions. Bump only packages whose published contents
-or dependency requirements changed, and record the affected package names and
-versions in `CHANGELOG.md`. Do not bump every package for a browser-only change.
-
-After merging the version change and passing `pnpm release:check`, tag the commit
-with the package directory and version, for example `browser@0.5.0`, and push that
-tag. Supported prefixes are `core`, `cli`, `browser`, `markdown`, and `wire-lang`.
-The release workflow validates the tag against that package's manifest and
-publishes only that package. Global `v*` tags no longer trigger publishing.
-Manual branch runs are dry runs with an explicit package choice; real publishes
-require a matching package tag.
-
-Workspace dependencies resolve to each dependency's own version during packing.
-Publish required dependency versions first. A core change does not automatically
-release every consumer: assess which consumers need the new core version.
-Browser bundles core, so delivering a core fix to browser users requires a browser
-release too. The aggregate CLI reports the installed CLI package's version.
-The SVG language metadata is independent of browser, CLI, and Markdown versions.
-
-Trusted publishers continue to use `publish.yml` and the `release` environment
-for each npm package. Each tag releases one package; retry only unpublished
-versions, since npm does not allow overwriting an existing version.
+`pnpm release:check` builds and tests the workspace and checks that the packages
+can still be packed and installed locally. Wire Lang no longer publishes
+releases.
 
 ## Diagnostics are a contract
 

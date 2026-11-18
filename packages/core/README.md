@@ -1,5 +1,8 @@
 # @wire-lang/core
 
+> Wire Lang is deprecated and no longer maintained. Existing releases remain
+> available. See the [project README](https://github.com/eduardozf/wire-lang#readme).
+
 Core library for [Wire Lang](https://github.com/eduardozf/wire-lang): a
 text-first language for electronic schematics that renders to clean SVG. This
 package is the full pipeline — parser, compiler, schematic model, deterministic

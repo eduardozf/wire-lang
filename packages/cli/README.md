@@ -1,5 +1,8 @@
 # @wire-lang/cli
 
+> Wire Lang is deprecated and no longer maintained. Existing releases remain
+> available. See the [project README](https://github.com/eduardozf/wire-lang#readme).
+
 Developer CLI for [Wire Lang](https://github.com/eduardozf/wire-lang). Provides
 the `check`, `render`, and `watch` commands over `.wire` source files.
 
