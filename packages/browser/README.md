@@ -1,5 +1,8 @@
 # `@wire-lang/browser`
 
+> Wire Lang is deprecated and no longer maintained. Existing releases remain
+> available. See the [project README](https://github.com/eduardozf/wire-lang#readme).
+
 Render Wire Lang diagrams asynchronously after HTML is ready. This is the
 default documentation workflow. To generate SVG ahead of time instead, use
 [`@wire-lang/markdown`](../markdown) with `{ mode: "static" }`.

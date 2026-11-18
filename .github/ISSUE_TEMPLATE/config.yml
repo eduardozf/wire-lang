@@ -1,5 +1,5 @@
-blank_issues_enabled: true
+blank_issues_enabled: false
 contact_links:
-  - name: Security vulnerability
-    url: https://github.com/eduardozf/wire-lang/security/advisories/new
-    about: Please report suspected vulnerabilities privately.
+  - name: Wire Lang documentation
+    url: https://github.com/eduardozf/wire-lang#readme
+    about: Wire Lang is deprecated. The README explains how to use existing releases.

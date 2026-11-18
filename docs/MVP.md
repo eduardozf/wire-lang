@@ -1,18 +1,16 @@
 # Wire Lang MVP
 
-## Package release contract
+Wire Lang is deprecated. This document describes the released behavior for
+people maintaining existing schematics or building from source.
 
-Public packages use independent versions. A `<directory>@<version>` tag selects
-exactly one package for publication and must match its package manifest. Supported
-directories are `core`, `cli`, `browser`, `markdown`, and `wire-lang`. Global `v*`
-tags are historical and no longer trigger releases. Manual publication also
-requires a package tag; branch runs can only perform a selected-package dry run.
-All repository release checks still run before publishing. Workspace dependencies
-are pinned to their own local versions, which must be published before consumers.
-Browser embeds core and needs its own release to distribute core changes. Package
-versions need not match language metadata or the installed CLI version.
+## Published packages
 
-See `.github/CONTRIBUTING.md` for the release procedure.
+The five public packages (`wire-lang`, `@wire-lang/core`, `@wire-lang/cli`,
+`@wire-lang/browser`, and `@wire-lang/markdown`) were versioned independently.
+Published workspace dependencies were pinned to their own package versions.
+`@wire-lang/browser` bundles core, so its renderer is tied to the browser package
+version. Package versions are independent of language metadata and the version
+reported by the CLI. Automated publishing has ended.
 
 This document defines the first useful version of Wire Lang: a JavaScript/TypeScript library and minimal developer CLI for turning textual electronic schematic descriptions into readable SVG diagrams.
 

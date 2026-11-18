@@ -1,5 +1,8 @@
 # wire-lang
 
+> Wire Lang is deprecated and no longer maintained. Existing releases remain
+> available. See the [project README](https://github.com/eduardozf/wire-lang#readme).
+
 Text-first electronic schematics rendered to SVG. This is the user-facing
 aggregate package: it re-exports the [`@wire-lang/core`](https://www.npmjs.com/package/@wire-lang/core)
 API and ships the `wire` CLI.
